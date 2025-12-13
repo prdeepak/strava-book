@@ -31,3 +31,19 @@ logs:
 
 clean:
 	docker-compose down --rmi all -v
+
+test:
+	docker-compose exec app pytest
+
+web-shell:
+	docker-compose run --rm web sh
+
+web-dev:
+	docker-compose run --rm -p 3000:3000 -w /app/web web npm run dev
+
+web-build:
+	docker-compose run --rm -w /app/web web npm run build
+
+web-check:
+	docker-compose run --rm -w /app/web web npm run lint
+	docker-compose run --rm -w /app/web web npm run build

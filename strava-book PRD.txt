@@ -1,0 +1,108 @@
+Here is a comprehensive Product Requirements Document (PRD) for your application. I have structured this to be hand-off ready for a developer or designer, while incorporating the specific workflow you requested.
+
+I have also added a section at the end called **"UX Enhancements"** with specific suggestions to make the app feel more "magical" and less like a data entry tool.
+
+---
+
+# Product Requirements Document (PRD)
+**Project Name:** Strava Commemorative Book Generator (Working Title: *VeloPress*)
+**Version:** 1.0
+**Status:** Draft
+
+## 1. Executive Summary
+The goal is to build a web application that ingests a user's Strava activity data and programmatically generates a high-quality, print-ready PDF "Yearbook." The output is designed to be a "coffee table" style keepsake, preserving ephemeral digital stats in a tangible, aesthetic format. The user experience prioritizes ease of use (automation) with optional depth of customization.
+
+## 2. Target Audience
+* **The Data Nerd:** Loves stats, splits, and heart rate zones.
+* **The Sentimentalist:** Wants to preserve memories of a first marathon or a big year of training.
+* **The Gifter:** A partner or friend creating a book for an athlete.
+
+## 3. User Flow & Core Features
+
+### Phase 1: Authentication & Ingestion
+* **Step 1: Landing & Auth**
+    * User lands on homepage.
+    * CTA: "Connect with Strava."
+    * **Action:** OAuth 2.0 authentication requesting `activity:read_all` and `profile:read_all` scopes.
+* **Step 2: The "Waiting Room" (Async Loading)**
+    * *System Action:* Backend initiates API calls to fetch user activities, activity streams (lat/long for maps), and profile stats.
+    * *User Action:* While data loads, the user is presented with **Global Configuration** options:
+        * **Book Title:** (Default: "My [Year] in Review")
+        * **Theme/Style:** Select from 3 presets (e.g., *Minimalist B&W*, *Bold/Editorial*, *Technical/Blueprint*).
+        * **Unit Preference:** Metric vs. Imperial (Auto-detect from Strava, but allow override).
+
+### Phase 2: Curation (The Builder)
+* **Step 3: Book Scope & Table of Contents**
+    * **Time Period:** User selects a specific year (e.g., 2023) or a custom date range.
+    * **The "Smart Draft":** The system auto-generates a proposed Table of Contents (TOC) based on the data found.
+        * *Logic:* If a "Race" tag is found, add a *Race Page*. If data spans Jan-Dec, add *Year in Review*.
+    * **Drag & Drop Interface:**
+        * **Left Panel (Template Library):** List of available page types (Race, Triathlon, Monthly Log, Heatmap, Best Efforts).
+        * **Center Panel (Book View):** The current page order. User can reorder pages, delete pages, or drag new templates in.
+        * **Right Panel (Page Config):** When a specific page is selected, contextual options appear (e.g., "Select which race to feature on this page").
+
+### Phase 3: Generation & Delivery
+* **Step 4: Rendering**
+    * User clicks "Generate Book."
+    * System displays a progress bar.
+    * *Long-polling fallback:* If generation > 30s, UI updates to: "We are building your book. We will email/text you when it's ready."
+* **Step 5: Delivery**
+    * User receives a "Download Ready" email.
+    * Landing page displays a high-res PDF Viewer.
+    * CTA buttons: "Download PDF," "Share," "Edit Book" (takes them back to Phase 2).
+
+## 4. Feature Requirements (The Templates)
+*Based on previous designs:*
+
+| Template Name | Data Requirements | Logic |
+| :--- | :--- | :--- |
+| **Race Page (Run)** | Map (Polyline), Elevation, Splits, Total Time, Date, Title. | User selects specific activity ID. System identifies if photos exist attached to activity. |
+| **Triathlon Page** | Swim/Bike/Run segments, Transition times. | Requires "Multi-sport" activity type parsing from Strava. |
+| **Year at a Glance** | Daily active/inactive boolean, activity type. | **Visual A:** Calendar Grid. **Visual B:** Streak Heatmap (GitHub style). |
+| **Year Graph View** | Monthly distances, Avg Pace vs. HR trends. | Aggregation of all activities within the selected date range. |
+| **Best Efforts** | PR data (1k, 5k, 10k, Half, Full). | Compare current period bests vs. all-time bests (if historical data allows). |
+| **Full History** | List of *all* activities (Date, Title, Dist, Time). | Paginated list. Likely requires multiple pages for active users. |
+| **Route Heatmap** | All polylines for the year overlayed. | Centered on the user's most frequent geolocation. |
+
+## 5. Technical Requirements
+* **Strava API:** Strict adherence to rate limits (100 requests/15 min, 1,000/day).
+    * *Strategy:* Webhook implementation or aggressive caching. Do not fetch *Streams* (detailed map points) for every activity—only for "Featured" pages (Races) to save API calls. Use summary polylines for the rest.
+* **PDF Generation:**
+    * Suggested Tech: `React-PDF` (for component-based layout) or `Puppeteer` (headless browser screenshotting) for highest visual fidelity.
+* **Map Tiles:**
+    * Use Mapbox Static Images API or similar for high-res print-ready map backgrounds. (Strava default maps are often too low-res for print).
+
+---
+
+## 6. UX Enhancements (Suggestions for a Better App)
+
+To make the experience smoother and the product more "premium," consider adding these features to the flow:
+
+### A. The "Smart Highlight" Detector (Crucial for UX)
+Don't make the user manually search for their marathon. During the data ingestion phase, write logic to identify:
+* **Longest Run:** Auto-suggest a "Race Page" template for this.
+* **Fastest 5k:** Auto-suggest a "Best Efforts" callout.
+* **Most Active Month:** Auto-suggest a specialized "Month in View" page.
+* *Benefit:* The user opens the editor and the book is already 80% perfect.
+
+### B. "Low-Res" Live Preview
+Generating a print-quality PDF takes time.
+* **The Fix:** Build the book using HTML/Canvas in the browser first. Let the user flip through a digital version instantly. Only generate the heavy PDF when they hit "Finalize." This makes the app feel "instant."
+
+### C. Photo High-Res Uploader
+Strava compresses images heavily. If the user wants to print this:
+* **Feature:** On the "Race Page" template, allow the user to swap the blurry Strava photo for a high-res upload from their computer camera roll.
+
+### D. The "Foreword" & "Dedication"
+A book feels mechanical without text.
+* **Feature:** Add a simple text-entry page at the start.
+    * *Prompt:* "Write a note to your future self, or describe your main goal for this year."
+
+### E. "Print on Demand" Integration (Future Scope)
+Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)" button.
+* Integration with an API like Blurb, Lulu, or Gelato.
+
+## 7. Next Steps for Development
+1.  **Prototype:** Build the Strava Auth + Data Fetching script to see what raw data you actually get.
+2.  **Design System:** Create the CSS/React components for the 6 template types defined in the previous step.
+3.  **PDF POC:** Create a script that takes *one* React component and successfully renders it to a PDF file.

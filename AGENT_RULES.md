@@ -8,3 +8,7 @@
    - To enter terminal: `make shell`
    - To apply changes to requirements.txt: `make build` then `make up`
 4. **Restriction**: NEVER run python scripts directly on the host machine.
+
+5. **Testing**:
+   - Run unit tests with: `make test`
+   - ALWAYS run tests before confirming a task is complete.
