@@ -12,7 +12,6 @@ export default async function BookPreviewPage() {
         redirect("/api/auth/signin")
     }
 
-    // @ts-ignore session extension
     const accessToken = session.accessToken
 
     // Fetch up to 30 recent activities

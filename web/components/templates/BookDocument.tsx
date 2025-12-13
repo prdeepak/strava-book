@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
 import { RacePageContent } from './RacePage'
