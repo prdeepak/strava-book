@@ -25,9 +25,17 @@ export default async function BuilderPage() {
     return (
         <main className="min-h-screen bg-stone-50 text-stone-900 p-8">
             <header className="max-w-6xl mx-auto mb-12 flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-orange-600 tracking-tight">Activity Builder</h1>
-                    <p className="text-stone-500">Select activities for your book.</p>
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-stone-800">Your Activities</h1>
+                        <p className="text-stone-500">Select activities to include in your book</p>
+                    </div>
+                    <Link
+                        href="/preview/book"
+                        className="px-6 py-3 bg-orange-600 text-white font-bold rounded shadow hover:bg-orange-700 transition"
+                    >
+                        Generate Smart Book
+                    </Link>
                 </div>
                 <div className="text-sm font-mono bg-stone-200 px-3 py-1 rounded">
                     Found {activities.length} activities

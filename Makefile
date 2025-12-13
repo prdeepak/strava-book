@@ -1,16 +1,15 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run logs clean help
+.PHONY: up down build shell run test logs clean help sync
 
 help:
 	@echo "Available commands:"
 	@echo "  make up      - Start the container in the background"
-	@echo "  make down    - Stop the container"
-	@echo "  make build   - Rebuild the image (run this after changing requirements.txt)"
-	@echo "  make shell   - Enter the container terminal"
 	@echo "  make run     - Run main.py inside the container"
-	@echo "  make logs    - View container logs"
+	@echo "  make test    - Run the test suite (pytest)"
+	@echo "  make sync    - Commit & Push to GitHub (usage: make sync msg=\"Your message\")"
 
+# ... (Standard Docker commands kept for reference) ...
 up:
 	docker-compose up -d
 
@@ -26,24 +25,15 @@ shell:
 run:
 	docker-compose exec app python main.py
 
-logs:
-	docker-compose logs -f app
-
-clean:
-	docker-compose down --rmi all -v
-
 test:
 	docker-compose exec app pytest
 
-web-shell:
-	docker-compose run --rm web sh
+# --- The Smart Sync Command ---
+# Default to timestamp if no 'msg' is provided
+msg ?= Antigravity Auto-save: $(shell date '+%Y-%m-%d %H:%M:%S')
 
-web-dev:
-	docker-compose run --rm -p 3000:3000 -w /app/web web npm run dev
-
-web-build:
-	docker-compose run --rm -w /app/web web npm run build
-
-web-check:
-	docker-compose run --rm -w /app/web web npm run lint
-	docker-compose run --rm -w /app/web web npm run build
+sync:
+	git add .
+	@echo "📦 Committing with message: '$(msg)'"
+	git commit -m "$(msg)"
+	git push origin main
