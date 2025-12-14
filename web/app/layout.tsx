@@ -15,9 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Strava Book",
   description: "Your Year in Print. Turn your Strava data into a beautiful book.",
-  icons: {
-    icon: "/favicon.png",
-  },
 };
 
 export default function RootLayout({
