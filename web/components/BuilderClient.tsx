@@ -236,6 +236,7 @@ export default function BuilderClient({ initialActivities, accessToken }: Builde
                                 >
                                     <option value="" disabled>Select template...</option>
                                     <option value={`/preview/race_1p/${activity.id}`}>Race (1 Page)</option>
+                                    <option value={`/preview/race_1p_graph/${activity.id}`}>Race (1 Page - Graph)</option>
                                     <option value={`/preview/race_2p/${activity.id}`}>Race (2 Pages)</option>
                                 </select>
                             </div>

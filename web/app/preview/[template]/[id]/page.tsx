@@ -4,9 +4,9 @@ import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
 import { fetchActivityForPreview, enrichActivityWithGeocoding } from "@/lib/activity-utils"
 
-type RaceTemplate = 'race_1p' | 'race_2p'
+type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph'
 
-const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p']
+const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p', 'race_1p_graph']
 
 export default async function PreviewPage(props: {
     params: Promise<{ template: string; id: string }>
