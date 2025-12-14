@@ -70,4 +70,13 @@ export type StravaActivity = {
     location_city?: string
     workout_type?: number | null
     start_latlng?: [number, number] // [latitude, longitude]
+    best_efforts?: Array<{
+        name: string
+        elapsed_time: number
+        moving_time: number
+        distance: number
+        start_index: number
+        end_index: number
+        pr_rank?: number | null // 1 = PR, 2 = 2nd best, 3 = 3rd best, etc.
+    }>
 }
