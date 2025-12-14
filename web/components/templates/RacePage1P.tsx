@@ -1,6 +1,7 @@
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
+import { generateSplitsChartData } from '@/lib/generateSplitsChart'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -368,48 +369,122 @@ export const RacePage1P = ({ activity, mapboxToken }: RacePage1PProps) => {
                     </View>
                 </View>
 
-                {/* Three-column layout for splits, best efforts, and comments */}
+                {/* Three-column layout for splits chart, best efforts, and comments */}
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {/* Splits Column with Visual Bars */}
+                    {/* Splits Chart Column */}
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.sectionTitle}>
-                            Splits {rawSplits.length > 12 ? '(5km)' : ''}
-                        </Text>
+                        <Text style={styles.sectionTitle}>Splits</Text>
                         {displaySplits.length > 0 && (() => {
-                            // Calculate pace range for bar scaling
-                            const paces = displaySplits.map(s => s.moving_time / (s.distance / 1000))
-                            const minPace = Math.min(...paces)
-                            const maxPace = Math.max(...paces)
-                            const paceRange = maxPace - minPace || 1
+                            const chartData = generateSplitsChartData(displaySplits, activity.moving_time, {
+                                width: 180,
+                                height: 120
+                            })
+
+                            if (!chartData) return null
+
+                            const { dimensions, paceData, elevData, barData } = chartData
+                            const { width, height, padding, paceHeight, elevHeight } = dimensions
 
                             return (
-                                <View style={{ marginTop: 4 }}>
-                                    {displaySplits.map((split, i) => {
-                                        const paceSeconds = split.moving_time / (split.distance / 1000)
-                                        const paceMin = Math.floor(paceSeconds / 60)
-                                        const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
+                                <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ marginTop: 4 }}>
+                                    {/* Background */}
+                                    <Polyline points={`0,0 ${width},0 ${width},${height} 0,${height}`} fill="white" stroke="none" />
 
-                                        // Calculate bar width (normalized pace)
-                                        const paceNorm = (paceSeconds - minPace) / paceRange
-                                        const barWidth = paceNorm * 70 + 25 // 25-95% width
+                                    {/* Y-axis (pace) */}
+                                    <Polyline
+                                        points={`${padding.left},${padding.top} ${padding.left},${padding.top + paceHeight}`}
+                                        stroke="#999"
+                                        strokeWidth="0.5"
+                                        fill="none"
+                                    />
 
+                                    {/* Pace scale ticks and labels */}
+                                    {paceData.paceTicks.map((tick, i) => (
+                                        <View key={`pace-${i}`}>
+                                            {/* Tick mark */}
+                                            <Polyline
+                                                points={`${padding.left - 2},${tick.y} ${padding.left},${tick.y}`}
+                                                stroke="#999"
+                                                strokeWidth="0.5"
+                                                fill="none"
+                                            />
+                                        </View>
+                                    ))}
+
+                                    {/* Pace labels as SVG text */}
+                                    {paceData.paceTicks.map((tick, i) => (
+                                        <Svg key={`pace-label-${i}`}>
+                                            <Text
+                                                x={padding.left - 4}
+                                                y={tick.y + 2}
+                                                style={{
+                                                    fontSize: 5,
+                                                    fontFamily: 'Helvetica',
+                                                    fill: '#666'
+                                                }}
+                                                textAnchor="end"
+                                            >
+                                                {tick.label}
+                                            </Text>
+                                        </Svg>
+                                    ))}
+
+                                    {/* Elevation profile */}
+                                    {(() => {
+                                        const elevY = padding.top + paceHeight
+                                        let elevPoints = `${padding.left},${elevY + elevHeight}`
+
+                                        barData.forEach((bar) => {
+                                            const x = bar.x + bar.width / 2
+                                            const elevNorm = bar.split.elevation_difference / elevData.elevRange
+                                            const y = elevY + elevHeight - (Math.abs(elevNorm) * elevHeight * 0.8)
+                                            elevPoints += ` ${x},${y}`
+                                        })
+
+                                        elevPoints += ` ${padding.left + dimensions.plotWidth},${elevY + elevHeight}`
+
+                                        return <Polyline points={elevPoints} fill="#cccccc" stroke="none" />
+                                    })()}
+
+                                    {/* Elevation scale labels as SVG text (on left side) */}
+                                    {elevData.elevTicks.map((tick, i) => {
+                                        const elevY = padding.top + paceHeight
+                                        const y = i === 0 ? elevY + 2 : elevY + elevHeight + 2
                                         return (
-                                            <View key={i} style={{ marginBottom: 3 }}>
-                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
-                                                    <Text style={{ fontSize: 6, fontFamily: 'Helvetica', color: '#666' }}>
-                                                        {split.label}
-                                                    </Text>
-                                                    <Text style={{ fontSize: 6, fontFamily: 'Helvetica-Bold', color: '#000' }}>
-                                                        {paceMin}:{paceSec}
-                                                    </Text>
-                                                </View>
-                                                <View style={{ width: '100%', height: 4, backgroundColor: '#f0f0f0' }}>
-                                                    <View style={{ width: `${barWidth}%`, height: 4, backgroundColor: '#0a7ea4' }} />
-                                                </View>
-                                            </View>
+                                            <Svg key={`elev-label-${i}`}>
+                                                <Text
+                                                    x={padding.left - 4}
+                                                    y={y}
+                                                    style={{
+                                                        fontSize: 5,
+                                                        fontFamily: 'Helvetica',
+                                                        fill: '#999'
+                                                    }}
+                                                    textAnchor="end"
+                                                >
+                                                    {tick.label}
+                                                </Text>
+                                            </Svg>
                                         )
                                     })}
-                                </View>
+
+                                    {/* Pace bars */}
+                                    {barData.map((bar, i) => {
+                                        const paceSeconds = bar.split.moving_time / (bar.split.distance / 1000)
+                                        const paceNorm = (paceSeconds - paceData.minPace) / paceData.paceRange
+                                        const barHeight = paceNorm * paceHeight * 0.7 + paceHeight * 0.15
+                                        const y = padding.top + paceHeight - barHeight
+
+                                        return (
+                                            <Polyline
+                                                key={i}
+                                                points={`${bar.x},${y} ${bar.x + bar.width - 0.5},${y} ${bar.x + bar.width - 0.5},${padding.top + paceHeight} ${bar.x},${padding.top + paceHeight}`}
+                                                fill="#0a7ea4"
+                                                stroke="none"
+                                            />
+                                        )
+                                    })}
+                                </Svg>
                             )
                         })()}
                     </View>
