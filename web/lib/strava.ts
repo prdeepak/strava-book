@@ -69,4 +69,5 @@ export type StravaActivity = {
     }
     location_city?: string
     workout_type?: number | null
+    start_latlng?: [number, number] // [latitude, longitude]
 }
