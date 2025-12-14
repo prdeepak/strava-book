@@ -71,7 +71,7 @@ interface RacePageProps {
 }
 
 export const RacePageContent = ({ activity, highlightLabel }: RacePageProps) => (
-    <Page size="A4" style={styles.page}>
+    <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
             {highlightLabel && (
                 <Text style={{ fontSize: 10, color: 'orange', textTransform: 'uppercase', marginBottom: 4 }}>

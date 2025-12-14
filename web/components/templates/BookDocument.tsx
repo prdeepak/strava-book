@@ -35,7 +35,7 @@ export const BookDocument = ({ entries, activities }: BookDocumentProps) => (
         {entries.map((entry, index) => {
             if (entry.type === 'COVER') {
                 return (
-                    <Page key={index} size="A4" style={styles.coverPage}>
+                    <Page key={index} size="LETTER" style={styles.coverPage}>
                         <Text style={styles.coverTitle}>{entry.title || 'My Strava Book'}</Text>
                         <Text style={styles.coverSubtitle}>A collection of your greatest efforts</Text>
                     </Page>

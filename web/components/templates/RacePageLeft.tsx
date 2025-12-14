@@ -103,7 +103,7 @@ export const RacePageLeft = ({ activity, highlightLabel, mapboxToken }: RacePage
     const cleanTitle = stripEmojis(activity.name)
 
     return (
-        <Page size="A4" style={styles.page}>
+        <Page size="LETTER" style={styles.page}>
             <View style={{ width: '100%', height: '100%', position: 'relative' }}>
                 {bgImage && (
                     <Image

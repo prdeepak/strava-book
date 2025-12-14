@@ -160,7 +160,7 @@ export const RacePageRight = ({ activity, mapboxToken }: RacePageRightProps) => 
     }
 
     return (
-        <Page size="A4" style={styles.page}>
+        <Page size="LETTER" style={styles.page}>
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
                     <Image src={satelliteUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
