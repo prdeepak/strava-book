@@ -223,12 +223,22 @@ export default function BuilderClient({ initialActivities, accessToken }: Builde
                                 </div>
                             </div>
 
-                            <Link
-                                href={`/preview/race_2p/${activity.id}`}
-                                className="mt-4 block w-full text-center py-2 rounded border border-orange-200 text-orange-600 text-sm hover:bg-orange-50 transition-colors"
-                            >
-                                Preview PDF
-                            </Link>
+                            <div className="mt-4">
+                                <label className="block text-xs text-stone-500 mb-1">Preview Template</label>
+                                <select
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            window.location.href = e.target.value
+                                        }
+                                    }}
+                                    defaultValue=""
+                                    className="w-full px-3 py-2 rounded border border-orange-200 text-orange-600 text-sm bg-white hover:bg-orange-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                >
+                                    <option value="" disabled>Select template...</option>
+                                    <option value={`/preview/race_1p/${activity.id}`}>Race (1 Page)</option>
+                                    <option value={`/preview/race_2p/${activity.id}`}>Race (2 Pages)</option>
+                                </select>
+                            </div>
                         </div>
                     )
                 })}
