@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
 
         return new NextResponse(blob, { headers })
     } catch (e) {
+        console.error("Proxy error:", e)
         return new NextResponse("Failed to fetch image", { status: 500 })
     }
 }

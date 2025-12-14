@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth"
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
@@ -7,6 +8,10 @@ import { fetchActivityForPreview, enrichActivityWithGeocoding } from "@/lib/acti
 type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph'
 
 const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p', 'race_1p_graph']
+
+export const metadata: Metadata = {
+    title: "Strava Book - Page Preview",
+}
 
 export default async function PreviewPage(props: {
     params: Promise<{ template: string; id: string }>

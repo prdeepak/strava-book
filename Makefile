@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker
 
 help:
 	@echo "Available commands:"
@@ -10,8 +10,28 @@ help:
 	@echo "  make sync    - Commit & Push to GitHub (usage: make sync msg=\"Your message\")"
 	@echo "  make web-dev - Start the Next.js dev server"
 
+
+# --- The Smart Check ---
+# This checks if docker is responding. If not, it opens the app and waits.
+DOCKER_APP := OrbStack
+
+check-docker:
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "🐳 Docker is not running. Launching $(DOCKER_APP)..."; \
+		open -a "$(DOCKER_APP)"; \
+		echo "⏳ Waiting for Docker to be ready..."; \
+		while ! docker info > /dev/null 2>&1; do \
+			sleep 1; \
+			printf "."; \
+		done; \
+		echo ""; \
+		echo "✅ Docker is ready!"; \
+	fi
+
+
 # ... (Standard Docker commands kept for reference) ...
 up:
+	make check-docker
 	docker-compose up -d
 
 down:
@@ -39,6 +59,7 @@ sync:
 	git commit -m "$(msg)"
 	git push origin main
 
+
 # --- Web App Commands ---
 web-shell:
 	docker-compose run --rm -w /app/web web /bin/sh
@@ -59,6 +80,7 @@ web-restart:
 	@docker ps -q --filter "name=strava-book-web" | xargs -r docker stop
 	@echo "Starting new web server..."
 	$(MAKE) web-dev
+
 
 # --- Start the day ---
 start-work:

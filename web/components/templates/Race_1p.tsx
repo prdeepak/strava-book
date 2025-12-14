@@ -300,9 +300,11 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                 {hasBothImages && (
                     <View style={styles.imagesSection}>
                         <View style={styles.imageContainer}>
+                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
                             <Image src={stravaPhoto!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </View>
                         <View style={styles.imageContainer}>
+                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
                             <Image src={satelliteMap!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </View>
                     </View>
@@ -310,12 +312,14 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
 
                 {hasOnlyPhoto && (
                     <View style={styles.fullWidthImage}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         <Image src={stravaPhoto!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </View>
                 )}
 
                 {hasOnlyMap && (
                     <View style={styles.fullWidthImage}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         <Image src={satelliteMap!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </View>
                 )}

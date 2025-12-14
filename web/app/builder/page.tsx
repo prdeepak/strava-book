@@ -1,8 +1,13 @@
 import { getServerSession } from "next-auth"
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { getAthleteActivities, StravaActivity } from "@/lib/strava"
 import { authOptions } from "../api/auth/[...nextauth]/route"
 import BuilderClient from "@/components/BuilderClient"
+
+export const metadata: Metadata = {
+    title: "Strava Book - Create",
+}
 
 export default async function BuilderPage() {
     const session = await getServerSession(authOptions)
@@ -19,6 +24,7 @@ export default async function BuilderPage() {
     try {
         activities = await getAthleteActivities(accessToken, { perPage: 200 })
     } catch (e) {
+        console.error("Builder fetch error:", e)
         error = "Failed to load activities. Please try logging in again."
     }
 

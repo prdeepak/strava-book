@@ -85,7 +85,7 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
         const rangeY = maxY - minY
 
         // Add padding
-        const padding = 0.1
+
 
         // Scale to fit width/height
         // We revert Y because SVG Y grows downwards, but Lat grows upwards.
@@ -163,6 +163,7 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
         <Page size="LETTER" style={styles.page}>
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
                     <Image src={satelliteUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                     <>

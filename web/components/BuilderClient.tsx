@@ -17,7 +17,7 @@ const WORKOUT_TYPES: Record<number, string> = {
     3: 'Workout'
 }
 
-export default function BuilderClient({ initialActivities, accessToken }: BuilderClientProps) {
+export default function BuilderClient({ initialActivities }: BuilderClientProps) {
     // Calculate default date range
     const now = new Date()
     const currentYear = now.getFullYear()

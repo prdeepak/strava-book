@@ -76,7 +76,7 @@ export interface Race_2pLeftProps {
     mapboxToken?: string
 }
 
-export const Race_2pLeft = ({ activity, highlightLabel, mapboxToken }: Race_2pLeftProps) => {
+export const Race_2pLeft = ({ activity, highlightLabel }: Race_2pLeftProps) => {
     // Check for high-res photo, typically Strava doesn't give full res via API without more scope/logic
     // but we added type support. For now, if no photo, we keep the dark background.
     // Use proxy to avoid CORS
@@ -91,6 +91,7 @@ export const Race_2pLeft = ({ activity, highlightLabel, mapboxToken }: Race_2pLe
         <Page size="LETTER" style={styles.page}>
             <View style={{ width: '100%', height: '100%', position: 'relative' }}>
                 {bgImage && (
+                    // eslint-disable-next-line jsx-a11y/alt-text
                     <Image
                         src={bgImage}
                         style={styles.backgroundImage}

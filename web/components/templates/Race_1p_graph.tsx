@@ -322,6 +322,7 @@ export const Race_1p_graph = ({ activity, mapboxToken }: Race_1p_graphProps) => 
                     <View style={{ flex: 1 }}>
                         <Text style={styles.sectionTitle}>Route</Text>
                         {satelliteMap ? (
+                            // eslint-disable-next-line jsx-a11y/alt-text
                             <Image
                                 src={satelliteMap}
                                 style={{ width: 180, height: 120, objectFit: 'cover', marginTop: 4 }}
