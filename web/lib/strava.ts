@@ -1,5 +1,14 @@
-export async function getAthleteActivities(accessToken: string): Promise<StravaActivity[]> {
-    const res = await fetch("https://www.strava.com/api/v3/athlete/activities?per_page=30", {
+export async function getAthleteActivities(
+    accessToken: string,
+    options?: { after?: number; before?: number; perPage?: number; page?: number }
+): Promise<StravaActivity[]> {
+    const params = new URLSearchParams()
+    params.set('per_page', (options?.perPage || 30).toString())
+    if (options?.after) params.set('after', options.after.toString())
+    if (options?.before) params.set('before', options.before.toString())
+    if (options?.page) params.set('page', options.page.toString())
+
+    const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?${params}`, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
         },
@@ -59,4 +68,5 @@ export type StravaActivity = {
         count: number
     }
     location_city?: string
+    workout_type?: number | null
 }
