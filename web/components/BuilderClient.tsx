@@ -18,9 +18,23 @@ const WORKOUT_TYPES: Record<number, string> = {
 }
 
 export default function BuilderClient({ initialActivities, accessToken }: BuilderClientProps) {
+    // Calculate default date range
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0-indexed (0 = January, 3 = April)
+
+    // If current month is January-April (0-3), use last calendar year
+    // Otherwise, use year-to-date
+    const defaultFromDate = currentMonth <= 3
+        ? `${currentYear - 1}-01-01`
+        : `${currentYear}-01-01`
+    const defaultToDate = currentMonth <= 3
+        ? `${currentYear - 1}-12-31`
+        : now.toISOString().split('T')[0]
+
     const [activities, setActivities] = useState(initialActivities)
-    const [fromDate, setFromDate] = useState('')
-    const [toDate, setToDate] = useState('')
+    const [fromDate, setFromDate] = useState(defaultFromDate)
+    const [toDate, setToDate] = useState(defaultToDate)
     const [loading, setLoading] = useState(false)
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(initialActivities.length >= 200)
@@ -140,13 +154,13 @@ export default function BuilderClient({ initialActivities, accessToken }: Builde
                         </button>
                         <button
                             onClick={() => {
-                                setFromDate('')
-                                setToDate('')
+                                setFromDate(defaultFromDate)
+                                setToDate(defaultToDate)
                                 setActivities(initialActivities)
                             }}
                             className="px-4 py-2 border border-stone-300 text-stone-600 rounded hover:bg-stone-50 transition"
                         >
-                            Clear
+                            Reset
                         </button>
                     </div>
                 </div>
