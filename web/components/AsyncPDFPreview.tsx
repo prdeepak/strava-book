@@ -3,17 +3,21 @@
 import dynamic from 'next/dynamic'
 import { StravaActivity } from '@/lib/strava'
 
+// Dynamically import PDFPreview to avoid SSR issues with react-pdf
+
+type RaceTemplate = 'race_1p' | 'race_2p'
+
 interface AsyncPDFPreviewProps {
     activity: StravaActivity
     mapboxToken?: string
+    template?: RaceTemplate
 }
 
-// Dynamic import with SSR disabled
 const PDFPreview = dynamic(() => import('./PDFPreview'), {
     ssr: false,
-    loading: () => <p>Loading PDF Renderer...</p>
+    loading: () => <div>Loading PDF...</div>
 })
 
-export default function AsyncPDFPreview({ activity, mapboxToken }: AsyncPDFPreviewProps) {
-    return <PDFPreview activity={activity} mapboxToken={mapboxToken} />
+export default function AsyncPDFPreview({ activity, mapboxToken, template = 'race_2p' }: AsyncPDFPreviewProps) {
+    return <PDFPreview activity={activity} mapboxToken={mapboxToken} template={template} />
 }

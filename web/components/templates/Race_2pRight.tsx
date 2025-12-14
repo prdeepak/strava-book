@@ -103,12 +103,12 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
     }
 }
 
-interface RacePageRightProps {
+interface Race_2pRightProps {
     activity: StravaActivity
     mapboxToken?: string
 }
 
-export const RacePageRight = ({ activity, mapboxToken }: RacePageRightProps) => {
+export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
     const mapPoints = normalizePoints(activity.map.summary_polyline, 500, 300)
 
     // Fallback if no splits fetched (default api call might not have them without effort detail)
@@ -144,7 +144,7 @@ export const RacePageRight = ({ activity, mapboxToken }: RacePageRightProps) => 
     // If we have a Mapbox Token, use the Static Images API for satellite view
     // Use prop token
     // const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN // Moved to parent
-    console.log("[RacePageRight] Mapbox Token Prop:", !!mapboxToken)
+    console.log("[Race_2pRight] Mapbox Token Prop:", !!mapboxToken)
     let satelliteUrl = null
     if (mapboxToken && activity.map.summary_polyline) {
         // Construct detailed Mapbox Static URL
@@ -155,8 +155,8 @@ export const RacePageRight = ({ activity, mapboxToken }: RacePageRightProps) => 
 
         // Use local proxy to ensure PDF renderer can fetch it without CORS/Browser issues
         satelliteUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`
-        console.log("[RacePageRight] Generated Satellite URL:", satelliteUrl)
-        console.log("[RacePageRight] Raw Mapbox URL:", rawUrl)
+        console.log("[Race_2pRight] Generated Satellite URL:", satelliteUrl)
+        console.log("[Race_2pRight] Raw Mapbox URL:", rawUrl)
     }
 
     return (

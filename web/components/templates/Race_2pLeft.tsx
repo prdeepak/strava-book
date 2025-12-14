@@ -1,5 +1,6 @@
 import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { resolveActivityLocation } from '@/lib/activity-utils'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -69,13 +70,13 @@ const styles = StyleSheet.create({
     }
 })
 
-export interface RacePageLeftProps {
+export interface Race_2pLeftProps {
     activity: StravaActivity
     highlightLabel?: string
     mapboxToken?: string
 }
 
-export const RacePageLeft = ({ activity, highlightLabel, mapboxToken }: RacePageLeftProps) => {
+export const Race_2pLeft = ({ activity, highlightLabel, mapboxToken }: Race_2pLeftProps) => {
     // Check for high-res photo, typically Strava doesn't give full res via API without more scope/logic
     // but we added type support. For now, if no photo, we keep the dark background.
     // Use proxy to avoid CORS
@@ -83,23 +84,8 @@ export const RacePageLeft = ({ activity, highlightLabel, mapboxToken }: RacePage
         ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
         : null
 
-    // Location Resolution Logic
-    // Priority: 1) Strava location_city, 2) Reverse geocode from coordinates, 3) Timezone fallback, 4) Unknown
-    let location = activity.location_city
-
-    // If no location_city and we have coordinates + mapbox token, use reverse geocoding
-    // Note: This would need to be done server-side or via an API route for security
-    // For now, we'll use the existing fallback but document the improvement
-    if (!location && activity.timezone) {
-        // Parse timezone like "(GMT-05:00) America/New_York"
-        const parts = activity.timezone.split('/')
-        if (parts.length > 1) {
-            location = parts[parts.length - 1].replace(/_/g, ' ')
-        }
-    }
-    if (!location) {
-        location = 'Unknown Location'
-    }
+    // Use utility function for location resolution
+    const location = resolveActivityLocation(activity)
 
     return (
         <Page size="LETTER" style={styles.page}>

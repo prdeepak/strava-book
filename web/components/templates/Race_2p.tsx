@@ -1,7 +1,7 @@
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
-import { RacePageLeft } from './RacePageLeft'
-import { RacePageRight } from './RacePageRight'
+import { Race_2pLeft } from './Race_2pLeft'
+import { Race_2pRight } from './Race_2pRight'
 
 // Register a nice font if possible, using standard Helvetica for now
 const styles = StyleSheet.create({
@@ -65,12 +65,12 @@ const styles = StyleSheet.create({
     },
 })
 
-interface RacePageProps {
+interface Race_2pProps {
     activity: StravaActivity
     highlightLabel?: string
 }
 
-export const RacePageContent = ({ activity, highlightLabel }: RacePageProps) => (
+export const Race_2pContent = ({ activity, highlightLabel }: Race_2pProps) => (
     <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
             {highlightLabel && (
@@ -115,19 +115,19 @@ export const RacePageContent = ({ activity, highlightLabel }: RacePageProps) => 
     </Page>
 )
 
-export interface RacePageSpreadProps {
+export interface Race_2pSpreadProps {
     activity: StravaActivity
     mapboxToken?: string
     highlightLabel?: string
 }
 
-export const RacePageSpread = ({ activity, mapboxToken, highlightLabel }: RacePageSpreadProps) => (
+export const Race_2pSpread = ({ activity, mapboxToken, highlightLabel }: Race_2pSpreadProps) => (
     <Document>
-        <RacePageLeft activity={activity} highlightLabel={highlightLabel} />
-        <RacePageRight activity={activity} mapboxToken={mapboxToken} />
+        <Race_2pLeft activity={activity} highlightLabel={highlightLabel} />
+        <Race_2pRight activity={activity} mapboxToken={mapboxToken} />
     </Document>
 )
 
-export const RacePage = ({ activity, mapboxToken }: { activity: StravaActivity, mapboxToken?: string }) => (
-    <RacePageSpread activity={activity} mapboxToken={mapboxToken} />
+export const Race_2p = ({ activity, mapboxToken }: { activity: StravaActivity, mapboxToken?: string }) => (
+    <Race_2pSpread activity={activity} mapboxToken={mapboxToken} />
 )

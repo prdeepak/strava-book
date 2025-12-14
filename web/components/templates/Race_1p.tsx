@@ -2,6 +2,7 @@ import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } fr
 import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
 import { generateSplitsChartData } from '@/lib/generateSplitsChart'
+import { resolveActivityLocation } from '@/lib/activity-utils'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -186,12 +187,12 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
     }
 }
 
-interface RacePage1PProps {
+interface Race_1pProps {
     activity: StravaActivity
     mapboxToken?: string
 }
 
-export const RacePage1P = ({ activity, mapboxToken }: RacePage1PProps) => {
+export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
     // Get Strava photo if available
     const stravaPhoto = activity.photos?.primary?.urls?.['600']
         ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
@@ -211,17 +212,8 @@ export const RacePage1P = ({ activity, mapboxToken }: RacePage1PProps) => {
     const hasOnlyMap = !stravaPhoto && satelliteMap
     const hasNoImages = !stravaPhoto && !satelliteMap
 
-    // Location resolution
-    let location = activity.location_city
-    if (!location && activity.timezone) {
-        const parts = activity.timezone.split('/')
-        if (parts.length > 1) {
-            location = parts[parts.length - 1].replace(/_/g, ' ')
-        }
-    }
-    if (!location) {
-        location = 'Unknown Location'
-    }
+    // Use utility function for location resolution
+    const location = resolveActivityLocation(activity)
 
     // Prepare splits data - limit to 12 for space
     const rawSplits = activity.splits_metric || []
