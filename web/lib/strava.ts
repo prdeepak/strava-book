@@ -88,6 +88,18 @@ export type StravaActivity = {
         average_speed: number
         pace_zone: number
     }>
+    laps?: Array<{
+        id: number
+        name: string
+        distance: number
+        elapsed_time: number
+        moving_time: number
+        start_index: number
+        end_index: number
+        total_elevation_gain: number
+        average_speed: number
+        lap_index: number
+    }>
     photos?: {
         primary: {
             urls?: {

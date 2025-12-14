@@ -215,30 +215,24 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)
 
-    // Prepare splits data - limit to 12 for space
+    // Prepare chart data - prefer laps over splits
+    // Laps represent manual lap markers (e.g., race laps), splits are auto-generated per km
+    const rawLaps = activity.laps || []
     const rawSplits = activity.splits_metric || []
+
     let displaySplits = []
-
-    if (rawSplits.length > 12) {
-        // Aggregate to 5km chunks for very long runs
-        const chunkSize = 5
-        for (let i = 0; i < rawSplits.length && displaySplits.length < 12; i += chunkSize) {
-            const chunk = rawSplits.slice(i, i + chunkSize)
-            const last = chunk[chunk.length - 1]
-            const totalMovingTime = chunk.reduce((acc, curr) => acc + curr.moving_time, 0)
-            const totalDist = chunk.reduce((acc, curr) => acc + curr.distance, 0)
-            const totalElev = chunk.reduce((acc, curr) => acc + curr.elevation_difference, 0)
-
-            displaySplits.push({
-                split: last.split,
-                moving_time: totalMovingTime,
-                distance: totalDist,
-                elevation_difference: totalElev,
-                label: `${chunk[0].split}-${last.split}km`
-            })
-        }
+    if (rawLaps.length > 0) {
+        // Use laps if available
+        displaySplits = rawLaps.map(lap => ({
+            split: lap.lap_index,
+            label: lap.name || `Lap ${lap.lap_index}`,
+            moving_time: lap.moving_time,
+            distance: lap.distance,
+            elevation_difference: lap.total_elevation_gain
+        }))
     } else {
-        displaySplits = rawSplits.slice(0, 12).map(s => ({ ...s, label: s.split.toString() }))
+        // Fall back to splits
+        displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }))
     }
 
     // Prepare best efforts with smart prioritization
@@ -374,7 +368,7 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
 
                             if (!chartData) return null
 
-                            const { dimensions, paceData, elevData, barData } = chartData
+                            const { dimensions, paceData, elevData, barData, lapLabels, progressMarkers, finishMarker, axes } = chartData
                             const { width, height, padding, paceHeight, elevHeight } = dimensions
 
                             return (
@@ -382,83 +376,97 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                                     {/* Background */}
                                     <Polyline points={`0,0 ${width},0 ${width},${height} 0,${height}`} fill="white" stroke="none" />
 
-                                    {/* Y-axis (pace) */}
+                                    {/* Axes */}
+                                    {/* Left Y-axis (pace) */}
                                     <Polyline
-                                        points={`${padding.left},${padding.top} ${padding.left},${padding.top + paceHeight}`}
+                                        points={`${axes.paceAxis.x1},${axes.paceAxis.y1} ${axes.paceAxis.x2},${axes.paceAxis.y2}`}
                                         stroke="#999"
-                                        strokeWidth="0.5"
+                                        strokeWidth="1"
+                                        fill="none"
+                                    />
+                                    {/* Right Y-axis (elevation) */}
+                                    <Polyline
+                                        points={`${axes.elevAxis.x1},${axes.elevAxis.y1} ${axes.elevAxis.x2},${axes.elevAxis.y2}`}
+                                        stroke="#999"
+                                        strokeWidth="1"
+                                        fill="none"
+                                    />
+                                    {/* Bottom X-axis */}
+                                    <Polyline
+                                        points={`${axes.xAxis.x1},${axes.xAxis.y1} ${axes.xAxis.x2},${axes.xAxis.y2}`}
+                                        stroke="#999"
+                                        strokeWidth="1"
                                         fill="none"
                                     />
 
                                     {/* Pace scale ticks and labels */}
                                     {paceData.paceTicks.map((tick, i) => (
                                         <View key={`pace-${i}`}>
-                                            {/* Tick mark */}
                                             <Polyline
-                                                points={`${padding.left - 2},${tick.y} ${padding.left},${tick.y}`}
+                                                points={`${padding.left - 3},${tick.y} ${padding.left},${tick.y}`}
                                                 stroke="#999"
                                                 strokeWidth="0.5"
                                                 fill="none"
                                             />
-                                        </View>
-                                    ))}
-
-                                    {/* Pace labels as SVG text */}
-                                    {paceData.paceTicks.map((tick, i) => (
-                                        <Svg key={`pace-label-${i}`}>
-                                            <Text
-                                                x={padding.left - 4}
-                                                y={tick.y + 2}
-                                                style={{
-                                                    fontSize: 5,
-                                                    fontFamily: 'Helvetica',
-                                                    fill: '#666'
-                                                }}
-                                                textAnchor="end"
-                                            >
-                                                {tick.label}
-                                            </Text>
-                                        </Svg>
-                                    ))}
-
-                                    {/* Elevation profile */}
-                                    {(() => {
-                                        const elevY = padding.top + paceHeight
-                                        let elevPoints = `${padding.left},${elevY + elevHeight}`
-
-                                        barData.forEach((bar) => {
-                                            const x = bar.x + bar.width / 2
-                                            const elevNorm = bar.split.elevation_difference / elevData.elevRange
-                                            const y = elevY + elevHeight - (Math.abs(elevNorm) * elevHeight * 0.8)
-                                            elevPoints += ` ${x},${y}`
-                                        })
-
-                                        elevPoints += ` ${padding.left + dimensions.plotWidth},${elevY + elevHeight}`
-
-                                        return <Polyline points={elevPoints} fill="#cccccc" stroke="none" />
-                                    })()}
-
-                                    {/* Elevation scale labels as SVG text (on left side) */}
-                                    {elevData.elevTicks.map((tick, i) => {
-                                        const elevY = padding.top + paceHeight
-                                        const y = i === 0 ? elevY + 2 : elevY + elevHeight + 2
-                                        return (
-                                            <Svg key={`elev-label-${i}`}>
+                                            <Svg>
                                                 <Text
-                                                    x={padding.left - 4}
-                                                    y={y}
+                                                    x={padding.left - 5}
+                                                    y={tick.y + 1.5}
                                                     style={{
                                                         fontSize: 5,
                                                         fontFamily: 'Helvetica',
-                                                        fill: '#999'
+                                                        fill: '#666'
                                                     }}
                                                     textAnchor="end"
                                                 >
                                                     {tick.label}
                                                 </Text>
                                             </Svg>
-                                        )
-                                    })}
+                                        </View>
+                                    ))}
+
+                                    {/* Elevation profile (absolute altitude) */}
+                                    {(() => {
+                                        const elevY = padding.top + paceHeight
+                                        let elevPoints = `${padding.left},${elevY + elevHeight}`
+
+                                        barData.forEach((bar) => {
+                                            const x = bar.x + bar.width / 2
+                                            const elevNorm = (bar.absoluteElevation - elevData.minElev) / elevData.elevRange
+                                            const y = elevY + elevHeight - (elevNorm * elevHeight * 0.9)
+                                            elevPoints += ` ${x},${y}`
+                                        })
+
+                                        elevPoints += ` ${padding.left + dimensions.plotWidth},${elevY + elevHeight}`
+
+                                        return <Polyline points={elevPoints} fill="#e0e0e0" stroke="#999" strokeWidth="0.5" />
+                                    })()}
+
+                                    {/* Elevation scale labels (absolute altitude) - on right side */}
+                                    {elevData.elevTicks.map((tick, i) => (
+                                        <View key={`elev-${i}`}>
+                                            <Polyline
+                                                points={`${padding.left + dimensions.plotWidth},${tick.y} ${padding.left + dimensions.plotWidth + 3},${tick.y}`}
+                                                stroke="#999"
+                                                strokeWidth="0.5"
+                                                fill="none"
+                                            />
+                                            <Svg>
+                                                <Text
+                                                    x={padding.left + dimensions.plotWidth + 5}
+                                                    y={tick.y + 1.5}
+                                                    style={{
+                                                        fontSize: 5,
+                                                        fontFamily: 'Helvetica',
+                                                        fill: '#999'
+                                                    }}
+                                                    textAnchor="start"
+                                                >
+                                                    {tick.label}
+                                                </Text>
+                                            </Svg>
+                                        </View>
+                                    ))}
 
                                     {/* Pace bars */}
                                     {barData.map((bar, i) => {
@@ -476,6 +484,98 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                                             />
                                         )
                                     })}
+
+                                    {/* X-axis lap labels */}
+                                    {lapLabels && lapLabels.map((label, i) => (
+                                        <Svg key={`lap-${i}`}>
+                                            <Text
+                                                x={label.x}
+                                                y={label.y}
+                                                style={{
+                                                    fontSize: 5,
+                                                    fontFamily: 'Helvetica',
+                                                    fill: '#666'
+                                                }}
+                                                textAnchor="middle"
+                                            >
+                                                {label.label}
+                                            </Text>
+                                        </Svg>
+                                    ))}
+
+                                    {/* Progress markers (25%, 50%, 75%) */}
+                                    {progressMarkers && progressMarkers.map((marker, i) => (
+                                        <View key={`progress-${i}`}>
+                                            {/* Dashed vertical line */}
+                                            <Polyline
+                                                points={`${marker.x},${padding.top} ${marker.x},${padding.top + paceHeight}`}
+                                                stroke="#ccc"
+                                                strokeWidth="0.5"
+                                                strokeDasharray="2,2"
+                                                fill="none"
+                                            />
+                                            {/* Time label */}
+                                            <Svg>
+                                                <Text
+                                                    x={marker.x}
+                                                    y={padding.top - 3}
+                                                    style={{
+                                                        fontSize: 5,
+                                                        fontFamily: 'Helvetica',
+                                                        fill: '#666'
+                                                    }}
+                                                    textAnchor="middle"
+                                                >
+                                                    {marker.time}
+                                                </Text>
+                                                <Text
+                                                    x={marker.x}
+                                                    y={padding.top - 9}
+                                                    style={{
+                                                        fontSize: 4,
+                                                        fontFamily: 'Helvetica',
+                                                        fill: '#999'
+                                                    }}
+                                                    textAnchor="middle"
+                                                >
+                                                    {Math.round(marker.percentage * 100)}%
+                                                </Text>
+                                            </Svg>
+                                        </View>
+                                    ))}
+
+                                    {/* Finish flag marker - flying left */}
+                                    {finishMarker && (
+                                        <View>
+                                            {/* Finish line */}
+                                            <Polyline
+                                                points={`${finishMarker.x},${padding.top} ${finishMarker.x},${padding.top + paceHeight}`}
+                                                stroke="#000"
+                                                strokeWidth="1"
+                                                fill="none"
+                                            />
+                                            {/* Finish time in flag - flying left */}
+                                            <Polyline
+                                                points={`${finishMarker.x - 25},${padding.top - 2} ${finishMarker.x},${padding.top - 2} ${finishMarker.x},${padding.top - 10} ${finishMarker.x - 25},${padding.top - 10}`}
+                                                fill="#000"
+                                                stroke="none"
+                                            />
+                                            <Svg>
+                                                <Text
+                                                    x={finishMarker.x - 12.5}
+                                                    y={padding.top - 5}
+                                                    style={{
+                                                        fontSize: 5,
+                                                        fontFamily: 'Helvetica-Bold',
+                                                        fill: '#fff'
+                                                    }}
+                                                    textAnchor="middle"
+                                                >
+                                                    {finishMarker.time}
+                                                </Text>
+                                            </Svg>
+                                        </View>
+                                    )}
                                 </Svg>
                             )
                         })()}
