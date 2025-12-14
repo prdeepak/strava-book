@@ -1,7 +1,7 @@
 import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
-import { RacePageContent } from './RacePage'
+import { RacePageSpread } from './RacePage'
 
 const styles = StyleSheet.create({
     coverPage: {
@@ -45,7 +45,7 @@ export const BookDocument = ({ entries, activities }: BookDocumentProps) => (
                 const activity = activities.find(a => a.id === entry.activityId)
                 if (activity) {
                     return (
-                        <RacePageContent
+                        <RacePageSpread
                             key={index}
                             activity={activity}
                             highlightLabel={entry.highlightLabel}

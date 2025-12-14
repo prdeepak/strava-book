@@ -1,5 +1,7 @@
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { RacePageLeft } from './RacePageLeft'
+import { RacePageRight } from './RacePageRight'
 
 // Register a nice font if possible, using standard Helvetica for now
 const styles = StyleSheet.create({
@@ -113,8 +115,19 @@ export const RacePageContent = ({ activity, highlightLabel }: RacePageProps) => 
     </Page>
 )
 
-export const RacePage = ({ activity }: { activity: StravaActivity }) => (
+export interface RacePageSpreadProps {
+    activity: StravaActivity
+    mapboxToken?: string
+    highlightLabel?: string
+}
+
+export const RacePageSpread = ({ activity, mapboxToken, highlightLabel }: RacePageSpreadProps) => (
     <Document>
-        <RacePageContent activity={activity} />
+        <RacePageLeft activity={activity} highlightLabel={highlightLabel} />
+        <RacePageRight activity={activity} mapboxToken={mapboxToken} />
     </Document>
+)
+
+export const RacePage = ({ activity, mapboxToken }: { activity: StravaActivity, mapboxToken?: string }) => (
+    <RacePageSpread activity={activity} mapboxToken={mapboxToken} />
 )

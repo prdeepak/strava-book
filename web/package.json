@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@react-pdf/renderer": "^4.3.1",
+    "@types/mapbox__polyline": "^1.0.5",
     "next": "16.0.10",
     "next-auth": "^4.24.13",
     "react": "19.2.1",

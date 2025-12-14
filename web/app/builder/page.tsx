@@ -77,7 +77,7 @@ export default async function BuilderPage() {
                         </div>
 
                         <Link
-                            href={`/preview/race/${activity.id}`}
+                            href={`/preview/race_2p/${activity.id}`}
                             className="mt-4 block w-full text-center py-2 rounded border border-orange-200 text-orange-600 text-sm hover:bg-orange-50 transition-colors"
                         >
                             Preview PDF

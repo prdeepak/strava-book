@@ -3,12 +3,17 @@
 import dynamic from 'next/dynamic'
 import { StravaActivity } from '@/lib/strava'
 
-// Dynamic import MUST happen inside a client component to use ssr: false
-const PDFPreview = dynamic(() => import('@/components/PDFPreview'), {
+interface AsyncPDFPreviewProps {
+    activity: StravaActivity
+    mapboxToken?: string
+}
+
+// Dynamic import with SSR disabled
+const PDFPreview = dynamic(() => import('./PDFPreview'), {
     ssr: false,
-    loading: () => <div className="flex items-center justify-center h-screen bg-stone-50 text-stone-500">Generating PDF...</div>
+    loading: () => <p>Loading PDF Renderer...</p>
 })
 
-export default function AsyncPDFPreview({ activity }: { activity: StravaActivity }) {
-    return <PDFPreview activity={activity} />
+export default function AsyncPDFPreview({ activity, mapboxToken }: AsyncPDFPreviewProps) {
+    return <PDFPreview activity={activity} mapboxToken={mapboxToken} />
 }

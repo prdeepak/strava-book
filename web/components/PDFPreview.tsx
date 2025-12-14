@@ -1,15 +1,18 @@
 'use client'
 
 import { PDFViewer } from '@react-pdf/renderer'
-import { RacePage } from '@/components/templates/RacePage'
+import { RacePage } from '@/components/templates/RacePage' // Assuming RacePage is renamed to RacePageSpread or RacePageSpread is a new component
 import { StravaActivity } from '@/lib/strava'
 
-export default function PDFPreview({ activity }: { activity: StravaActivity }) {
-    return (
-        <div className="w-full h-screen">
-            <PDFViewer style={{ width: '100%', height: '100%' }}>
-                <RacePage activity={activity} />
-            </PDFViewer>
-        </div>
-    )
+interface PDFPreviewProps {
+    activity: StravaActivity
+    mapboxToken?: string
 }
+
+const PDFPreview = ({ activity, mapboxToken }: PDFPreviewProps) => (
+    <PDFViewer style={{ width: '100%', height: '100vh' }}>
+        <RacePage activity={activity} mapboxToken={mapboxToken} />
+    </PDFViewer>
+)
+
+export default PDFPreview
