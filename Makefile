@@ -59,3 +59,8 @@ web-restart:
 	@docker ps -q --filter "name=strava-book-web" | xargs -r docker stop
 	@echo "Starting new web server..."
 	$(MAKE) web-dev
+
+# --- Start the day ---
+start-work:
+	make up
+	make web-restart
