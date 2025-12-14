@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "../../../api/auth/[...nextauth]/route"
-import { StravaActivity, getActivity } from "@/lib/strava"
+import { StravaActivity, getActivity, getActivityComments } from "@/lib/strava"
 import AsyncPDFPreview1P from "@/components/AsyncPDFPreview1P"
 
 export default async function PreviewPage(props: { params: Promise<{ id: string }> }) {
@@ -21,6 +21,11 @@ export default async function PreviewPage(props: { params: Promise<{ id: string 
         if (activity) {
             console.log("Activity Fetched:", activity.id, activity.name)
             console.log("Photos Object:", JSON.stringify(activity.photos, null, 2))
+
+            // Fetch comments
+            const comments = await getActivityComments(accessToken, params.id)
+            activity.comments = comments
+            console.log("Comments Fetched:", comments.length)
         }
     } catch (e) {
         console.error("Error fetching activity:", e)

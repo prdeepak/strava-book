@@ -35,6 +35,33 @@ export async function getActivity(accessToken: string, id: string): Promise<Stra
     return res.json()
 }
 
+export async function getActivityComments(accessToken: string, id: string): Promise<StravaComment[]> {
+    const res = await fetch(`https://www.strava.com/api/v3/activities/${id}/comments`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    })
+
+    if (!res.ok) {
+        // Return empty array if comments fetch fails (e.g., permission issues)
+        return []
+    }
+
+    return res.json()
+}
+
+export type StravaComment = {
+    id: number
+    activity_id: number
+    text: string
+    athlete: {
+        id: number
+        firstname: string
+        lastname: string
+    }
+    created_at: string
+}
+
 export type StravaActivity = {
     id: number
     name: string
@@ -47,6 +74,8 @@ export type StravaActivity = {
     start_date: string
     start_date_local: string
     timezone: string
+    description?: string
+    kudos_count: number
     map: {
         summary_polyline: string
     }
@@ -79,4 +108,5 @@ export type StravaActivity = {
         end_index: number
         pr_rank?: number | null // 1 = PR, 2 = 2nd best, 3 = 3rd best, etc.
     }>
+    comments?: StravaComment[] // Added for convenience when fetched
 }
