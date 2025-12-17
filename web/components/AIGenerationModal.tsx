@@ -489,6 +489,33 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                             </div>
                                         )}
 
+                                        {/* Background */}
+                                        {aiResult.designSpec?.background && (
+                                            <div className="bg-white rounded-lg p-3 border border-green-200">
+                                                <span className="text-xs text-stone-500 uppercase tracking-wide block mb-2">Page Background</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1">
+                                                        <div className="text-xs text-stone-500 mb-1">Type: <span className="font-semibold capitalize">{aiResult.designSpec.background.type}</span></div>
+                                                        {aiResult.designSpec.background.type === 'gradient' ? (
+                                                            <div className="flex gap-2">
+                                                                <div className="flex-1">
+                                                                    <div className="h-6 rounded border border-stone-200" style={{ backgroundColor: aiResult.designSpec.background.gradientStart }} />
+                                                                    <div className="text-xs text-stone-600 text-center mt-1">Start</div>
+                                                                </div>
+                                                                <div className="text-stone-400">→</div>
+                                                                <div className="flex-1">
+                                                                    <div className="h-6 rounded border border-stone-200" style={{ backgroundColor: aiResult.designSpec.background.gradientEnd }} />
+                                                                    <div className="text-xs text-stone-600 text-center mt-1">End</div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="h-6 rounded border border-stone-200" style={{ backgroundColor: aiResult.designSpec.background.color }} />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Narrative */}
                                         {aiResult.designSpec?.narrative && (
                                             <div className="bg-white rounded-lg p-3 border border-green-200">

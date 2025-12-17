@@ -22,6 +22,12 @@ interface DesignSpec {
         text: string
         accent: string
     }
+    background?: {
+        type: 'solid' | 'gradient'
+        color?: string
+        gradientStart?: string
+        gradientEnd?: string
+    }
     theme: string
     narrative: string
     layout?: any  // Will be used in Phase 4C
@@ -42,13 +48,18 @@ interface AIRaceProps {
 }
 
 export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
-    const { fonts, colorScheme, narrative } = designSpec
+    const { fonts, colorScheme, narrative, background } = designSpec
     const { activity, photos, comments } = comprehensiveData
+
+    // Determine background color/gradient
+    const pageBackground = background?.type === 'gradient'
+        ? background.gradientStart || colorScheme.background
+        : background?.color || colorScheme.background
 
     // Create dynamic styles based on AI design spec
     const styles = StyleSheet.create({
         page: {
-            backgroundColor: colorScheme.background,
+            backgroundColor: pageBackground,
             padding: 25,
             flexDirection: 'column',
         },

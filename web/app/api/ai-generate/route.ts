@@ -116,7 +116,11 @@ async function generateWithGemini(comprehensiveData: ComprehensiveData, pageCoun
     console.log('[Gemini] Importing SDK...')
     const { GoogleGenerativeAI } = await import('@google/generative-ai')
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+
+    // Use Gemini 2.0 Flash Thinking Experimental for more creative, intelligent designs
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash-thinking-exp-1219'
+    })
 
     const activity = comprehensiveData.activity
     const photos = comprehensiveData.photos || []
@@ -168,10 +172,10 @@ Generate a JSON design specification for this ${pageCount}-page race layout. Con
 IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
 {
   "fonts": {
-    "pageTitle": { "family": "Helvetica-Bold", "size": 28, "weight": "bold", "color": "#000000" },
+    "pageTitle": { "family": "Helvetica-Bold", "size": 32, "weight": "bold", "color": "#000000" },
     "sectionTitle": { "family": "Helvetica-Bold", "size": 12, "weight": "bold", "color": "#fc4c02" },
     "body": { "family": "Helvetica", "size": 10, "weight": "normal", "color": "#333333" },
-    "accent": { "family": "Helvetica-Oblique", "size": 11, "weight": "normal", "color": "#666666" }
+    "accent": { "family": "Times-Italic", "size": 11, "weight": "normal", "color": "#666666" }
   },
   "colorScheme": {
     "primary": "#HEX",
@@ -180,6 +184,12 @@ IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
     "text": "#333333",
     "accent": "#999999"
   },
+  "background": {
+    "type": "solid" | "gradient",
+    "color": "#FFFFFF",
+    "gradientStart": "#FFFFFF",
+    "gradientEnd": "#F5F5F5"
+  },
   "theme": "bold-modern" | "minimal-clean" | "vintage-newspaper" | "elegant-magazine",
   "layout": "hero-image-top" | "split-columns" | "photo-grid" | "narrative-focus",
   "layoutDescription": "Brief description of the layout you chose and why (1-2 sentences)",
@@ -187,27 +197,53 @@ IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
 }
 
 FONT GUIDELINES:
-- family must be one of: "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique", "Times-Roman", "Times-Bold", "Times-Italic", "Courier"
-- pageTitle size: 24-36
-- sectionTitle size: 10-14
-- body size: 8-11
-- accent size: 9-12
+Choose fonts that match your theme! Available fonts:
+- **Helvetica family**: "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"
+- **Times family**: "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"
+- **Courier family**: "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique"
+- **Symbol**: "Symbol" (for decorative elements)
+
+Font size ranges:
+- pageTitle: 24-40pt (go big for impact!)
+- sectionTitle: 10-16pt
+- body: 8-11pt
+- accent: 9-13pt
+
+Mix font families for visual interest! Examples:
+- Bold modern: Helvetica-Bold titles + Helvetica body
+- Vintage newspaper: Times-Bold titles + Times-Roman body
+- Technical: Courier titles + Helvetica body
+- Elegant: Times-BoldItalic titles + Times-Roman body
+
+BACKGROUND GUIDELINES:
+Choose a background that enhances your theme:
+- **solid**: Single color (white, cream, light gray, subtle pastels)
+- **gradient**: Smooth transition between two colors
+  - Subtle: #FFFFFF to #F8F8F8 (barely noticeable)
+  - Warm: #FFFFFF to #FFF8F0 (cream tint)
+  - Cool: #FFFFFF to #F0F8FF (blue tint)
+  - Bold: #FFFFFF to #FFE5E5 (colored tint)
+
+Examples by theme:
+- bold-modern: Gradient from white to vibrant tint
+- minimal-clean: Solid white or very light gray
+- vintage-newspaper: Solid cream (#FFF8DC) or sepia gradient
+- elegant-magazine: Subtle gradient with sophisticated colors
 
 COLOR GUIDELINES:
 - Choose colors that match the race theme and achievement level
 - primary: Main accent color (vibrant for big achievements, subtle for regular runs)
 - secondary: Supporting color (can be similar to primary or complementary)
-- background: Usually white or very light
-- text: Dark for readability
-- accent: Medium gray for labels
+- text: Dark for readability (but can be dark blue, dark brown, not just black)
+- accent: Medium tone for labels
 
 THEME GUIDELINES:
-- "bold-modern": Large fonts, vibrant colors, high contrast
-- "minimal-clean": Smaller fonts, muted colors, lots of whitespace
-- "vintage-newspaper": Classic fonts, black/sepia tones, traditional layout
-- "elegant-magazine": Refined fonts, sophisticated colors, balanced composition
+- "bold-modern": Large fonts, vibrant colors, high contrast, gradient backgrounds
+- "minimal-clean": Smaller fonts, muted colors, lots of whitespace, solid backgrounds
+- "vintage-newspaper": Times fonts, sepia/cream tones, traditional layout
+- "elegant-magazine": Mixed fonts, sophisticated colors, subtle gradients
 
-Be creative and personalized. Make the athlete feel proud of their achievement!`
+Be creative and personalized! Mix font families, use interesting backgrounds, and make the athlete feel proud of their achievement!`
 
     console.log('[Gemini] Sending request to API...')
     const result = await model.generateContent(prompt)
