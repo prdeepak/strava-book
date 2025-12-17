@@ -50,6 +50,80 @@ export async function getActivityComments(accessToken: string, id: string): Prom
     return res.json()
 }
 
+export async function getActivityPhotos(accessToken: string, id: string): Promise<StravaPhoto[]> {
+    const res = await fetch(`https://www.strava.com/api/v3/activities/${id}/photos?size=5000`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    })
+
+    if (!res.ok) {
+        // Return empty array if photos fetch fails
+        return []
+    }
+
+    return res.json()
+}
+
+export async function getActivityStreams(
+    accessToken: string,
+    id: string,
+    keys: string[] = ['latlng', 'altitude', 'time', 'distance']
+): Promise<StravaStreams> {
+    const keysParam = keys.join(',')
+    const res = await fetch(`https://www.strava.com/api/v3/activities/${id}/streams?keys=${keysParam}&key_by_type=true`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    })
+
+    if (!res.ok) {
+        // Return empty object if streams fetch fails
+        return {}
+    }
+
+    return res.json()
+}
+
+export type StravaPhoto = {
+    unique_id: string
+    urls: {
+        [key: string]: string // e.g., "5000": "https://..."
+    }
+    source: number
+    uploaded_at: string
+    created_at: string
+    caption?: string
+    activity_id: number
+}
+
+export type StravaStreams = {
+    latlng?: {
+        data: [number, number][] // Array of [lat, lng] pairs
+        series_type: string
+        original_size: number
+        resolution: string
+    }
+    altitude?: {
+        data: number[]
+        series_type: string
+        original_size: number
+        resolution: string
+    }
+    time?: {
+        data: number[]
+        series_type: string
+        original_size: number
+        resolution: string
+    }
+    distance?: {
+        data: number[]
+        series_type: string
+        original_size: number
+        resolution: string
+    }
+}
+
 export type StravaComment = {
     id: number
     activity_id: number

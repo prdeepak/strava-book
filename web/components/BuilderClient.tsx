@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { StravaActivity } from '@/lib/strava'
+import AIGenerationModal from '@/components/AIGenerationModal'
 
 interface BuilderClientProps {
     initialActivities: StravaActivity[]
@@ -38,6 +39,8 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
     const [loading, setLoading] = useState(false)
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(initialActivities.length >= 200)
+    const [modalOpen, setModalOpen] = useState(false)
+    const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
 
     const handleFilter = async () => {
         if (!fromDate && !toDate) {
@@ -227,14 +230,20 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                                 <label className="block text-xs text-stone-500 mb-1">Preview Template</label>
                                 <select
                                     onChange={(e) => {
-                                        if (e.target.value) {
-                                            window.location.href = e.target.value
+                                        const value = e.target.value
+                                        if (value === 'ai-generated') {
+                                            setSelectedActivity(activity)
+                                            setModalOpen(true)
+                                            e.target.value = '' // Reset dropdown
+                                        } else if (value) {
+                                            window.location.href = value
                                         }
                                     }}
                                     defaultValue=""
                                     className="w-full px-3 py-2 rounded border border-orange-200 text-orange-600 text-sm bg-white hover:bg-orange-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 >
                                     <option value="" disabled>Select template...</option>
+                                    <option value="ai-generated">Race (AI-generated) ✨</option>
                                     <option value={`/preview/race_1p/${activity.id}`}>Race (1 Page)</option>
                                     <option value={`/preview/race_1p_graph/${activity.id}`}>Race (1 Page - Graph)</option>
                                     <option value={`/preview/race_2p/${activity.id}`}>Race (2 Pages)</option>
@@ -255,6 +264,18 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                         {loading ? 'Loading...' : 'Load More Activities'}
                     </button>
                 </div>
+            )}
+
+            {/* AI Generation Modal */}
+            {selectedActivity && (
+                <AIGenerationModal
+                    activity={selectedActivity}
+                    isOpen={modalOpen}
+                    onClose={() => {
+                        setModalOpen(false)
+                        setSelectedActivity(null)
+                    }}
+                />
             )}
         </main>
     )
