@@ -165,23 +165,47 @@ Generate a JSON design specification for this ${pageCount}-page race layout. Con
 4. Community engagement (comments)
 5. How to distribute content across ${pageCount} page(s)
 
-Return ONLY a valid JSON object with this structure:
+IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
 {
-  "layout": "hero_split" | "poster" | "editorial" | "technical",
-  "theme": "vibrant" | "minimalist" | "bold" | "elegant",
-  "colorPalette": {
+  "fonts": {
+    "pageTitle": { "family": "Helvetica-Bold", "size": 28, "weight": "bold", "color": "#000000" },
+    "sectionTitle": { "family": "Helvetica-Bold", "size": 12, "weight": "bold", "color": "#fc4c02" },
+    "body": { "family": "Helvetica", "size": 10, "weight": "normal", "color": "#333333" },
+    "accent": { "family": "Helvetica-Oblique", "size": 11, "weight": "normal", "color": "#666666" }
+  },
+  "colorScheme": {
     "primary": "#HEX",
     "secondary": "#HEX",
-    "accent": "#HEX",
-    "background": "#HEX"
+    "background": "#FFFFFF",
+    "text": "#333333",
+    "accent": "#999999"
   },
-  "narrative": {
-    "title": "Compelling title for this achievement",
-    "subtitle": "Brief subtitle (10-15 words)",
-    "story": "A 2-3 sentence narrative about this achievement (focus on the journey, the challenge, the accomplishment)",
-    "highlights": ["Key stat 1", "Key stat 2", "Key stat 3"]
-  }
+  "theme": "bold-modern" | "minimal-clean" | "vintage-newspaper" | "elegant-magazine",
+  "layout": "hero-image-top" | "split-columns" | "photo-grid" | "narrative-focus",
+  "layoutDescription": "Brief description of the layout you chose and why (1-2 sentences)",
+  "narrative": "A 2-3 sentence narrative about this achievement (focus on the journey, the challenge, the accomplishment)"
 }
+
+FONT GUIDELINES:
+- family must be one of: "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique", "Times-Roman", "Times-Bold", "Times-Italic", "Courier"
+- pageTitle size: 24-36
+- sectionTitle size: 10-14
+- body size: 8-11
+- accent size: 9-12
+
+COLOR GUIDELINES:
+- Choose colors that match the race theme and achievement level
+- primary: Main accent color (vibrant for big achievements, subtle for regular runs)
+- secondary: Supporting color (can be similar to primary or complementary)
+- background: Usually white or very light
+- text: Dark for readability
+- accent: Medium gray for labels
+
+THEME GUIDELINES:
+- "bold-modern": Large fonts, vibrant colors, high contrast
+- "minimal-clean": Smaller fonts, muted colors, lots of whitespace
+- "vintage-newspaper": Classic fonts, black/sepia tones, traditional layout
+- "elegant-magazine": Refined fonts, sophisticated colors, balanced composition
 
 Be creative and personalized. Make the athlete feel proud of their achievement!`
 

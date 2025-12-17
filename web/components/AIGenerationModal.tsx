@@ -22,6 +22,7 @@ interface DataSelection {
 
 export default function AIGenerationModal({ activity, isOpen, onClose }: AIGenerationModalProps) {
     const [loading, setLoading] = useState(false)
+    const [generating, setGenerating] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [showOfflineOption, setShowOfflineOption] = useState(false)
@@ -421,28 +422,61 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                 <div className="flex-1">
                                     <h4 className="font-semibold text-green-800 mb-2">AI Layout Generated!</h4>
 
-                                    {/* Design Spec Display */}
-                                    <div className="space-y-3 mb-4">
+                                    {/* Success State - Show AI Result */}
+                                    <div className="space-y-4">
+                                        {/* Debug: Show Raw AI Output */}
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <details>
+                                                <summary className="text-sm font-semibold text-blue-900 cursor-pointer">🔍 Debug: AI Response (Click to expand)</summary>
+                                                <pre className="mt-2 text-xs bg-white p-3 rounded border border-blue-100 overflow-auto max-h-96">
+                                                    {JSON.stringify(aiResult.designSpec, null, 2)}
+                                                </pre>
+                                            </details>
+                                        </div>
+
                                         {/* Layout & Theme */}
-                                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                <div>
-                                                    <span className="text-xs text-stone-500 uppercase tracking-wide block mb-1">Layout</span>
-                                                    <span className="font-semibold text-stone-800 capitalize">{aiResult.designSpec?.layout || 'N/A'}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs text-stone-500 uppercase tracking-wide block mb-1">Theme</span>
-                                                    <span className="font-semibold text-stone-800 capitalize">{aiResult.designSpec?.theme || 'N/A'}</span>
-                                                </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-white rounded-lg p-3 border border-green-200">
+                                                <span className="text-xs text-stone-500 uppercase tracking-wide block mb-1">Layout</span>
+                                                <span className="text-sm font-semibold text-stone-900">{aiResult.designSpec?.layout || 'Custom Design'}</span>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-3 border border-green-200">
+                                                <span className="text-xs text-stone-500 uppercase tracking-wide block mb-1">Theme</span>
+                                                <span className="text-sm font-semibold text-stone-900 capitalize">{aiResult.designSpec?.theme || 'N/A'}</span>
                                             </div>
                                         </div>
 
+                                        {/* Fonts */}
+                                        {aiResult.designSpec?.fonts && (
+                                            <div className="bg-white rounded-lg p-3 border border-green-200">
+                                                <span className="text-xs text-stone-500 uppercase tracking-wide block mb-2">Typography</span>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="text-stone-500">Page Title:</span>
+                                                        <span className="ml-1 font-semibold">{aiResult.designSpec.fonts.pageTitle?.family} ({aiResult.designSpec.fonts.pageTitle?.size}pt)</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-stone-500">Section:</span>
+                                                        <span className="ml-1 font-semibold">{aiResult.designSpec.fonts.sectionTitle?.family} ({aiResult.designSpec.fonts.sectionTitle?.size}pt)</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-stone-500">Body:</span>
+                                                        <span className="ml-1">{aiResult.designSpec.fonts.body?.family} ({aiResult.designSpec.fonts.body?.size}pt)</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-stone-500">Accent:</span>
+                                                        <span className="ml-1">{aiResult.designSpec.fonts.accent?.family} ({aiResult.designSpec.fonts.accent?.size}pt)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Color Palette */}
-                                        {aiResult.designSpec?.colorPalette && (
+                                        {aiResult.designSpec?.colorScheme && (
                                             <div className="bg-white rounded-lg p-3 border border-green-200">
                                                 <span className="text-xs text-stone-500 uppercase tracking-wide block mb-2">Color Palette</span>
                                                 <div className="flex gap-2">
-                                                    {Object.entries(aiResult.designSpec.colorPalette).map(([name, color]: [string, any]) => (
+                                                    {Object.entries(aiResult.designSpec.colorScheme).map(([name, color]: [string, any]) => (
                                                         <div key={name} className="flex-1">
                                                             <div
                                                                 className="h-8 rounded border border-stone-200 mb-1"
@@ -459,23 +493,50 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                         {aiResult.designSpec?.narrative && (
                                             <div className="bg-white rounded-lg p-3 border border-green-200">
                                                 <span className="text-xs text-stone-500 uppercase tracking-wide block mb-2">AI-Generated Narrative</span>
-                                                <h5 className="font-bold text-stone-900 mb-1">{aiResult.designSpec.narrative.title}</h5>
-                                                <p className="text-sm text-stone-700 italic mb-2">{aiResult.designSpec.narrative.subtitle}</p>
-                                                <p className="text-xs text-stone-600 leading-relaxed">{aiResult.designSpec.narrative.story}</p>
+                                                <p className="text-sm text-stone-700 italic leading-relaxed">{aiResult.designSpec.narrative}</p>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => {
-                                                // For now, use existing template - will be replaced with dynamic PDF in Phase 4
-                                                const template = dataSelection.pageCount === 1 ? 'race_1p' : 'race_2p'
-                                                window.open(`/preview/${template}/${activity.id}`, '_blank')
+                                            onClick={async () => {
+                                                try {
+                                                    setGenerating(true)
+                                                    console.log('Generating PDF with AI design spec...')
+
+                                                    const response = await fetch('/api/generate-pdf', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            designSpec: aiResult.designSpec,
+                                                            comprehensiveData,
+                                                            pageCount: dataSelection.pageCount,
+                                                            activityId: activity.id
+                                                        })
+                                                    })
+
+                                                    if (!response.ok) {
+                                                        const error = await response.json()
+                                                        throw new Error(error.details || 'PDF generation failed')
+                                                    }
+
+                                                    const blob = await response.blob()
+                                                    const url = URL.createObjectURL(blob)
+                                                    window.open(url, '_blank')
+
+                                                    console.log('PDF generated and opened successfully')
+                                                } catch (error) {
+                                                    console.error('PDF generation error:', error)
+                                                    alert('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'))
+                                                } finally {
+                                                    setGenerating(false)
+                                                }
                                             }}
-                                            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold"
+                                            disabled={generating}
+                                            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            View PDF Preview
+                                            {generating ? 'Generating PDF...' : 'Generate & View PDF'}
                                         </button>
                                         <button
                                             onClick={handleTryAgain}
