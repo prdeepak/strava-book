@@ -26,6 +26,12 @@ export async function GET(request: NextRequest) {
             getActivityStreams(session.accessToken, activityId),
         ])
 
+        // Debug: Log photo data structure
+        console.log('[Comprehensive Data] Photo count:', photos.length)
+        if (photos.length > 0) {
+            console.log('[Comprehensive Data] First photo sample:', JSON.stringify(photos[0], null, 2))
+        }
+
         return NextResponse.json({
             activity,
             photos,

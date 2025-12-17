@@ -1,12 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { StravaActivity } from '@/lib/strava'
 
 interface AIGenerationModalProps {
     activity: StravaActivity
     isOpen: boolean
     onClose: () => void
+}
+
+interface DataSelection {
+    pageCount: 1 | 2 | 3
+    includePhotos: boolean
+    selectedPhotoIds: string[]
+    includeComments: boolean
+    includeSplits: boolean
+    includeLaps: boolean
+    includeBestEfforts: boolean
+    includeElevation: boolean
 }
 
 export default function AIGenerationModal({ activity, isOpen, onClose }: AIGenerationModalProps) {
@@ -16,9 +27,59 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
     const [showOfflineOption, setShowOfflineOption] = useState(false)
     const [aiResult, setAiResult] = useState<any>(null)
 
+    // Configuration state
+    const [configuring, setConfiguring] = useState(true)
+    const [fetchingData, setFetchingData] = useState(false)
+    const [comprehensiveData, setComprehensiveData] = useState<any>(null)
+    const [dataSelection, setDataSelection] = useState<DataSelection>({
+        pageCount: 1,
+        includePhotos: true,
+        selectedPhotoIds: [],
+        includeComments: true,
+        includeSplits: true,
+        includeLaps: true,
+        includeBestEfforts: true,
+        includeElevation: true,
+    })
+
+    // Fetch comprehensive data when modal opens
+    useEffect(() => {
+        if (isOpen && !comprehensiveData) {
+            fetchComprehensiveData()
+        }
+    }, [isOpen])
+
+    const fetchComprehensiveData = async () => {
+        setFetchingData(true)
+        try {
+            const dataResponse = await fetch(`/api/comprehensive-activity-data?activityId=${activity.id}`)
+
+            if (!dataResponse.ok) {
+                throw new Error('Failed to gather activity data')
+            }
+
+            const data = await dataResponse.json()
+            setComprehensiveData(data)
+
+            // Select all photos by default
+            if (data.photos && data.photos.length > 0) {
+                setDataSelection(prev => ({
+                    ...prev,
+                    selectedPhotoIds: data.photos.map((p: any) => p.unique_id)
+                }))
+            }
+        } catch (err) {
+            console.error('Failed to fetch comprehensive data:', err)
+            setError(err instanceof Error ? err.message : 'Failed to load activity data')
+        } finally {
+            setFetchingData(false)
+        }
+    }
+
     if (!isOpen) return null
 
     const handleGenerate = async () => {
+        setConfiguring(false)
         setLoading(true)
         setError(null)
         setSuccess(false)
@@ -30,16 +91,20 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
         }, 30000)
 
         try {
-            // Step 1: Gather comprehensive data
-            const dataResponse = await fetch(`/api/comprehensive-activity-data?activityId=${activity.id}`)
-
-            if (!dataResponse.ok) {
-                throw new Error('Failed to gather activity data')
+            // Filter comprehensive data based on user selections
+            const filteredData = {
+                activity: comprehensiveData.activity,
+                photos: dataSelection.includePhotos
+                    ? comprehensiveData.photos?.filter((p: any) =>
+                        dataSelection.selectedPhotoIds.includes(p.unique_id)
+                    )
+                    : [],
+                comments: dataSelection.includeComments ? comprehensiveData.comments : [],
+                streams: comprehensiveData.streams,
+                metadata: comprehensiveData.metadata,
             }
 
-            const comprehensiveData = await dataResponse.json()
-
-            // Step 2: Send to AI for generation (mock for now)
+            // Send to AI for generation
             const aiResponse = await fetch('/api/ai-generate', {
                 method: 'POST',
                 headers: {
@@ -47,7 +112,9 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                 },
                 body: JSON.stringify({
                     activityId: activity.id,
-                    comprehensiveData,
+                    comprehensiveData: filteredData,
+                    pageCount: dataSelection.pageCount,
+                    dataSelection,
                 }),
             })
 
@@ -143,6 +210,193 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                         </div>
                     </div>
 
+                    {/* Configuration Section - Only show when configuring */}
+                    {configuring && !loading && !success && (
+                        <div className="space-y-4 mb-6">
+                            {/* Loading State for Data Fetch */}
+                            {fetchingData && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                    <p className="text-sm text-blue-700">Loading activity data...</p>
+                                </div>
+                            )}
+
+                            {/* Configuration Options */}
+                            {!fetchingData && comprehensiveData && (
+                                <>
+                                    {/* Page Count Selector */}
+                                    <div className="bg-white border border-stone-200 rounded-lg p-4">
+                                        <label className="block text-sm font-semibold text-stone-800 mb-3">
+                                            How many pages?
+                                        </label>
+                                        <div className="flex gap-3">
+                                            {([1, 2, 3] as const).map((count) => (
+                                                <button
+                                                    key={count}
+                                                    onClick={() => setDataSelection(prev => ({ ...prev, pageCount: count }))}
+                                                    className={`flex-1 py-3 px-4 rounded-lg border-2 font-semibold transition-all ${dataSelection.pageCount === count
+                                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                                        : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
+                                                        }`}
+                                                >
+                                                    {count} Page{count > 1 ? 's' : ''}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Data Elements Selection */}
+                                    <div className="bg-white border border-stone-200 rounded-lg p-4">
+                                        <label className="block text-sm font-semibold text-stone-800 mb-3">
+                                            What data should the AI consider?
+                                        </label>
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includePhotos}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includePhotos: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">
+                                                    Photos ({comprehensiveData.photos?.length || 0} available)
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includeComments}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includeComments: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">
+                                                    Comments ({comprehensiveData.comments?.length || 0} available)
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includeSplits}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includeSplits: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">Splits & Pacing Data</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includeLaps}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includeLaps: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">Laps</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includeBestEfforts}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includeBestEfforts: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">Best Efforts</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dataSelection.includeElevation}
+                                                    onChange={(e) => setDataSelection(prev => ({ ...prev, includeElevation: e.target.checked }))}
+                                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-stone-700">Elevation Profile</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Photo Selection Grid */}
+                                    {dataSelection.includePhotos && comprehensiveData.photos && comprehensiveData.photos.length > 0 && (
+                                        <div className="bg-white border border-stone-200 rounded-lg p-4">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <label className="block text-sm font-semibold text-stone-800">
+                                                    Select Photos ({dataSelection.selectedPhotoIds.length} of {comprehensiveData.photos.length})
+                                                </label>
+                                                <button
+                                                    onClick={() => {
+                                                        const allSelected = dataSelection.selectedPhotoIds.length === comprehensiveData.photos.length
+                                                        setDataSelection(prev => ({
+                                                            ...prev,
+                                                            selectedPhotoIds: allSelected ? [] : comprehensiveData.photos.map((p: any) => p.unique_id)
+                                                        }))
+                                                    }}
+                                                    className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
+                                                >
+                                                    {dataSelection.selectedPhotoIds.length === comprehensiveData.photos.length ? 'Deselect All' : 'Select All'}
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                                                {comprehensiveData.photos.map((photo: any, index: number) => {
+                                                    const isSelected = dataSelection.selectedPhotoIds.includes(photo.unique_id)
+                                                    // Strava returns urls with keys like "5000", "600", etc.
+                                                    const photoUrls = photo.urls || {}
+                                                    const rawUrl = photoUrls['600'] || photoUrls['5000'] || photoUrls['100'] || Object.values(photoUrls)[0]
+                                                    const thumbnailUrl = rawUrl ? `/api/proxy-image?url=${encodeURIComponent(rawUrl as string)}` : ''
+
+                                                    // Debug logging
+                                                    if (index === 0) {
+                                                        console.log('RENDERING PHOTO:', {
+                                                            index,
+                                                            unique_id: photo.unique_id,
+                                                            availableKeys: Object.keys(photoUrls),
+                                                            rawUrl,
+                                                            thumbnailUrl: thumbnailUrl.substring(0, 100) + '...',
+                                                            hasUrl: !!thumbnailUrl
+                                                        })
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            key={photo.unique_id}
+                                                            onClick={() => {
+                                                                setDataSelection(prev => ({
+                                                                    ...prev,
+                                                                    selectedPhotoIds: isSelected
+                                                                        ? prev.selectedPhotoIds.filter(id => id !== photo.unique_id)
+                                                                        : [...prev.selectedPhotoIds, photo.unique_id]
+                                                                }))
+                                                            }}
+                                                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${isSelected
+                                                                ? 'border-orange-500 ring-2 ring-orange-200'
+                                                                : 'border-stone-200 hover:border-stone-300'
+                                                                }`}
+                                                        >
+                                                            {thumbnailUrl ? (
+                                                                <img
+                                                                    src={thumbnailUrl}
+                                                                    alt={photo.caption || 'Activity photo'}
+                                                                    className="w-full h-full object-cover absolute inset-0"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs absolute inset-0">
+                                                                    No URL
+                                                                </div>
+                                                            )}
+                                                            {isSelected && (
+                                                                <div className="absolute top-2 right-2 bg-orange-600 rounded-full p-1 shadow-lg">
+                                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {/* Status Messages */}
                     {error && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -214,6 +468,16 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
 
                                     <div className="flex gap-2">
                                         <button
+                                            onClick={() => {
+                                                // For now, use existing template - will be replaced with dynamic PDF in Phase 4
+                                                const template = dataSelection.pageCount === 1 ? 'race_1p' : 'race_2p'
+                                                window.open(`/preview/${template}/${activity.id}`, '_blank')
+                                            }}
+                                            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold"
+                                        >
+                                            View PDF Preview
+                                        </button>
+                                        <button
                                             onClick={handleTryAgain}
                                             className="px-4 py-2 bg-white border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors text-sm font-semibold"
                                         >
@@ -257,12 +521,13 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                         </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {!loading && !success && (
+                    {/* Action Buttons - Only show during configuration */}
+                    {configuring && !loading && !success && (
                         <div className="space-y-3">
                             <button
                                 onClick={handleGenerate}
-                                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                disabled={fetchingData || !comprehensiveData}
+                                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 Generate AI Layout
                             </button>
@@ -270,10 +535,10 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                             <div className="bg-stone-50 rounded-lg p-4">
                                 <h4 className="font-semibold text-stone-800 mb-2 text-sm">What happens next?</h4>
                                 <ul className="text-xs text-stone-600 space-y-1">
-                                    <li>• Gather all activity data, photos, and comments from Strava</li>
-                                    <li>• Analyze your race details, location, and performance</li>
-                                    <li>• Generate a custom layout designed specifically for this activity</li>
-                                    <li>• Create a unique narrative based on your achievement</li>
+                                    <li>• AI analyzes your selected data and {dataSelection.pageCount} page layout</li>
+                                    <li>• Generates custom color palette and theme</li>
+                                    <li>• Creates personalized narrative and design</li>
+                                    <li>• {dataSelection.selectedPhotoIds.length} photo(s) will be considered</li>
                                 </ul>
                             </div>
                         </div>

@@ -1,26 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { writeFileSync, appendFileSync } from 'fs'
+import { join } from 'path'
+
+const logFile = join(process.cwd(), 'debug-photos.log')
+
+function log(message: string) {
+    const timestamp = new Date().toISOString()
+    const logMessage = `[${timestamp}] ${message}\n`
+    try {
+        appendFileSync(logFile, logMessage)
+    } catch (e) {
+        console.error('Failed to write to log file:', e)
+    }
+    console.log(message)
+}
 
 export async function GET(request: NextRequest) {
+    log('[Proxy] Request received')
     const searchParams = request.nextUrl.searchParams
     const imageUrl = searchParams.get('url')
 
+    log(`[Proxy] URL parameter: ${imageUrl}`)
+
     if (!imageUrl) {
+        log('[Proxy] No URL provided')
         return new NextResponse("Missing URL", { status: 400 })
     }
 
     try {
-        console.log(`[Proxy] Fetching: ${imageUrl}`)
+        log(`[Proxy] Fetching: ${imageUrl}`)
         const response = await fetch(imageUrl)
 
+        log(`[Proxy] Response status: ${response.status}`)
+
         if (!response.ok) {
-            console.error(`[Proxy] Failed: ${response.status} ${response.statusText}`)
+            log(`[Proxy] Failed: ${response.status} ${response.statusText}`)
             const text = await response.text()
-            console.error(`[Proxy] Body: ${text}`)
+            log(`[Proxy] Body: ${text}`)
             return new NextResponse(`Upstream Error: ${text}`, { status: response.status })
         }
 
         const blob = await response.blob()
-        console.log(`[Proxy] Success: ${blob.size} bytes, Type: ${blob.type}`)
+        log(`[Proxy] Success: ${blob.size} bytes, Type: ${blob.type}`)
 
         const headers = new Headers()
         headers.set("Content-Type", response.headers.get("Content-Type") || "image/jpeg")
@@ -28,7 +49,7 @@ export async function GET(request: NextRequest) {
 
         return new NextResponse(blob, { headers })
     } catch (e) {
-        console.error("Proxy error:", e)
+        log(`[Proxy] Exception: ${e}`)
         return new NextResponse("Failed to fetch image", { status: 500 })
     }
 }

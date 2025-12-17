@@ -43,7 +43,7 @@ interface AIGenerationResult {
 
 // Mock AI response for POC
 // When GEMINI_API_KEY is available, this will be replaced with real Gemini API calls
-function generateMockAIResponse(comprehensiveData: ComprehensiveData): Promise<AIGenerationResult> {
+function generateMockAIResponse(comprehensiveData: ComprehensiveData, pageCount: number = 1): Promise<AIGenerationResult> {
     const activity = comprehensiveData.activity
     const photos = comprehensiveData.photos || []
     const comments = comprehensiveData.comments || []
@@ -102,10 +102,11 @@ function generateMockAIResponse(comprehensiveData: ComprehensiveData): Promise<A
 }
 
 // Real AI generation function using Google Gemini
-async function generateWithGemini(comprehensiveData: ComprehensiveData) {
+async function generateWithGemini(comprehensiveData: ComprehensiveData, pageCount: number = 1) {
     const apiKey = process.env.GEMINI_API_KEY
 
     console.log('[Gemini] Starting generation...')
+    console.log('[Gemini] Page count:', pageCount)
 
     if (!apiKey) {
         console.error('[Gemini] API key not configured')
@@ -129,8 +130,18 @@ async function generateWithGemini(comprehensiveData: ComprehensiveData) {
         commentCount: comments.length,
     })
 
+    // Build page-specific layout guidance
+    const pageGuidance = pageCount === 1
+        ? 'SINGLE PAGE: Create a compact, hero-style layout with key stats and 1-2 photos. Focus on visual impact.'
+        : pageCount === 2
+            ? 'TWO PAGES: Design a spread with page 1 as hero/narrative and page 2 for detailed stats, photos, and comments.'
+            : 'THREE PAGES: Create an editorial spread - page 1: hero with main photo, page 2: stats/splits/map, page 3: photo gallery and comments.'
+
     // Build a comprehensive prompt for the AI
     const prompt = `You are "The Designer" for a commemorative race book. Your role is to analyze activity data and create a beautiful, personalized design specification for a race page.
+
+PAGE REQUIREMENTS: ${pageCount} page(s)
+${pageGuidance}
 
 ACTIVITY DATA:
 - Name: ${activity.name}
@@ -147,11 +158,12 @@ COMMUNITY ENGAGEMENT: ${comments.length} comment(s)
 PERFORMANCE DATA: ${Object.keys(streams).length > 0 ? 'Detailed pace, elevation, and route data available' : 'Summary data only'}
 
 YOUR TASK:
-Generate a JSON design specification for this race page. Consider:
+Generate a JSON design specification for this ${pageCount}-page race layout. Consider:
 1. The achievement level (distance, elevation, time)
 2. The emotional tone (celebratory, reflective, triumphant)
 3. Available visual assets (photos)
 4. Community engagement (comments)
+5. How to distribute content across ${pageCount} page(s)
 
 Return ONLY a valid JSON object with this structure:
 {
@@ -228,9 +240,16 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json()
-        const { activityId, comprehensiveData } = body
+        const { activityId, comprehensiveData, pageCount = 1, dataSelection } = body
 
         console.log('[AI Generate] Request received for activity:', activityId)
+        console.log('[AI Generate] Configuration:', {
+            pageCount,
+            includePhotos: dataSelection?.includePhotos,
+            selectedPhotoCount: dataSelection?.selectedPhotoIds?.length || 0,
+            includeComments: dataSelection?.includeComments,
+            includeSplits: dataSelection?.includeSplits,
+        })
         console.log('[AI Generate] Data summary:', {
             hasActivity: !!comprehensiveData?.activity,
             photoCount: comprehensiveData?.photos?.length || 0,
@@ -263,8 +282,8 @@ export async function POST(request: NextRequest) {
         console.log('[AI Generate] Using:', shouldUseRealAI ? 'Real Gemini API' : 'Mock response')
 
         const result: AIGenerationResult = shouldUseRealAI
-            ? await generateWithGemini(comprehensiveData)
-            : await generateMockAIResponse(comprehensiveData)
+            ? await generateWithGemini(comprehensiveData, pageCount)
+            : await generateMockAIResponse(comprehensiveData, pageCount)
 
         console.log('[AI Generate] Generation successful:', {
             hasDesignSpec: !!result.designSpec,

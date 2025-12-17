@@ -1,0 +1,22 @@
+// Debug log file for photo thumbnail issue
+// This file will be written to by the server to help debug
+[2025-12-17T06:02:13.069Z] [Proxy] Request received
+[2025-12-17T06:02:13.070Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/_EEwg3B96rgz0i3A1MWjaF4f6D2ZgSvi4k6Wokm_8sY-2048x1536.jpg
+[2025-12-17T06:02:13.070Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/_EEwg3B96rgz0i3A1MWjaF4f6D2ZgSvi4k6Wokm_8sY-2048x1536.jpg
+[2025-12-17T06:02:13.074Z] [Proxy] Request received
+[2025-12-17T06:02:13.075Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/jxMyndYWopzUpeLKfIIeIKmdNgoqSZuCdUGw05yQPVo-2048x1536.jpg
+[2025-12-17T06:02:13.075Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/jxMyndYWopzUpeLKfIIeIKmdNgoqSZuCdUGw05yQPVo-2048x1536.jpg
+[2025-12-17T06:02:13.078Z] [Proxy] Request received
+[2025-12-17T06:02:13.078Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/UyrMfXCeQbuD_QdyCiJUIMhyXVuTkdyJcB68ED88e5E-2048x1536.jpg
+[2025-12-17T06:02:13.078Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/UyrMfXCeQbuD_QdyCiJUIMhyXVuTkdyJcB68ED88e5E-2048x1536.jpg
+[2025-12-17T06:02:13.327Z] [Proxy] Response status: 200
+[2025-12-17T06:02:13.333Z] [Proxy] Response status: 200
+[2025-12-17T06:02:13.349Z] [Proxy] Success: 203739 bytes, Type: image/jpeg
+[2025-12-17T06:02:13.358Z] [Proxy] Success: 182651 bytes, Type: image/jpeg
+[2025-12-17T06:02:13.363Z] [Proxy] Response status: 200
+[2025-12-17T06:02:13.372Z] [Proxy] Success: 220959 bytes, Type: image/jpeg
+[2025-12-17T06:08:33.940Z] [Proxy] Request received
+[2025-12-17T06:08:33.941Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/EhVd4Ih-8l9-ck39_4-Bv1Q2eMDNYK7j4fLGphsA6Uw-2048x1536.jpg
+[2025-12-17T06:08:33.941Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/EhVd4Ih-8l9-ck39_4-Bv1Q2eMDNYK7j4fLGphsA6Uw-2048x1536.jpg
+[2025-12-17T06:08:34.194Z] [Proxy] Response status: 200
+[2025-12-17T06:08:34.258Z] [Proxy] Success: 551548 bytes, Type: image/jpeg
