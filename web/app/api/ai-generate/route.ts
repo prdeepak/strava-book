@@ -141,41 +141,32 @@ async function generateWithGemini(comprehensiveData: ComprehensiveData, pageCoun
             ? 'TWO PAGES: Design a spread with page 1 as hero/narrative and page 2 for detailed stats, photos, and comments.'
             : 'THREE PAGES: Create an editorial spread - page 1: hero with main photo, page 2: stats/splits/map, page 3: photo gallery and comments.'
 
-    // Build a comprehensive prompt for the AI
-    const prompt = `You are "The Designer" for a commemorative race book. Your role is to analyze activity data and create a beautiful, personalized design specification for a race page.
+    // Build a comprehensive prompt for creative scrapbook-style layouts
+    const prompt = `You are a CREATIVE GRAPHIC DESIGNER creating a custom race poster with a scrapbook/magazine aesthetic.
 
-PAGE REQUIREMENTS: ${pageCount} page(s)
-${pageGuidance}
+CANVAS: Letter size page (612 x 792 points)
+SAFE MARGINS: Leave 25-30pt margin on all sides
 
 ACTIVITY DATA:
 - Name: ${activity.name}
 - Date: ${new Date(activity.start_date_local).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
 - Distance: ${(activity.distance / 1000).toFixed(2)} km
 - Time: ${Math.floor(activity.moving_time / 3600)}h ${Math.floor((activity.moving_time % 3600) / 60)}m
-- Elevation Gain: ${activity.total_elevation_gain} m
+- Elevation: ${activity.total_elevation_gain} m
 - Location: ${activity.location_city || 'Unknown'}
-- Type: ${activity.type}
 ${activity.description ? `- Description: ${activity.description}` : ''}
+- Available Photos: ${photos.length}
+- Comments: ${comments.length}
 
-AVAILABLE PHOTOS: ${photos.length} photo(s)
-COMMUNITY ENGAGEMENT: ${comments.length} comment(s)
-PERFORMANCE DATA: ${Object.keys(streams).length > 0 ? 'Detailed pace, elevation, and route data available' : 'Summary data only'}
+YOUR TASK: Create a SCRAPBOOK-STYLE layout using bodyElements with creative positioning, rotation, and overlapping!
 
-YOUR TASK:
-Generate a JSON design specification for this ${pageCount}-page race layout. Consider:
-1. The achievement level (distance, elevation, time)
-2. The emotional tone (celebratory, reflective, triumphant)
-3. Available visual assets (photos)
-4. Community engagement (comments)
-5. How to distribute content across ${pageCount} page(s)
-
-IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
+Return ONLY valid JSON with this structure:
 {
   "fonts": {
-    "pageTitle": { "family": "Helvetica-Bold", "size": 32, "weight": "bold", "color": "#000000" },
-    "sectionTitle": { "family": "Helvetica-Bold", "size": 12, "weight": "bold", "color": "#fc4c02" },
-    "body": { "family": "Helvetica", "size": 10, "weight": "normal", "color": "#333333" },
-    "accent": { "family": "Times-Italic", "size": 11, "weight": "normal", "color": "#666666" }
+    "pageTitle": { "family": "Helvetica-Bold", "size": 36, "color": "#000000" },
+    "sectionTitle": { "family": "Helvetica-Bold", "size": 14, "color": "#fc4c02" },
+    "body": { "family": "Helvetica", "size": 10, "color": "#333333" },
+    "accent": { "family": "Times-Italic", "size": 12, "color": "#666666" }
   },
   "colorScheme": {
     "primary": "#HEX",
@@ -185,73 +176,115 @@ IMPORTANT: Return ONLY a valid JSON object with this EXACT structure:
     "accent": "#999999"
   },
   "background": {
-    "type": "solid" | "gradient",
-    "color": "#FFFFFF",
-    "gradientStart": "#FFFFFF",
-    "gradientEnd": "#F5F5F5"
+    "type": "solid",
+    "color": "#FFFFFF"
   },
-  "theme": "bold-modern" | "minimal-clean" | "vintage-newspaper" | "elegant-magazine",
-  "layout": "hero-image-top" | "split-columns" | "photo-grid" | "narrative-focus",
-  "layoutDescription": "Brief description of the layout you chose and why (1-2 sentences)",
-  "narrative": "A 2-3 sentence narrative about this achievement (focus on the journey, the challenge, the accomplishment)"
+  "theme": "scrapbook-modern",
+  "narrative": "2-3 sentence story about this achievement",
+  "bodyElements": [
+    {
+      "type": "photo",
+      "photoIndex": 0,
+      "position": { "x": 60, "y": 120 },
+      "size": { "width": 280, "height": 200 },
+      "rotation": -3,
+      "zIndex": 1,
+      "style": {
+        "borderRadius": 8,
+        "shadow": { "offsetX": 4, "offsetY": 4, "blur": 10, "color": "#00000040" }
+      }
+    },
+    {
+      "type": "textBox",
+      "content": "RACE TITLE",
+      "position": { "x": 50, "y": 80 },
+      "size": { "width": 300, "height": 50 },
+      "rotation": -1,
+      "zIndex": 3,
+      "style": {
+        "font": "pageTitle",
+        "backgroundColor": "#fc4c02",
+        "padding": 10,
+        "textAlign": "center"
+      }
+    }
+  ]
 }
 
-FONT GUIDELINES:
-Choose fonts that match your theme! Available fonts:
-- **Helvetica family**: "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"
-- **Times family**: "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"
-- **Courier family**: "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique"
-- **Symbol**: "Symbol" (for decorative elements)
+CREATIVE GUIDELINES:
 
-Font size ranges:
-- pageTitle: 24-40pt (go big for impact!)
-- sectionTitle: 10-16pt
-- body: 8-11pt
-- accent: 9-13pt
+**Positioning Strategy:**
+- Scatter elements across the page (not grid-aligned!)
+- Overlap elements for depth (use z-index)
+- Rotate photos -5° to 5° for scrapbook feel
+- Rotate text boxes -2° to 2° for dynamic look
+- Leave breathing room - don't overcrowd
 
-Mix font families for visual interest! Examples:
-- Bold modern: Helvetica-Bold titles + Helvetica body
-- Vintage newspaper: Times-Bold titles + Times-Roman body
-- Technical: Courier titles + Helvetica body
-- Elegant: Times-BoldItalic titles + Times-Roman body
+**Element Types:**
+1. **photo**: Display race photos
+   - Use photoIndex (0, 1, 2) to reference photos
+   - Add rotation for scrapbook feel
+   - Add shadows for depth
+   - Vary sizes (large hero: 300x220, medium: 200x150, small: 120x90)
 
-BACKGROUND GUIDELINES:
-Choose a background that enhances your theme:
-- **solid**: Single color (white, cream, light gray, subtle pastels)
-- **gradient**: Smooth transition between two colors
-  - Subtle: #FFFFFF to #F8F8F8 (barely noticeable)
-  - Warm: #FFFFFF to #FFF8F0 (cream tint)
-  - Cool: #FFFFFF to #F0F8FF (blue tint)
-  - Bold: #FFFFFF to #FFE5E5 (colored tint)
+2. **textBox**: Custom text (title, labels, narrative)
+   - Use for race title (large, bold, colored background)
+   - Use for narrative (smaller, subtle background)
+   - Rotate slightly for visual interest
 
-Examples by theme:
-- bold-modern: Gradient from white to vibrant tint
-- minimal-clean: Solid white or very light gray
-- vintage-newspaper: Solid cream (#FFF8DC) or sepia gradient
-- elegant-magazine: Subtle gradient with sophisticated colors
+3. **stat**: Key metrics (distance, time, pace, elevation)
+   - Position creatively (not in a row!)
+   - Can overlap photos slightly
+   - Use colored backgrounds or borders
 
-COLOR GUIDELINES:
-- Choose colors that match the race theme and achievement level
-- primary: Main accent color (vibrant for big achievements, subtle for regular runs)
-- secondary: Supporting color (can be similar to primary or complementary)
-- text: Dark for readability (but can be dark blue, dark brown, not just black)
-- accent: Medium tone for labels
+4. **comment**: User comments
+   - Speech bubble style with background
+   - Rotate slightly
+   - Position near photos
 
-THEME GUIDELINES:
-- "bold-modern": Large fonts, vibrant colors, high contrast, gradient backgrounds
-- "minimal-clean": Smaller fonts, muted colors, lots of whitespace, solid backgrounds
-- "vintage-newspaper": Times fonts, sepia/cream tones, traditional layout
-- "elegant-magazine": Mixed fonts, sophisticated colors, subtle gradients
+**Visual Style:**
+- Mix rotations: some left (-5°), some right (3°), some straight (0°)
+- Layer elements: photos at z:1-2, text at z:3-5, decorative at z:0
+- Use shadows on photos and important text boxes
+- Colored backgrounds on text boxes (primary color or white with opacity)
+- Round corners on photos (borderRadius: 8-12)
 
-Be creative and personalized! Mix font families, use interesting backgrounds, and make the athlete feel proud of their achievement!`
+**Example Layout Pattern:**
+1. Large hero photo (rotated -3°, top-left area)
+2. Title text box overlapping photo (rotated -1°, z-index higher)
+3. 2-3 smaller photos scattered (different rotations)
+4. Stats positioned creatively around photos
+5. Narrative text box (subtle background, slight rotation)
+6. 1-2 comment boxes near photos
+
+**Page Coordinates:**
+- Top area: y: 60-200
+- Middle area: y: 200-500  
+- Bottom area: y: 500-720
+- Left side: x: 40-200
+- Center: x: 200-400
+- Right side: x: 400-550
+
+Be BOLD and CREATIVE! Make it look like a professionally designed scrapbook page, not a template!`
 
     console.log('[Gemini] Sending request to API...')
-    const result = await model.generateContent(prompt)
+
+    let result
+    try {
+        result = await model.generateContent(prompt)
+    } catch (error) {
+        console.error('[Gemini] Error calling API:', error)
+        // Fallback to regular flash model if thinking model fails
+        console.log('[Gemini] Falling back to regular flash model...')
+        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+        result = await fallbackModel.generateContent(prompt)
+    }
+
     const response = result.response
     const text = response.text()
 
     console.log('[Gemini] Received response, length:', text.length)
-    console.log('[Gemini] Response preview:', text.substring(0, 200))
+    console.log('[Gemini] Response preview:', text.substring(0, 300))
 
     // Extract JSON from the response (handle markdown code blocks)
     let jsonText = text.trim()
@@ -262,12 +295,22 @@ Be creative and personalized! Mix font families, use interesting backgrounds, an
     }
 
     console.log('[Gemini] Parsing JSON...')
-    const designSpec = JSON.parse(jsonText)
+    console.log('[Gemini] JSON text preview:', jsonText.substring(0, 200))
 
-    console.log('[Gemini] Successfully parsed design spec:', {
-        layout: designSpec.layout,
-        theme: designSpec.theme,
-    })
+    let designSpec
+    try {
+        designSpec = JSON.parse(jsonText)
+    } catch (parseError) {
+        console.error('[Gemini] JSON parse error:', parseError)
+        console.error('[Gemini] Failed JSON text:', jsonText)
+        throw new Error(`Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
+    }
+
+    console.log('[Gemini] Successfully parsed design spec')
+    console.log('[Gemini] Has bodyElements:', !!designSpec.bodyElements)
+    if (designSpec.bodyElements) {
+        console.log('[Gemini] Body elements count:', designSpec.bodyElements.length)
+    }
 
     return {
         success: true,

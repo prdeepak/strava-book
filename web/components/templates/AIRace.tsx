@@ -8,12 +8,30 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
+interface BodyElement {
+    type: 'photo' | 'textBox' | 'stat' | 'comment'
+    photoIndex?: number
+    content?: string | { label: string, value: string } | { author: string, text: string }
+    position: { x: number, y: number }
+    size: { width: number, height: number }
+    rotation?: number
+    zIndex?: number
+    style?: {
+        font?: string
+        backgroundColor?: string
+        padding?: number
+        textAlign?: 'left' | 'center' | 'right'
+        borderRadius?: number
+        shadow?: { offsetX: number, offsetY: number, blur: number, color: string }
+    }
+}
+
 interface DesignSpec {
     fonts: {
-        pageTitle: { family: string, size: number, weight: string, color: string }
-        sectionTitle: { family: string, size: number, weight: string, color: string }
-        body: { family: string, size: number, weight: string, color: string }
-        accent: { family: string, size: number, weight: string, color: string }
+        pageTitle: { family: string, size: number, color: string }
+        sectionTitle: { family: string, size: number, color: string }
+        body: { family: string, size: number, color: string }
+        accent: { family: string, size: number, color: string }
     }
     colorScheme: {
         primary: string
@@ -30,7 +48,7 @@ interface DesignSpec {
     }
     theme: string
     narrative: string
-    layout?: any  // Will be used in Phase 4C
+    bodyElements?: BodyElement[]
 }
 
 interface ComprehensiveData {
@@ -48,137 +66,24 @@ interface AIRaceProps {
 }
 
 export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
-    const { fonts, colorScheme, narrative, background } = designSpec
+    const { fonts, colorScheme, narrative, background, bodyElements } = designSpec
     const { activity, photos, comments } = comprehensiveData
 
-    // Determine background color/gradient
+    // Determine background color
     const pageBackground = background?.type === 'gradient'
         ? background.gradientStart || colorScheme.background
         : background?.color || colorScheme.background
 
-    // Create dynamic styles based on AI design spec
-    const styles = StyleSheet.create({
-        page: {
-            backgroundColor: pageBackground,
-            padding: 25,
-            flexDirection: 'column',
-        },
-        heroHeader: {
-            marginBottom: 12,
-            borderBottomWidth: 2,
-            borderBottomColor: colorScheme.primary,
-            paddingBottom: 10,
-        },
-        title: {
-            fontSize: fonts.pageTitle.size,
-            fontFamily: fonts.pageTitle.family,
-            color: fonts.pageTitle.color,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-            lineHeight: 1.1,
-        },
-        meta: {
-            color: colorScheme.accent,
-            fontSize: fonts.body.size - 2,
-            fontFamily: fonts.body.family,
-            textTransform: 'uppercase',
-            letterSpacing: 1.2,
-            marginBottom: 2,
-        },
-        description: {
-            fontSize: fonts.body.size,
-            fontFamily: fonts.accent.family,
-            color: colorScheme.text,
-            marginTop: 6,
-            lineHeight: 1.3,
-        },
-        imagesSection: {
-            flexDirection: 'row',
-            gap: 12,
-            marginBottom: 12,
-            height: 220,
-        },
-        imageContainer: {
-            flex: 1,
-            backgroundColor: '#f0f0f0',
-            justifyContent: 'center',
-            alignItems: 'center',
-            overflow: 'hidden',
-        },
-        statsGrid: {
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            marginBottom: 12,
-            paddingBottom: 10,
-            borderBottomWidth: 2,
-            borderBottomColor: colorScheme.primary,
-        },
-        statBox: {
-            alignItems: 'center',
-        },
-        statValue: {
-            fontSize: fonts.sectionTitle.size + 4,
-            fontFamily: fonts.sectionTitle.family,
-            color: colorScheme.primary,
-        },
-        statLabel: {
-            fontSize: fonts.body.size - 2,
-            color: colorScheme.accent,
-            textTransform: 'uppercase',
-            marginTop: 2,
-        },
-        sectionTitle: {
-            fontSize: fonts.sectionTitle.size,
-            fontFamily: fonts.sectionTitle.family,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-            marginTop: 8,
-            color: colorScheme.primary,
-            borderBottomWidth: 1,
-            borderBottomColor: colorScheme.primary,
-            paddingBottom: 2,
-        },
-        narrative: {
-            fontSize: fonts.accent.size,
-            fontFamily: fonts.accent.family,
-            color: colorScheme.text,
-            lineHeight: 1.4,
-            marginBottom: 12,
-            padding: 10,
-            backgroundColor: colorScheme.secondary + '20', // 20% opacity
-            borderLeftWidth: 3,
-            borderLeftColor: colorScheme.primary,
-        },
-        comment: {
-            marginBottom: 4,
-            fontSize: fonts.body.size - 2,
-            lineHeight: 1.3,
-        },
-        commentAuthor: {
-            fontFamily: fonts.sectionTitle.family,
-            fontSize: fonts.body.size - 2,
-            color: colorScheme.primary,
-        },
-        commentText: {
-            fontFamily: fonts.body.family,
-            fontSize: fonts.body.size - 2,
-            color: colorScheme.text,
-        },
-        footer: {
-            position: 'absolute',
-            bottom: 12,
-            left: 25,
-            right: 25,
-            textAlign: 'center',
-            fontSize: fonts.body.size - 3,
-            color: colorScheme.accent,
-        },
-    })
+    // Prepare photo URLs with absolute paths
+    const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const photoUrls: string[] = photos.slice(0, 3).map((photo: any) => {
+        const photoUrlsObj = photo.urls || {}
+        const rawUrl = photoUrlsObj['5000'] || photoUrlsObj['600'] || photoUrlsObj['100'] || Object.values(photoUrlsObj)[0]
+        if (!rawUrl) return null
+        return `${BASE_URL}/api/proxy-image?url=${encodeURIComponent(rawUrl as string)}`
+    }).filter((url): url is string => url !== null)
 
-    // Get location using utility function
-    const location = resolveActivityLocation(activity)
-
-    // Calculate key stats
+    // Calculate key stats for stat elements
     const distanceKm = (activity.distance / 1000).toFixed(2)
     const movingTime = new Date(activity.moving_time * 1000).toISOString().substr(11, 8)
     const paceSeconds = activity.moving_time / (activity.distance / 1000)
@@ -186,99 +91,173 @@ export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
     const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
     const avgPace = `${paceMin}:${paceSec}/km`
 
-    // Get first 3 photos for display
-    // IMPORTANT: @react-pdf/renderer requires absolute URLs for images
-    // We need to construct full URLs to the proxy endpoint
-    const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    const displayPhotos: string[] = photos.slice(0, 3).map((photo: any) => {
-        const photoUrls = photo.urls || {}
-        const rawUrl = photoUrls['5000'] || photoUrls['600'] || photoUrls['100'] || Object.values(photoUrls)[0]
-        if (!rawUrl) return null
+    // Render bodyElements if provided (scrapbook mode)
+    if (bodyElements && bodyElements.length > 0) {
+        // Sort by zIndex for proper layering
+        const sortedElements = [...bodyElements].sort((a, b) =>
+            (a.zIndex || 0) - (b.zIndex || 0)
+        )
 
-        // Use absolute URL for PDF rendering
-        return `${BASE_URL}/api/proxy-image?url=${encodeURIComponent(rawUrl as string)}`
-    }).filter((url): url is string => url !== null)
+        return (
+            <Document>
+                <Page size="LETTER" style={{ backgroundColor: pageBackground }}>
+                    {sortedElements.map((element, index) => {
+                        const baseStyle: any = {
+                            position: 'absolute',
+                            left: element.position.x,
+                            top: element.position.y,
+                            width: element.size.width,
+                            height: element.size.height,
+                            transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+                        }
 
-    // Get first 3 comments
-    const displayComments = comments.slice(0, 3)
+                        // Add border radius if specified
+                        if (element.style?.borderRadius) {
+                            baseStyle.borderRadius = element.style.borderRadius
+                            baseStyle.overflow = 'hidden'
+                        }
+
+                        // Add shadow if specified (simulated with border for PDF)
+                        if (element.style?.shadow) {
+                            baseStyle.boxShadow = `${element.style.shadow.offsetX}px ${element.style.shadow.offsetY}px ${element.style.shadow.blur}px ${element.style.shadow.color}`
+                        }
+
+                        switch (element.type) {
+                            case 'photo':
+                                const photoUrl = photoUrls[element.photoIndex || 0]
+                                if (!photoUrl) return null
+                                return (
+                                    <View key={index} style={baseStyle}>
+                                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                                        <Image src={photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </View>
+                                )
+
+                            case 'textBox':
+                                const fontKey = element.style?.font || 'body'
+                                const font = fonts[fontKey as keyof typeof fonts] || fonts.body
+                                return (
+                                    <View key={index} style={{
+                                        ...baseStyle,
+                                        backgroundColor: element.style?.backgroundColor,
+                                        padding: element.style?.padding || 0,
+                                        justifyContent: 'center',
+                                        alignItems: element.style?.textAlign === 'center' ? 'center' :
+                                            element.style?.textAlign === 'right' ? 'flex-end' : 'flex-start'
+                                    }}>
+                                        <Text style={{
+                                            fontFamily: font.family,
+                                            fontSize: font.size,
+                                            color: font.color,
+                                            textAlign: element.style?.textAlign || 'left'
+                                        }}>
+                                            {element.content as string}
+                                        </Text>
+                                    </View>
+                                )
+
+                            case 'stat':
+                                const statContent = element.content as { label: string, value: string }
+                                return (
+                                    <View key={index} style={{
+                                        ...baseStyle,
+                                        backgroundColor: element.style?.backgroundColor || '#FFFFFF',
+                                        padding: element.style?.padding || 8,
+                                        justifyContent: 'center',
+                                        alignItems: 'center'
+                                    }}>
+                                        <Text style={{
+                                            fontFamily: fonts.sectionTitle.family,
+                                            fontSize: fonts.sectionTitle.size + 6,
+                                            color: colorScheme.primary,
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {statContent.value}
+                                        </Text>
+                                        <Text style={{
+                                            fontFamily: fonts.body.family,
+                                            fontSize: fonts.body.size - 2,
+                                            color: colorScheme.accent,
+                                            marginTop: 2
+                                        }}>
+                                            {statContent.label}
+                                        </Text>
+                                    </View>
+                                )
+
+                            case 'comment':
+                                const commentContent = element.content as { author: string, text: string }
+                                return (
+                                    <View key={index} style={{
+                                        ...baseStyle,
+                                        backgroundColor: element.style?.backgroundColor || '#FFFACD',
+                                        padding: element.style?.padding || 8,
+                                    }}>
+                                        <Text style={{
+                                            fontFamily: fonts.sectionTitle.family,
+                                            fontSize: fonts.body.size,
+                                            color: colorScheme.primary,
+                                            marginBottom: 2
+                                        }}>
+                                            {commentContent.author}:
+                                        </Text>
+                                        <Text style={{
+                                            fontFamily: fonts.body.family,
+                                            fontSize: fonts.body.size - 1,
+                                            color: colorScheme.text
+                                        }}>
+                                            {commentContent.text}
+                                        </Text>
+                                    </View>
+                                )
+
+                            default:
+                                return null
+                        }
+                    })}
+                </Page>
+            </Document>
+        )
+    }
+
+    // Fallback to traditional layout if no bodyElements
+    // (Keep existing code for backward compatibility)
+    const styles = StyleSheet.create({
+        page: {
+            backgroundColor: pageBackground,
+            padding: 25,
+            flexDirection: 'column',
+        },
+        title: {
+            fontSize: fonts.pageTitle.size,
+            fontFamily: fonts.pageTitle.family,
+            color: fonts.pageTitle.color,
+            marginBottom: 20,
+        },
+        narrative: {
+            fontSize: fonts.accent.size,
+            fontFamily: fonts.accent.family,
+            color: colorScheme.text,
+            marginBottom: 15,
+            padding: 10,
+            backgroundColor: colorScheme.secondary + '20',
+            borderLeftWidth: 3,
+            borderLeftColor: colorScheme.primary,
+        },
+    })
 
     return (
         <Document>
             <Page size="LETTER" style={styles.page}>
-                {/* Hero Header */}
-                <View style={styles.heroHeader}>
-                    <Text style={styles.meta}>
-                        {new Date(activity.start_date).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
-                    </Text>
-                    <Text style={styles.meta}>{location}</Text>
-                    <Text style={styles.title}>{activity.name}</Text>
-                    {activity.description && (
-                        <Text style={styles.description}>{activity.description}</Text>
-                    )}
-                </View>
-
-                {/* AI Narrative */}
+                <Text style={styles.title}>{activity.name}</Text>
                 {narrative && (
                     <View style={styles.narrative}>
                         <Text>{narrative}</Text>
                     </View>
                 )}
-
-                {/* Photos Section */}
-                {displayPhotos.length > 0 && (
-                    <View style={styles.imagesSection}>
-                        {displayPhotos.map((proxyUrl: string, index: number) => (
-                            <View key={index} style={styles.imageContainer}>
-                                {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                                <Image src={proxyUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                {/* Key Stats */}
-                <View style={styles.statsGrid}>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{distanceKm}</Text>
-                        <Text style={styles.statLabel}>Kilometers</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{movingTime}</Text>
-                        <Text style={styles.statLabel}>Time</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{avgPace}</Text>
-                        <Text style={styles.statLabel}>Avg Pace</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{activity.total_elevation_gain}m</Text>
-                        <Text style={styles.statLabel}>Elevation</Text>
-                    </View>
-                </View>
-
-                {/* Comments Section */}
-                {displayComments.length > 0 && (
-                    <View>
-                        <Text style={styles.sectionTitle}>Comments</Text>
-                        {displayComments.map((comment: any, i: number) => (
-                            <View key={i} style={styles.comment}>
-                                <Text style={styles.commentAuthor}>
-                                    {comment.athlete.firstname} {comment.athlete.lastname}:
-                                </Text>
-                                <Text style={styles.commentText}>{comment.text}</Text>
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                <View style={styles.footer}>
-                    <Text>Generated by Strava Book • Powered by AI • {activity.type}</Text>
-                </View>
+                <Text style={{ fontSize: 10 }}>Distance: {distanceKm} km</Text>
+                <Text style={{ fontSize: 10 }}>Time: {movingTime}</Text>
+                <Text style={{ fontSize: 10 }}>Pace: {avgPace}</Text>
             </Page>
         </Document>
     )

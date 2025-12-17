@@ -23,10 +23,12 @@ interface DataSelection {
 export default function AIGenerationModal({ activity, isOpen, onClose }: AIGenerationModalProps) {
     const [loading, setLoading] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [generatingMockup, setGeneratingMockup] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [showOfflineOption, setShowOfflineOption] = useState(false)
     const [aiResult, setAiResult] = useState<any>(null)
+    const [mockupUrl, setMockupUrl] = useState<string | null>(null)
 
     // Configuration state
     const [configuring, setConfiguring] = useState(true)
@@ -80,19 +82,72 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
     if (!isOpen) return null
 
     const handleGenerate = async () => {
-        setConfiguring(false)
-        setLoading(true)
-        setError(null)
-        setSuccess(false)
-        setShowOfflineOption(false)
-
-        // Show offline option after 30 seconds
-        const offlineTimer = setTimeout(() => {
-            setShowOfflineOption(true)
-        }, 30000)
-
         try {
-            // Filter comprehensive data based on user selections
+            setConfiguring(false)
+            setLoading(true)
+            setGeneratingMockup(true)
+            setError(null)
+            setSuccess(false)
+            setMockupUrl(null)
+            setAiResult(null)
+            setGenerating(true)
+
+            console.log('[AI] Starting mockup generation...')
+
+            // Stage 1: Generate visual mockup with Imagen 3
+            const mockupResponse = await fetch('/api/generate-mockup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    activityData: {
+                        name: activity.name,
+                        distance: (activity.distance / 1000).toFixed(2),
+                        time: `${Math.floor(activity.moving_time / 3600)}h ${Math.floor((activity.moving_time % 3600) / 60)}m`,
+                        elevation: activity.total_elevation_gain,
+                        date: new Date(activity.start_date_local).toLocaleDateString(),
+                        location: activity.location_city || 'Unknown',
+                        photoCount: dataSelection.includePhotos ? (comprehensiveData?.photos?.length || 0) : 0,
+                    }
+                })
+            })
+
+            if (!mockupResponse.ok) {
+                const errorData = await mockupResponse.json()
+                throw new Error(errorData.details || 'Failed to generate mockup')
+            }
+
+            const mockupData = await mockupResponse.json()
+            console.log('[AI] Mockup generated successfully')
+
+            setMockupUrl(mockupData.mockupUrl)
+            setGeneratingMockup(false)
+            setLoading(false)
+            setGenerating(false)
+
+        } catch (err) {
+            console.error('[AI] Error:', err)
+            setError(err instanceof Error ? err.message : 'Failed to generate mockup')
+            setLoading(false)
+            setGeneratingMockup(false)
+            setGenerating(false)
+        }
+    }
+
+    const handleApproveMockup = async () => {
+        try {
+            setLoading(true)
+            setGenerating(true)
+            setError(null)
+            setShowOfflineOption(false)
+
+            console.log('[AI] User approved mockup, generating PDF...')
+
+            // Show offline option after 30 seconds
+            const offlineTimer = setTimeout(() => {
+                setShowOfflineOption(true)
+            }, 30000)
+
+            // Prepare filtered data based on user selections
             const filteredData = {
                 activity: comprehensiveData.activity,
                 photos: dataSelection.includePhotos
@@ -105,39 +160,43 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                 metadata: comprehensiveData.metadata,
             }
 
-            // Send to AI for generation
-            const aiResponse = await fetch('/api/ai-generate', {
+            // Stage 2: Convert mockup to JSON (for now, use existing AI generation)
+            // TODO: Implement vision-to-JSON conversion
+            const response = await fetch('/api/ai-generate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     activityId: activity.id,
-                    comprehensiveData: filteredData,
+                    mockupUrl: mockupUrl,
                     pageCount: dataSelection.pageCount,
-                    dataSelection,
-                }),
+                })
             })
 
-            if (!aiResponse.ok) {
-                throw new Error('Failed to generate AI layout')
+            if (!response.ok) {
+                throw new Error('Failed to generate layout')
             }
 
-            const result = await aiResponse.json()
+            const data = await response.json()
+            console.log('[AI] Layout generated:', data)
 
             clearTimeout(offlineTimer)
-            setAiResult(result)
+            setAiResult(data)
             setSuccess(true)
             setLoading(false)
+            setGenerating(false)
 
-            console.log('AI Generation Result:', result)
         } catch (err) {
-            clearTimeout(offlineTimer)
-            const errorMessage = err instanceof Error ? err.message : 'An error occurred'
-            console.error('AI Generation Error:', err)
-            setError(errorMessage)
+            console.error('[AI] Error:', err)
+            setError(err instanceof Error ? err.message : 'Failed to generate AI layout')
             setLoading(false)
+            setGenerating(false)
         }
+    }
+
+    const handleRegenerateMockup = () => {
+        setMockupUrl(null)
+        setError(null)
+        handleGenerate()
     }
 
     const handleContinueOffline = () => {
@@ -409,6 +468,41 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                     <h4 className="font-semibold text-red-800">Error</h4>
                                     <p className="text-sm text-red-700">{error}</p>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Mockup Preview */}
+                    {mockupUrl && !success && (
+                        <div className="bg-white border border-stone-200 rounded-lg p-4 mb-4">
+                            <h4 className="font-semibold text-stone-900 mb-3">📐 AI-Generated Layout Mockup</h4>
+                            <p className="text-sm text-stone-600 mb-4">
+                                Review the layout design created by Imagen 3. Approve to generate the final PDF, or try again for a different design.
+                            </p>
+
+                            <div className="border-2 border-stone-200 rounded-lg overflow-hidden mb-4">
+                                <img
+                                    src={mockupUrl}
+                                    alt="AI-generated layout mockup"
+                                    className="w-full h-auto"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleApproveMockup}
+                                    disabled={loading}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? 'Converting to PDF...' : '✓ Approve & Generate PDF'}
+                                </button>
+                                <button
+                                    onClick={handleRegenerateMockup}
+                                    disabled={loading}
+                                    className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    ↻ Try Again
+                                </button>
                             </div>
                         </div>
                     )}
