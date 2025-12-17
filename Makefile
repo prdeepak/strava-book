@@ -35,6 +35,9 @@ up:
 	docker-compose up -d
 
 down:
+	@echo "🛑 Stopping all strava-book containers..."
+	@docker ps -q --filter "name=strava-book" | xargs -r docker stop
+	@echo "🧹 Cleaning up Docker Compose resources..."
 	docker-compose down
 
 build:

@@ -130,6 +130,36 @@ Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)"
 * Integration with an API like Blurb, Lulu, or Gelato.
 
 ## 7. Next Steps for Development
+
+### Current Status (December 2024)
+- ✅ Basic AI generation working with Gemini 2.0 Flash
+- ✅ Dynamic PDF generation with fonts and colors
+- ✅ Photo display in PDFs working
+- ⚠️ Imagen 3 mockup generation implemented but blocked by quota limits
+
+### Immediate Next Steps
+
+**AI Layout Generation - Two-Stage Workflow:**
+1. **Option A: Text-Based Mockup Description**
+   - Use Gemini to generate detailed text description of layout
+   - Show description to user for approval
+   - Convert approved description to bodyElements JSON
+   - Faster, no quota issues, works immediately
+
+2. **Option B: Alternative Image Generation**
+   - Try DALL-E 3 (OpenAI) for mockup generation
+   - Try Stable Diffusion for mockup generation
+   - Both have higher quotas than Imagen 3
+   - May require different API setup
+
+3. **Option C: Request Imagen 3 Quota Increase**
+   - Submit quota increase request to Google Cloud
+   - Takes 1-2 business days for approval
+   - Continue with Imagen 3 once quota approved
+
+**Recommended Approach:** Start with Option A (text-based) for immediate functionality, then add Option B or C as enhancement.
+
+### Future Enhancements
 (As of 2025-12-14 05:39 EST)
 1. Establish a default AI Agent, add URL, key / secret to the environment
 2. Establish a new race_ai option, where user specifies how many pages they want to generate for a given event.  App sends all the relevant data / components, including SVG pace graph + elevation graph and all Strava photos, to the AI agent with a prompt to generate 3 potential layouts, as per Page Designer concept above
