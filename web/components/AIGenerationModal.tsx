@@ -21,6 +21,28 @@ interface ComprehensiveActivityData {
     metadata?: unknown
 }
 
+interface LayoutDescription {
+    theme: string
+    aesthetic: string
+    colorPalette: {
+        primary: string
+        secondary: string
+        accent: string
+        background: string
+        text: string
+    }
+    typography: {
+        pageTitle: string
+        sectionTitle: string
+        body: string
+        accent: string
+    }
+    layoutStrategy: string
+    photoPlacement: string[]
+    textElements: string[]
+    visualHierarchy: string
+}
+
 interface AIGenerationResult {
     designSpec: {
         layout?: string
@@ -60,7 +82,7 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
     const [success, setSuccess] = useState(false)
     const [showOfflineOption, setShowOfflineOption] = useState(false)
     const [aiResult, setAiResult] = useState<AIGenerationResult | null>(null)
-    const [mockupUrl, setMockupUrl] = useState<string | null>(null)
+    const [layoutDescription, setLayoutDescription] = useState<LayoutDescription | null>(null)
 
     // Configuration state
     const [configuring, setConfiguring] = useState(true)
@@ -121,13 +143,13 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             setLoading(true)
             setError(null)
             setSuccess(false)
-            setMockupUrl(null)
+            setLayoutDescription(null)
             setAiResult(null)
             setGenerating(true)
 
-            console.log('[AI] Starting mockup generation...')
+            console.log('[AI] Starting layout description generation...')
 
-            // Stage 1: Generate visual mockup with Imagen 3
+            // Stage 1: Generate text-based layout description with Gemini
             const mockupResponse = await fetch('/api/generate-mockup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -146,19 +168,19 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
 
             if (!mockupResponse.ok) {
                 const errorData = await mockupResponse.json()
-                throw new Error(errorData.details || 'Failed to generate mockup')
+                throw new Error(errorData.details || 'Failed to generate layout description')
             }
 
             const mockupData = await mockupResponse.json()
-            console.log('[AI] Mockup generated successfully')
+            console.log('[AI] Layout description generated successfully')
 
-            setMockupUrl(mockupData.mockupUrl)
+            setLayoutDescription(mockupData.description)
             setLoading(false)
             setGenerating(false)
 
         } catch (err) {
             console.error('[AI] Error:', err)
-            setError(err instanceof Error ? err.message : 'Failed to generate mockup')
+            setError(err instanceof Error ? err.message : 'Failed to generate layout description')
             setLoading(false)
             setGenerating(false)
         }
@@ -171,27 +193,28 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             setError(null)
             setShowOfflineOption(false)
 
-            console.log('[AI] User approved mockup, generating PDF...')
+            console.log('[AI] User approved layout description, generating PDF...')
 
             // Show offline option after 30 seconds
             const offlineTimer = setTimeout(() => {
                 setShowOfflineOption(true)
             }, 30000)
 
-            // Stage 2: Convert mockup to JSON (for now, use existing AI generation)
-            // TODO: Implement vision-to-JSON conversion
+            // Stage 2: Convert description to bodyElements JSON
             const response = await fetch('/api/ai-generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     activityId: activity.id,
-                    mockupUrl: mockupUrl,
+                    comprehensiveData: comprehensiveData,
+                    layoutDescription: layoutDescription,
                     pageCount: dataSelection.pageCount,
                 })
             })
 
             if (!response.ok) {
-                throw new Error('Failed to generate layout')
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+                throw new Error(errorData.details || errorData.error || 'Failed to generate layout')
             }
 
             const data = await response.json()
@@ -212,7 +235,7 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
     }
 
     const handleRegenerateMockup = () => {
-        setMockupUrl(null)
+        setLayoutDescription(null)
         setError(null)
         handleGenerate()
     }
@@ -416,7 +439,9 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                                     // Strava returns urls with keys like "5000", "600", etc.
                                                     const photoUrls = photo.urls || {}
                                                     const rawUrl = photoUrls['600'] || photoUrls['5000'] || photoUrls['100'] || Object.values(photoUrls)[0]
-                                                    const thumbnailUrl = rawUrl ? `/api/proxy-image?url=${encodeURIComponent(rawUrl as string)}` : ''
+                                                    // Convert to string if it's a number
+                                                    const rawUrlString = rawUrl ? String(rawUrl) : ''
+                                                    const thumbnailUrl = rawUrlString ? `/api/proxy-image?url=${encodeURIComponent(rawUrlString)}` : ''
 
                                                     // Debug logging
                                                     if (index === 0) {
@@ -490,23 +515,97 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                         </div>
                     )}
 
-                    {/* Mockup Preview */}
-                    {mockupUrl && !success && (
+                    {/* Layout Description Preview */}
+                    {layoutDescription && !success && (
                         <div className="bg-white border border-stone-200 rounded-lg p-4 mb-4">
-                            <h4 className="font-semibold text-stone-900 mb-3">📐 AI-Generated Layout Mockup</h4>
+                            <h4 className="font-semibold text-stone-900 mb-3">📐 AI-Generated Layout Description</h4>
                             <p className="text-sm text-stone-600 mb-4">
-                                Review the layout design created by Imagen 3. Approve to generate the final PDF, or try again for a different design.
+                                Review the layout design created by Gemini. Approve to generate the final PDF, or try again for a different design.
                             </p>
 
-                            <div className="border-2 border-stone-200 rounded-lg overflow-hidden mb-4">
-                                <img
-                                    src={mockupUrl}
-                                    alt="AI-generated layout mockup"
-                                    className="w-full h-auto"
-                                />
+                            <div className="space-y-4">
+                                {/* Theme */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Theme</h5>
+                                    <p className="text-sm font-bold text-stone-900">{layoutDescription.theme}</p>
+                                </div>
+
+                                {/* Aesthetic */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Aesthetic</h5>
+                                    <p className="text-sm text-stone-700 leading-relaxed">{layoutDescription.aesthetic}</p>
+                                </div>
+
+                                {/* Color Palette */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Color Palette</h5>
+                                    <div className="flex gap-2">
+                                        {Object.entries(layoutDescription.colorPalette).map(([name, color]) => (
+                                            <div key={name} className="flex-1">
+                                                <div
+                                                    className="h-12 rounded border border-stone-200 mb-1"
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                                <div className="text-xs text-stone-600 text-center capitalize">{name}</div>
+                                                <div className="text-xs text-stone-400 text-center font-mono">{color}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Typography */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Typography</h5>
+                                    <div className="space-y-1 text-sm">
+                                        {Object.entries(layoutDescription.typography).map(([name, font]) => (
+                                            <div key={name} className="flex justify-between">
+                                                <span className="text-stone-600 capitalize">{name}:</span>
+                                                <span className="text-stone-900 font-semibold">{font}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Layout Strategy */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Layout Strategy</h5>
+                                    <p className="text-sm text-stone-700 leading-relaxed">{layoutDescription.layoutStrategy}</p>
+                                </div>
+
+                                {/* Photo Placement */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Photo Placement</h5>
+                                    <ul className="space-y-1">
+                                        {layoutDescription.photoPlacement.map((placement, idx) => (
+                                            <li key={idx} className="text-sm text-stone-700 flex items-start">
+                                                <span className="text-orange-500 mr-2">•</span>
+                                                <span>{placement}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Text Elements */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Text Elements</h5>
+                                    <ul className="space-y-1">
+                                        {layoutDescription.textElements.map((element, idx) => (
+                                            <li key={idx} className="text-sm text-stone-700 flex items-start">
+                                                <span className="text-orange-500 mr-2">•</span>
+                                                <span>{element}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Visual Hierarchy */}
+                                <div className="bg-stone-50 rounded-lg p-3">
+                                    <h5 className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Visual Hierarchy</h5>
+                                    <p className="text-sm text-stone-700 leading-relaxed">{layoutDescription.visualHierarchy}</p>
+                                </div>
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 mt-4">
                                 <button
                                     onClick={handleApproveMockup}
                                     disabled={loading}

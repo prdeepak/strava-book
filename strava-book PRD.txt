@@ -135,29 +135,79 @@ Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)"
 - ✅ Basic AI generation working with Gemini 2.0 Flash
 - ✅ Dynamic PDF generation with fonts and colors
 - ✅ Photo display in PDFs working
-- ⚠️ Imagen 3 mockup generation implemented but blocked by quota limits
+- ✅ Text-based layout description workflow implemented (Option A)
+- ✅ Google Fonts registered (Roboto, Open Sans, Montserrat, Playfair Display, Pacifico)
+- ⚠️ Free-form bodyElements generation produces chaotic, unprofessional layouts
+
+### Lessons Learned (December 18, 2024)
+
+**What Worked:**
+- Text-based layout descriptions provide good creative guidance
+- Google Fonts registration successful - more typography options available
+- Two-stage workflow (description → approval → generation) is sound
+
+**What Didn't Work:**
+- Free-form AI generation of bodyElements creates messy, overlapping layouts
+- No constraints on element placement leads to unprofessional results
+- Difficult to ensure print-quality output with unconstrained positioning
+
+### Revised Approach: Template-Based AI Customization
+
+**Core Principle:** Start with proven, professional templates and let AI customize them, rather than generating layouts from scratch.
+
+**Recommended Implementation:**
+
+**Phase 1: Template Library (Immediate)**
+1. Keep existing templates (`Race_1p`, `Race_2p`, `Race_graph`) as-is
+2. Create new `AIRace_Scrapbook.tsx` template with 2-3 **predefined layout variants**:
+   - Variant A: Photo-heavy collage style
+   - Variant B: Magazine editorial style
+   - Variant C: Minimalist journal style
+3. Each variant has **fixed zones** for elements (header, photo grid, stats, narrative)
+
+**Phase 2: AI Customization (Next)**
+AI's role is to:
+- **Select** which template variant fits the activity best
+- **Customize** within constraints:
+  - Choose colors from generated palette
+  - Select which photos to feature (and in which zones)
+  - Pick fonts from registered set
+  - Write narrative text
+  - Determine stat emphasis
+- **Output:** Simple JSON like `{ "template": "scrapbook_variant_a", "colors": {...}, "photos": [0,2], "narrative": "..." }`
+
+**Phase 3: Gradual Enhancement (Future)**
+- Add more template variants
+- Allow AI to adjust spacing/sizing within zones
+- Introduce decorative elements (shapes, borders) with constraints
+
+**Benefits of This Approach:**
+- ✅ Predictable, professional results
+- ✅ Maintains print quality
+- ✅ Easier to debug and iterate
+- ✅ User can preview template before AI customization
+- ✅ Incremental path to more AI creativity
 
 ### Immediate Next Steps
 
-**AI Layout Generation - Two-Stage Workflow:**
-1. **Option A: Text-Based Mockup Description**
-   - Use a creative AI agent to generate detailed text description of layout
-   - Show description to user for approval
-   - Convert approved description to bodyElements JSON
-   - Faster, no quota issues, works immediately
+1. **Pause** free-form bodyElements generation
+2. **Create** `AIRace_Scrapbook.tsx` with 2-3 fixed layout variants
+3. **Simplify** AI role to template selection + parameter customization
+4. **Test** with real activities to validate quality
 
-2. **Option B: Alternative Image Generation**
-   - Try DALL-E 3 (OpenAI) for mockup generation
-   - Try Stable Diffusion for mockup generation
-   - Both have higher quotas than Imagen 3
-   - May require different API setup
+### Alternative Approaches Considered
 
-3. **Option C: Request Imagen 3 Quota Increase**
-   - Submit quota increase request to Google Cloud
-   - Takes 1-2 business days for approval
-   - Continue with Imagen 3 once quota approved
+**Option B: Layout Constraints**
+- Define grid system with snap points
+- AI can only place elements on grid
+- More flexible than templates but still risky
 
-**Recommended Approach:** Start with Option A (text-based) for immediate functionality, then add Option B or C as enhancement.
+**Option C: Hybrid Approach**
+- Use `Race_1p` as base
+- Let AI add decorative overlays
+- Complex to implement, unclear benefit
+
+**Decision:** Template-based approach (Phase 1-3 above) is the safest, most pragmatic path forward.
 
 ### Future Enhancements
 (As of 2025-12-14 05:39 EST)

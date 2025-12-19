@@ -7,6 +7,46 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
+// Register Google Fonts for more creative typography options
+Font.register({
+    family: 'Roboto',
+    fonts: [
+        { src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf' }, // Regular
+        { src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf', fontWeight: 700 }, // Bold
+        { src: 'https://fonts.gstatic.com/s/roboto/v30/KFOkCnqEu92Fr1Mu52xPKTM1K9nz.ttf', fontStyle: 'italic' }, // Italic
+    ]
+})
+
+Font.register({
+    family: 'Open Sans',
+    fonts: [
+        { src: 'https://fonts.gstatic.com/s/opensans/v34/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0C4nY1M2xLER.ttf' }, // Regular
+        { src: 'https://fonts.gstatic.com/s/opensans/v34/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1y4nY1M2xLER.ttf', fontWeight: 700 }, // Bold
+    ]
+})
+
+Font.register({
+    family: 'Montserrat',
+    fonts: [
+        { src: 'https://fonts.gstatic.com/s/montserrat/v25/JTUSjIg1_i6t8kCHKm459WlhyyTh89Y.ttf' }, // Regular
+        { src: 'https://fonts.gstatic.com/s/montserrat/v25/JTUSjIg1_i6t8kCHKm459Wlhyw3JetbqKA.ttf', fontWeight: 700 }, // Bold
+    ]
+})
+
+Font.register({
+    family: 'Playfair Display',
+    fonts: [
+        { src: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFiD-vYSZviVYUb_rj3ij__anPXDTnCjmHKM4nYO7KN_qiTXtPA.ttf' }, // Regular
+        { src: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFiD-vYSZviVYUb_rj3ij__anPXDTnCjmHKM4nYO7KN_pqQXtPA.ttf', fontWeight: 700 }, // Bold
+        { src: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFkD-vYSZviVYUb_rj3ij__anPXDTnohkk72xU.ttf', fontStyle: 'italic' }, // Italic
+    ]
+})
+
+Font.register({
+    family: 'Pacifico',
+    src: 'https://fonts.gstatic.com/s/pacifico/v22/FwZY7-Qmy14u9lezJ96A4sijpFu_.ttf'
+})
+
 interface BodyElement {
     type: 'photo' | 'textBox' | 'stat' | 'comment'
     photoIndex?: number

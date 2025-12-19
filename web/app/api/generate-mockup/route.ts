@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { VertexAI } from '@google-cloud/vertexai'
 
 interface ActivityData {
     name: string
@@ -13,18 +12,26 @@ interface ActivityData {
     photoCount: number
 }
 
-interface ImageRequest {
-    contents: Array<{
-        role: string
-        parts: Array<{ text: string }>
-    }>
-}
-
-interface ImagePart {
-    inlineData?: {
-        data: string
-        mimeType?: string
+interface LayoutDescription {
+    theme: string
+    aesthetic: string
+    colorPalette: {
+        primary: string
+        secondary: string
+        accent: string
+        background: string
+        text: string
     }
+    typography: {
+        pageTitle: string
+        sectionTitle: string
+        body: string
+        accent: string
+    }
+    layoutStrategy: string
+    photoPlacement: string[]
+    textElements: string[]
+    visualHierarchy: string
 }
 
 export async function POST(request: NextRequest) {
@@ -38,26 +45,25 @@ export async function POST(request: NextRequest) {
         const body = await request.json()
         const activityData = body.activityData as ActivityData
 
-        console.log('[Mockup] Generating visual mockup for:', activityData.name)
+        console.log('[Mockup] Generating text-based layout description for:', activityData.name)
 
-        // Initialize Vertex AI
-        const projectId = process.env.GOOGLE_CLOUD_PROJECT
-        if (!projectId) {
-            throw new Error('GOOGLE_CLOUD_PROJECT environment variable not set')
+        // Check for Gemini API key
+        const apiKey = process.env.GEMINI_API_KEY
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY not configured')
         }
 
-        const vertexAI = new VertexAI({
-            project: projectId,
-            location: 'us-central1'
+        // Import Gemini SDK
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const genAI = new GoogleGenerativeAI(apiKey)
+
+        // Use Gemini 2.0 Flash for creative layout descriptions
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.0-flash-exp'
         })
 
-        // Use Imagen 3 for mockup generation
-        const model = vertexAI.preview.getGenerativeModel({
-            model: 'imagen-3.0-generate-001'
-        })
-
-        // Create detailed prompt for scrapbook-style layout
-        const prompt: string = `Create a scrapbook-style race poster mockup layout design:
+        // Create prompt for detailed layout description
+        const prompt = `You are a CREATIVE ART DIRECTOR designing a scrapbook-style race poster layout.
 
 RACE DETAILS:
 - Name: ${activityData.name}
@@ -68,75 +74,89 @@ RACE DETAILS:
 - Location: ${activityData.location}
 - Available Photos: ${activityData.photoCount}
 
-DESIGN REQUIREMENTS:
-- Scrapbook/magazine aesthetic with creative layout
-- Show placeholder boxes for ${activityData.photoCount} photos at jaunty angles (-5° to 5°)
-- Bold, eye-catching title placement (rotated slightly)
-- Stats displayed in creative positions (not in a boring row)
-- Handwritten-style annotations and labels
-- Overlapping elements for depth and visual interest
-- Drop shadows on photos for dimension
-- Colored backgrounds on text boxes
-- Professional but playful scrapbook design
+YOUR TASK: Create a detailed, human-readable description of a creative scrapbook-style layout design.
 
-STYLE:
-- Vibrant, energetic colors
-- Dynamic, non-grid layout
-- Magazine/scrapbook collage aesthetic
-- Show the LAYOUT DESIGN with placeholder elements (wireframe style is OK)
+Return ONLY valid JSON with this structure:
+{
+  "theme": "Brief theme name (e.g., 'Vibrant Scrapbook', 'Modern Minimalist', 'Editorial Bold')",
+  "aesthetic": "2-3 sentence description of the overall visual style and mood",
+  "colorPalette": {
+    "primary": "#HEX (main brand color, vibrant and eye-catching)",
+    "secondary": "#HEX (complementary color)",
+    "accent": "#HEX (highlight color for important elements)",
+    "background": "#HEX (page background, usually white or light)",
+    "text": "#HEX (main text color, usually dark gray or black)"
+  },
+  "typography": {
+    "pageTitle": "Font choice for main title - Available fonts: Helvetica, Helvetica-Bold, Times-Roman, Times-Bold, Times-Italic, Courier, Courier-Bold, Roboto, Open Sans, Montserrat, Playfair Display, Pacifico (e.g., 'Montserrat, 36pt' or 'Playfair Display, 40pt')",
+    "sectionTitle": "Font for section headers - Available fonts: Helvetica, Helvetica-Bold, Times-Roman, Times-Bold, Roboto, Open Sans, Montserrat, Playfair Display (e.g., 'Roboto, 14pt')",
+    "body": "Font for body text - Available fonts: Helvetica, Times-Roman, Roboto, Open Sans (e.g., 'Open Sans, 10pt')",
+    "accent": "Font for decorative text - Available fonts: Helvetica, Times-Italic, Roboto, Montserrat, Playfair Display, Pacifico (e.g., 'Pacifico, 16pt' for handwritten feel)"
+  },
+  "layoutStrategy": "Detailed description of the overall layout approach - where elements are positioned, how they overlap, the visual flow from top to bottom, use of rotation and angles for scrapbook feel",
+  "photoPlacement": [
+    "Description of photo 1 placement (e.g., 'Large hero photo in top-left, rotated -3°, size 280x200pt')",
+    "Description of photo 2 placement if applicable",
+    "Description of photo 3 placement if applicable"
+  ],
+  "textElements": [
+    "Race title placement (e.g., 'Bold title overlapping hero photo, slight rotation, orange background')",
+    "Stats placement (e.g., 'Distance, time, pace scattered creatively around photos, not in a grid')",
+    "Narrative placement (e.g., 'Story text in bottom section with subtle background')",
+    "Other decorative text elements"
+  ],
+  "visualHierarchy": "Explanation of what draws the eye first, second, third - the visual flow and emphasis"
+}
 
-Create a visually stunning mockup that looks like a professionally designed race memory page!`
+DESIGN PRINCIPLES:
+- Scrapbook aesthetic: elements at jaunty angles (-5° to 5°), overlapping for depth
+- Dynamic, non-grid layout: avoid boring rows and columns
+- Creative positioning: scatter elements across the page
+- Visual interest: mix of photo sizes, rotated text boxes, colored backgrounds
+- Professional but playful: looks hand-crafted but polished
 
-        console.log('[Mockup] Sending request to Imagen 3...')
+Be SPECIFIC and CREATIVE in your descriptions. Make it sound exciting and visually compelling!`
 
-        // Generate mockup image using correct Imagen 3 API format
-        const imageRequest: ImageRequest = {
-            contents: [{
-                role: 'user',
-                parts: [{ text: prompt }]
-            }]
-        }
+        console.log('[Mockup] Sending request to Gemini...')
 
-        const result = await model.generateContent(imageRequest)
-
-        console.log('[Mockup] Image generated successfully')
-
-        // Extract image from response
+        const result = await model.generateContent(prompt)
         const response = result.response
-        if (!response.candidates || response.candidates.length === 0) {
-            throw new Error('No image generated')
+        const text = response.text()
+
+        console.log('[Mockup] Received response, length:', text.length)
+
+        // Extract JSON from response
+        let jsonText = text.trim()
+        if (jsonText.startsWith('```json')) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+        } else if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```\n?/g, '')
         }
 
-        // Get the image data (Imagen returns base64 encoded image)
-        const candidate = response.candidates[0]
-        const imagePart = candidate.content.parts.find((part: ImagePart) => part.inlineData)
-
-        if (!imagePart || !imagePart.inlineData) {
-            throw new Error('No image data in response')
+        let layoutDescription: LayoutDescription
+        try {
+            layoutDescription = JSON.parse(jsonText)
+        } catch (parseError) {
+            console.error('[Mockup] JSON parse error:', parseError)
+            throw new Error(`Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
         }
 
-        const imageBytes = imagePart.inlineData.data
-        const mimeType = imagePart.inlineData.mimeType || 'image/png'
-
-        // Convert to data URL for display
-        const mockupUrl = `data:${mimeType};base64,${imageBytes}`
-
-        console.log('[Mockup] Mockup URL created, length:', mockupUrl.length)
+        console.log('[Mockup] Successfully generated layout description')
 
         return NextResponse.json({
             success: true,
-            mockupUrl,
+            description: layoutDescription,
             metadata: {
-                model: 'imagen-3.0-generate-001',
+                model: 'gemini-2.0-flash-exp',
                 generatedAt: new Date().toISOString(),
             }
         })
 
     } catch (error) {
-        console.error('[Mockup] Error generating mockup:', error)
+        console.error('[Mockup] Error generating layout description:', error)
         return NextResponse.json(
             {
-                error: 'Failed to generate mockup',
+                error: 'Failed to generate layout description',
                 details: error instanceof Error ? error.message : 'Unknown error'
             },
             { status: 500 }
