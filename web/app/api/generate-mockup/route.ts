@@ -3,6 +3,30 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { VertexAI } from '@google-cloud/vertexai'
 
+interface ActivityData {
+    name: string
+    distance: string
+    time: string
+    elevation: number
+    date: string
+    location: string
+    photoCount: number
+}
+
+interface ImageRequest {
+    contents: Array<{
+        role: string
+        parts: Array<{ text: string }>
+    }>
+}
+
+interface ImagePart {
+    inlineData?: {
+        data: string
+        mimeType?: string
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
@@ -12,7 +36,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const activityData: any = body.activityData
+        const activityData = body.activityData as ActivityData
 
         console.log('[Mockup] Generating visual mockup for:', activityData.name)
 
@@ -66,7 +90,7 @@ Create a visually stunning mockup that looks like a professionally designed race
         console.log('[Mockup] Sending request to Imagen 3...')
 
         // Generate mockup image using correct Imagen 3 API format
-        const imageRequest: any = {
+        const imageRequest: ImageRequest = {
             contents: [{
                 role: 'user',
                 parts: [{ text: prompt }]
@@ -85,7 +109,7 @@ Create a visually stunning mockup that looks like a professionally designed race
 
         // Get the image data (Imagen returns base64 encoded image)
         const candidate = response.candidates[0]
-        const imagePart = candidate.content.parts.find((part: any) => part.inlineData)
+        const imagePart = candidate.content.parts.find((part: ImagePart) => part.inlineData)
 
         if (!imagePart || !imagePart.inlineData) {
             throw new Error('No image data in response')

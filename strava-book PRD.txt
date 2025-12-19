@@ -141,7 +141,7 @@ Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)"
 
 **AI Layout Generation - Two-Stage Workflow:**
 1. **Option A: Text-Based Mockup Description**
-   - Use Gemini to generate detailed text description of layout
+   - Use a creative AI agent to generate detailed text description of layout
    - Show description to user for approval
    - Convert approved description to bodyElements JSON
    - Faster, no quota issues, works immediately
@@ -161,6 +161,4 @@ Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)"
 
 ### Future Enhancements
 (As of 2025-12-14 05:39 EST)
-1. Establish a default AI Agent, add URL, key / secret to the environment
-2. Establish a new race_ai option, where user specifies how many pages they want to generate for a given event.  App sends all the relevant data / components, including SVG pace graph + elevation graph and all Strava photos, to the AI agent with a prompt to generate 3 potential layouts, as per Page Designer concept above
-3. Establish a default global style guide for the book.  Ensure all PDF pages use the global design
+* Establish a default global style guide for the book.  Ensure all PDF pages use the global design

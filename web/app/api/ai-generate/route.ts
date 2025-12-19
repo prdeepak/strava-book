@@ -134,12 +134,7 @@ async function generateWithGemini(comprehensiveData: ComprehensiveData, pageCoun
         commentCount: comments.length,
     })
 
-    // Build page-specific layout guidance
-    const pageGuidance = pageCount === 1
-        ? 'SINGLE PAGE: Create a compact, hero-style layout with key stats and 1-2 photos. Focus on visual impact.'
-        : pageCount === 2
-            ? 'TWO PAGES: Design a spread with page 1 as hero/narrative and page 2 for detailed stats, photos, and comments.'
-            : 'THREE PAGES: Create an editorial spread - page 1: hero with main photo, page 2: stats/splits/map, page 3: photo gallery and comments.'
+
 
     // Build a comprehensive prompt for creative scrapbook-style layouts
     const prompt = `You are a CREATIVE GRAPHIC DESIGNER creating a custom race poster with a scrapbook/magazine aesthetic.

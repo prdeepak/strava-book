@@ -1,6 +1,5 @@
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
-import { resolveActivityLocation } from '@/lib/activity-utils'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -51,11 +50,16 @@ interface DesignSpec {
     bodyElements?: BodyElement[]
 }
 
+interface PhotoData {
+    urls?: Record<string, string | number>
+    caption?: string
+}
+
 interface ComprehensiveData {
     activity: StravaActivity
-    photos: any[]
-    comments: any[]
-    streams: any
+    photos: PhotoData[]
+    comments: Array<{ author: string; text: string }>
+    streams: Record<string, unknown>
 }
 
 interface AIRaceProps {
@@ -67,7 +71,7 @@ interface AIRaceProps {
 
 export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
     const { fonts, colorScheme, narrative, background, bodyElements } = designSpec
-    const { activity, photos, comments } = comprehensiveData
+    const { activity, photos } = comprehensiveData
 
     // Determine background color
     const pageBackground = background?.type === 'gradient'
@@ -76,7 +80,7 @@ export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
 
     // Prepare photo URLs with absolute paths
     const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    const photoUrls: string[] = photos.slice(0, 3).map((photo: any) => {
+    const photoUrls: string[] = photos.slice(0, 3).map((photo: PhotoData) => {
         const photoUrlsObj = photo.urls || {}
         const rawUrl = photoUrlsObj['5000'] || photoUrlsObj['600'] || photoUrlsObj['100'] || Object.values(photoUrlsObj)[0]
         if (!rawUrl) return null
@@ -102,6 +106,7 @@ export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
             <Document>
                 <Page size="LETTER" style={{ backgroundColor: pageBackground }}>
                     {sortedElements.map((element, index) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const baseStyle: any = {
                             position: 'absolute',
                             left: element.position.x,

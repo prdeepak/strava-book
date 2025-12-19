@@ -1,12 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { StravaActivity } from '@/lib/strava'
 
 interface AIGenerationModalProps {
     activity: StravaActivity
     isOpen: boolean
     onClose: () => void
+}
+
+interface ComprehensiveActivityData {
+    activity: StravaActivity
+    photos?: Array<{
+        unique_id: string
+        urls?: Record<string, string>
+        caption?: string
+    }>
+    comments?: Array<unknown>
+    streams?: Record<string, unknown>
+    metadata?: unknown
+}
+
+interface AIGenerationResult {
+    designSpec: {
+        layout?: string
+        theme?: string
+        colorScheme?: Record<string, string>
+        fonts?: {
+            pageTitle?: { family: string; size: number }
+            sectionTitle?: { family: string; size: number }
+            body?: { family: string; size: number }
+            accent?: { family: string; size: number }
+        }
+        background?: {
+            type: string
+            color?: string
+            gradientStart?: string
+            gradientEnd?: string
+        }
+        narrative?: string
+    }
 }
 
 interface DataSelection {
@@ -23,17 +56,16 @@ interface DataSelection {
 export default function AIGenerationModal({ activity, isOpen, onClose }: AIGenerationModalProps) {
     const [loading, setLoading] = useState(false)
     const [generating, setGenerating] = useState(false)
-    const [generatingMockup, setGeneratingMockup] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [showOfflineOption, setShowOfflineOption] = useState(false)
-    const [aiResult, setAiResult] = useState<any>(null)
+    const [aiResult, setAiResult] = useState<AIGenerationResult | null>(null)
     const [mockupUrl, setMockupUrl] = useState<string | null>(null)
 
     // Configuration state
     const [configuring, setConfiguring] = useState(true)
     const [fetchingData, setFetchingData] = useState(false)
-    const [comprehensiveData, setComprehensiveData] = useState<any>(null)
+    const [comprehensiveData, setComprehensiveData] = useState<ComprehensiveActivityData | null>(null)
     const [dataSelection, setDataSelection] = useState<DataSelection>({
         pageCount: 1,
         includePhotos: true,
@@ -46,13 +78,7 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
     })
 
     // Fetch comprehensive data when modal opens
-    useEffect(() => {
-        if (isOpen && !comprehensiveData) {
-            fetchComprehensiveData()
-        }
-    }, [isOpen])
-
-    const fetchComprehensiveData = async () => {
+    const fetchComprehensiveData = useCallback(async () => {
         setFetchingData(true)
         try {
             const dataResponse = await fetch(`/api/comprehensive-activity-data?activityId=${activity.id}`)
@@ -68,7 +94,7 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             if (data.photos && data.photos.length > 0) {
                 setDataSelection(prev => ({
                     ...prev,
-                    selectedPhotoIds: data.photos.map((p: any) => p.unique_id)
+                    selectedPhotoIds: data.photos.map((p: { unique_id: string }) => p.unique_id)
                 }))
             }
         } catch (err) {
@@ -77,7 +103,15 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
         } finally {
             setFetchingData(false)
         }
-    }
+    }, [activity.id])
+
+    useEffect(() => {
+        if (isOpen && !comprehensiveData) {
+            fetchComprehensiveData()
+        }
+    }, [isOpen, comprehensiveData, fetchComprehensiveData])
+
+
 
     if (!isOpen) return null
 
@@ -85,7 +119,6 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
         try {
             setConfiguring(false)
             setLoading(true)
-            setGeneratingMockup(true)
             setError(null)
             setSuccess(false)
             setMockupUrl(null)
@@ -120,7 +153,6 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             console.log('[AI] Mockup generated successfully')
 
             setMockupUrl(mockupData.mockupUrl)
-            setGeneratingMockup(false)
             setLoading(false)
             setGenerating(false)
 
@@ -128,7 +160,6 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             console.error('[AI] Error:', err)
             setError(err instanceof Error ? err.message : 'Failed to generate mockup')
             setLoading(false)
-            setGeneratingMockup(false)
             setGenerating(false)
         }
     }
@@ -146,19 +177,6 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
             const offlineTimer = setTimeout(() => {
                 setShowOfflineOption(true)
             }, 30000)
-
-            // Prepare filtered data based on user selections
-            const filteredData = {
-                activity: comprehensiveData.activity,
-                photos: dataSelection.includePhotos
-                    ? comprehensiveData.photos?.filter((p: any) =>
-                        dataSelection.selectedPhotoIds.includes(p.unique_id)
-                    )
-                    : [],
-                comments: dataSelection.includeComments ? comprehensiveData.comments : [],
-                streams: comprehensiveData.streams,
-                metadata: comprehensiveData.metadata,
-            }
 
             // Stage 2: Convert mockup to JSON (for now, use existing AI generation)
             // TODO: Implement vision-to-JSON conversion
@@ -377,23 +395,23 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                         <div className="bg-white border border-stone-200 rounded-lg p-4">
                                             <div className="flex justify-between items-center mb-3">
                                                 <label className="block text-sm font-semibold text-stone-800">
-                                                    Select Photos ({dataSelection.selectedPhotoIds.length} of {comprehensiveData.photos.length})
+                                                    Select Photos ({dataSelection.selectedPhotoIds.length} of {comprehensiveData.photos?.length || 0})
                                                 </label>
                                                 <button
                                                     onClick={() => {
-                                                        const allSelected = dataSelection.selectedPhotoIds.length === comprehensiveData.photos.length
+                                                        const allSelected = dataSelection.selectedPhotoIds.length === (comprehensiveData.photos?.length || 0)
                                                         setDataSelection(prev => ({
                                                             ...prev,
-                                                            selectedPhotoIds: allSelected ? [] : comprehensiveData.photos.map((p: any) => p.unique_id)
+                                                            selectedPhotoIds: allSelected ? [] : (comprehensiveData.photos?.map((p: { unique_id: string }) => p.unique_id) || [])
                                                         }))
                                                     }}
                                                     className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
                                                 >
-                                                    {dataSelection.selectedPhotoIds.length === comprehensiveData.photos.length ? 'Deselect All' : 'Select All'}
+                                                    {dataSelection.selectedPhotoIds.length === (comprehensiveData.photos?.length || 0) ? 'Deselect All' : 'Select All'}
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                                                {comprehensiveData.photos.map((photo: any, index: number) => {
+                                                {comprehensiveData.photos && comprehensiveData.photos.map((photo: { unique_id: string; urls?: Record<string, string>; caption?: string }, index: number) => {
                                                     const isSelected = dataSelection.selectedPhotoIds.includes(photo.unique_id)
                                                     // Strava returns urls with keys like "5000", "600", etc.
                                                     const photoUrls = photo.urls || {}
@@ -570,7 +588,7 @@ export default function AIGenerationModal({ activity, isOpen, onClose }: AIGener
                                             <div className="bg-white rounded-lg p-3 border border-green-200">
                                                 <span className="text-xs text-stone-500 uppercase tracking-wide block mb-2">Color Palette</span>
                                                 <div className="flex gap-2">
-                                                    {Object.entries(aiResult.designSpec.colorScheme).map(([name, color]: [string, any]) => (
+                                                    {Object.entries(aiResult.designSpec.colorScheme).map(([name, color]: [string, string]) => (
                                                         <div key={name} className="flex-1">
                                                             <div
                                                                 className="h-8 rounded border border-stone-200 mb-1"
