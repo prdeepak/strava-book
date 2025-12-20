@@ -21,6 +21,7 @@ import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 // Define the data structure passed to the component
 export interface ScrapbookPageProps {
   title: string;
+  titleFontSize: number; // Dynamic font size based on title length
   date: string;
   location: string;
   description: string;
@@ -80,14 +81,14 @@ const styles = StyleSheet.create({
     width: 500,
     height: 70,
     top: -5,
-    zIndex: 0, // Background behind text
   },
   bannerText: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    zIndex: 100, // Text on top
     position: 'relative',
+    maxWidth: '50%', // Constrain to 50% of banner width
+    alignSelf: 'center', // Center horizontally
   },
   // --- Top Note Section ---
   noteSection: {
@@ -123,7 +124,9 @@ const styles = StyleSheet.create({
     width: '48%',
     height: '100%',
     position: 'relative',
-    padding: 15, // Padding for the image inside the frame area
+    padding: 20, // Padding to create space for frame border
+    justifyContent: 'center', // Center vertically
+    alignItems: 'center', // Center horizontally
   },
   washiFrameBg: {
     position: 'absolute',
@@ -131,14 +134,13 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    zIndex: 10, // Frame on top of photo
+    objectFit: 'cover',
   },
   mainPhotoImage: {
-    width: '100%',
-    height: '100%',
+    width: '80%',
+    height: '80%',
     objectFit: 'cover',
     borderRadius: 4,
-    zIndex: 0, // Photo behind frame
   },
 
   // --- Stats Tags Section ---
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
 // Internal component that uses the ScrapbookPageProps interface
 const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
   const {
-    title, date, location, description, trainingLoad,
+    title, titleFontSize, date, location, description, trainingLoad,
     mainPhotoUrl, mapPhotoUrl, stats,
     displaySplits, totalTime, bestEfforts, kudosCount,
     morePhotosUrls = [], moreComments
@@ -276,7 +278,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           {/* 2. Header Banner */}
           <View style={styles.headerWrapper}>
             <Image src="/assets/banner.png" style={styles.bannerBg} />
-            <Text style={styles.bannerText}>{title}</Text>
+            <Text style={[styles.bannerText, { fontSize: titleFontSize }]}>{title}</Text>
           </View>
 
           {/* 3. Pinned Note Details */}
@@ -461,8 +463,20 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
   const comments = (activity.comments || []).slice(0, 3);
   const moreComments = comments.map(c => `${c.athlete.firstname}: ${c.text}`).join('\n\n');
 
+  // Calculate dynamic font size based on title length
+  // Max 28 for short titles, scale down for longer ones
+  // Rough estimate: 50% of banner width = ~250px, each char ~10-15px at size 28
+  const titleLength = activity.name.length;
+  let titleFontSize = 28;
+  if (titleLength > 20) {
+    // Scale down: for every 5 chars over 20, reduce by 2px
+    const excess = titleLength - 20;
+    titleFontSize = Math.max(14, 28 - Math.floor(excess / 5) * 2);
+  }
+
   const scrapbookProps: ScrapbookPageProps = {
     title: activity.name,
+    titleFontSize,
     date,
     location,
     description: activity.description || 'A memorable run',
