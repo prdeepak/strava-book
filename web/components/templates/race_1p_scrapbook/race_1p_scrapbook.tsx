@@ -10,6 +10,7 @@ import {
 } from '@react-pdf/renderer';
 import { StravaActivity } from '@/lib/strava';
 import { resolveActivityLocation } from '@/lib/activity-utils';
+import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 
 // OPTIONAL: Register a hand-drawn font for realism
 // Font.register({
@@ -32,7 +33,8 @@ export interface ScrapbookPageProps {
     avgPace: string;
     elevation: string;
   };
-  splitsGraphUrl: string; // Pre-rendered image of the graph
+  displaySplits: Array<{ split: number; label: string; moving_time: number; distance: number; elevation_difference: number }>;
+  totalTime: number;
   bestEfforts: Array<{ label: string; value: string }>;
   kudosCount: number;
   morePhotosUrls?: string[]; // Array of up to 4 extra photo URLs
@@ -42,6 +44,7 @@ export interface ScrapbookPageProps {
 // Standard Letter size points: 612 x 792
 const styles = StyleSheet.create({
   page: {
+    position: 'relative',
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     padding: 0, // Full bleed background
@@ -77,13 +80,14 @@ const styles = StyleSheet.create({
     width: 500,
     height: 70,
     top: -5,
+    zIndex: 0, // Background behind text
   },
   bannerText: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    zIndex: 1,
-    marginTop: 10, // Adjust to center text in banner asset
+    zIndex: 100, // Text on top
+    position: 'relative',
   },
   // --- Top Note Section ---
   noteSection: {
@@ -127,14 +131,14 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    zIndex: 2, // Frame sits ON TOP of photo
+    zIndex: 10, // Frame on top of photo
   },
   mainPhotoImage: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
     borderRadius: 4,
-    zIndex: 1,
+    zIndex: 0, // Photo behind frame
   },
 
   // --- Stats Tags Section ---
@@ -191,7 +195,7 @@ const styles = StyleSheet.create({
 
   // Specific Data Containers
   splitsContainer: { width: '30%' },
-  splitsImage: { width: '100%', height: 100, objectFit: 'contain' },
+  splitsChart: { width: '100%', height: 100 },
 
   bestEffortsContainer: { width: '40%' },
   effortRow: {
@@ -248,7 +252,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
   const {
     title, date, location, description, trainingLoad,
     mainPhotoUrl, mapPhotoUrl, stats,
-    splitsGraphUrl, bestEfforts, kudosCount,
+    displaySplits, totalTime, bestEfforts, kudosCount,
     morePhotosUrls = [], moreComments
   } = props;
 
@@ -288,13 +292,13 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           <View style={styles.mainPhotosRow}>
             {/* Photo 1 */}
             <View style={styles.washiFrameContainer}>
-              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
               <Image src={mainPhotoUrl} style={styles.mainPhotoImage} />
+              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
             </View>
             {/* Photo 2 (Map) */}
             <View style={[styles.washiFrameContainer, { transform: 'rotate(2deg)' }]}>
-              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
               <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
+              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
             </View>
           </View>
 
@@ -312,8 +316,13 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             <View style={[styles.paperContainer, styles.splitsContainer]}>
               <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
               <Text style={styles.sectionTitle}>SPLITS</Text>
-              {/* Assuming pre-rendered graph image */}
-              <Image src={splitsGraphUrl} style={styles.splitsImage} />
+              {/* Render actual splits chart */}
+              <SplitsChartSVG
+                splits={displaySplits}
+                totalTime={totalTime}
+                width={180}
+                height={100}
+              />
             </View>
 
             {/* Best Efforts Table */}
@@ -335,27 +344,27 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
 
           {/* 7. Footer (Polaroids & Comments) */}
           <View style={styles.footerRow}>
-            {/* Map up to 4 extra photos */}
-            {[0, 1, 2, 3].map((index) => {
+            {/* Map up to 4 extra photos - only show if photos exist */}
+            {morePhotosUrls.filter(url => url).length > 0 && morePhotosUrls.filter(url => url).map((photoUrl, index) => {
               // Slightly vary rotation for visual interest
               const rotation = index % 2 === 0 ? -3 : 2;
               return (
                 <View key={index} style={[styles.polaroidContainer, { transform: `rotate(${rotation}deg)` }]}>
                   <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
-                  {morePhotosUrls[index] && (
-                    <Image src={morePhotosUrls[index]} style={styles.polaroidImage} />
-                  )}
+                  <Image src={photoUrl} style={styles.polaroidImage} />
                   <Text style={styles.polaroidCaption}>more photos</Text>
                 </View>
               )
             })}
 
-            {/* Comments Note */}
-            <View style={styles.commentsContainer}>
-              <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
-              <Text style={styles.sectionTitle}>more comments</Text>
-              <Text style={styles.commentsText}>{moreComments || "..."}</Text>
-            </View>
+            {/* Comments Note - only show if comments exist */}
+            {moreComments && moreComments.trim() && (
+              <View style={styles.commentsContainer}>
+                <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
+                <Text style={styles.sectionTitle}>more comments</Text>
+                <Text style={styles.commentsText}>{moreComments}</Text>
+              </View>
+            )}
           </View>
 
         </View>
@@ -424,6 +433,25 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
     };
   });
 
+  // Prepare splits data - prefer laps over splits
+  const rawLaps = activity.laps || [];
+  const rawSplits = activity.splits_metric || [];
+
+  let displaySplits = [];
+  if (rawLaps.length > 0) {
+    // Use laps if available
+    displaySplits = rawLaps.map(lap => ({
+      split: lap.lap_index,
+      label: lap.name || `Lap ${lap.lap_index}`,
+      moving_time: lap.moving_time,
+      distance: lap.distance,
+      elevation_difference: lap.total_elevation_gain
+    }));
+  } else {
+    // Fall back to splits
+    displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }));
+  }
+
   // Get additional photos (if any)
   const morePhotosUrls: string[] = [];
   // Note: Strava API doesn't typically provide multiple photos in the standard response
@@ -447,7 +475,8 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
       avgPace,
       elevation
     },
-    splitsGraphUrl: '/assets/placeholder-graph.png', // TODO: Generate splits graph
+    displaySplits,
+    totalTime: activity.moving_time,
     bestEfforts,
     kudosCount: activity.kudos_count || 0,
     morePhotosUrls,
