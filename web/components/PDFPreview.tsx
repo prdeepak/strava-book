@@ -4,9 +4,10 @@ import { PDFViewer } from '@react-pdf/renderer'
 import { Race_2p } from '@/components/templates/Race_2p'
 import { Race_1p } from '@/components/templates/Race_1p'
 import { Race_1p_graph } from '@/components/templates/Race_1p_graph'
+import ScrapbookPDF from '@/components/templates/race_1p_scrapbook/race_1p_scrapbook'
 import { StravaActivity } from '@/lib/strava'
 
-type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph'
+type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph' | 'race_1p_scrapbook'
 
 interface PDFPreviewProps {
     activity: StravaActivity
@@ -17,7 +18,8 @@ interface PDFPreviewProps {
 const PDFPreview = ({ activity, mapboxToken, template = 'race_2p' }: PDFPreviewProps) => {
     const TemplateComponent = template === 'race_1p' ? Race_1p
         : template === 'race_1p_graph' ? Race_1p_graph
-            : Race_2p
+            : template === 'race_1p_scrapbook' ? ScrapbookPDF
+                : Race_2p
 
     return (
         <PDFViewer style={{ width: '100%', height: '100vh' }}>

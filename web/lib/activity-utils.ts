@@ -49,12 +49,12 @@ export async function enrichActivityWithGeocoding(
 
 /**
  * Fetches an activity with all required data for preview rendering.
- * Includes comments for race_1p and race_1p_graph templates.
+ * Includes comments for race_1p, race_1p_graph, and race_1p_scrapbook templates.
  */
 export async function fetchActivityForPreview(
     accessToken: string,
     activityId: string,
-    template: 'race_1p' | 'race_2p' | 'race_1p_graph'
+    template: 'race_1p' | 'race_2p' | 'race_1p_graph' | 'race_1p_scrapbook'
 ): Promise<StravaActivity | null> {
     try {
         const activity = await getActivity(accessToken, activityId)
@@ -66,8 +66,8 @@ export async function fetchActivityForPreview(
         console.log('Activity Fetched:', activity.id, activity.name)
         console.log('Photos Object:', JSON.stringify(activity.photos, null, 2))
 
-        // Fetch comments for race_1p and race_1p_graph templates
-        if (template === 'race_1p' || template === 'race_1p_graph') {
+        // Fetch comments for race_1p, race_1p_graph, and race_1p_scrapbook templates
+        if (template === 'race_1p' || template === 'race_1p_graph' || template === 'race_1p_scrapbook') {
             const comments = await getActivityComments(accessToken, activityId)
             activity.comments = comments
             console.log('Comments Fetched:', comments.length)

@@ -5,9 +5,9 @@ import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
 import { fetchActivityForPreview, enrichActivityWithGeocoding } from "@/lib/activity-utils"
 
-type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph'
+type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_graph' | 'race_1p_scrapbook'
 
-const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p', 'race_1p_graph']
+const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p', 'race_1p_graph', 'race_1p_scrapbook']
 
 export const metadata: Metadata = {
     title: "Strava Book - Page Preview",
