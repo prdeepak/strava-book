@@ -4,6 +4,8 @@ import mapboxPolyline from '@mapbox/polyline'
 import { SplitsChartSVG } from '@/lib/generateSplitsChart'
 import { StatsGrid } from '@/components/pdf/StatsGrid'
 import { Header } from '@/components/pdf/Header'
+import { CommentsSection } from '@/components/pdf/CommentsSection'
+import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -76,24 +78,7 @@ const styles = StyleSheet.create({
         fontSize: 7,
         textAlign: 'right',
     },
-    commentsSection: {
-        marginTop: 8,
-    },
-    comment: {
-        marginBottom: 4,
-        fontSize: 7,
-        lineHeight: 1.3,
-    },
-    commentAuthor: {
-        fontFamily: 'Helvetica-Bold',
-        fontSize: 7,
-        color: '#000',
-    },
-    commentText: {
-        fontFamily: 'Helvetica',
-        fontSize: 7,
-        color: '#333',
-    },
+
     footer: {
         position: 'absolute',
         bottom: 12,
@@ -162,8 +147,6 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
     const hasOnlyPhoto = stravaPhoto && !satelliteMap
     const hasOnlyMap = !stravaPhoto && satelliteMap
     const hasNoImages = !stravaPhoto && !satelliteMap
-
-
     // Prepare chart data - prefer laps over splits
     // Laps represent manual lap markers (e.g., race laps), splits are auto-generated per km
     const rawLaps = activity.laps || []
@@ -184,38 +167,11 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
         displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }))
     }
 
-    // Prepare best efforts with smart prioritization
-    // Algorithm: 
-    // 1. Prioritize any efforts in top-3 (pr_rank 1-3)
-    // 2. Then prioritize longest distances
-    // 3. Limit to 10 efforts for space
-    const allEfforts = activity.best_efforts || []
-    let bestEfforts: typeof allEfforts = []
 
-    if (allEfforts.length > 0) {
-        // Separate top-3 PRs from others
-        const top3PRs = allEfforts.filter(e => e.pr_rank && e.pr_rank <= 3)
-        const otherEfforts = allEfforts.filter(e => !e.pr_rank || e.pr_rank > 3)
 
-        // Sort others by distance (longest first)
-        const sortedOthers = otherEfforts.sort((a, b) => b.distance - a.distance)
 
-        // Combine: top-3 PRs first, then longest distances
-        const combined = [...top3PRs, ...sortedOthers]
 
-        // Take up to 10 efforts
-        bestEfforts = combined.slice(0, 10)
-    }
 
-    // Prepare comments with smart prioritization
-    // Algorithm: Sort by recency (most recent first), then take top 3
-    // This ensures we show the most relevant/recent conversation
-    const allComments = activity.comments || []
-    const comments = allComments.length > 0
-        ? [...allComments]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 3)
-        : []
 
 
     return (
@@ -284,77 +240,12 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                     </View>
 
                     {/* Best Efforts Column */}
-                    {bestEfforts.length > 0 && (
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.sectionTitle}>Best Efforts</Text>
-                            <View style={styles.dataGrid}>
-                                {bestEfforts.map((effort, i) => {
-                                    const paceSeconds = effort.elapsed_time / (effort.distance / 1000)
-                                    const paceMin = Math.floor(paceSeconds / 60)
-                                    const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
-
-                                    // Color-code top-3 PRs (same as race_2p)
-                                    const prRank = effort.pr_rank || 0
-                                    let backgroundColor = 'transparent'
-                                    let textColor = '#555'
-                                    let fontFamily = 'Helvetica'
-
-                                    if (prRank === 1) {
-                                        backgroundColor = '#FFD700' // Gold
-                                        textColor = '#000'
-                                        fontFamily = 'Helvetica-Bold'
-                                    } else if (prRank === 2) {
-                                        backgroundColor = '#C0C0C0' // Silver
-                                        textColor = '#000'
-                                        fontFamily = 'Helvetica-Bold'
-                                    } else if (prRank === 3) {
-                                        backgroundColor = '#CD7F32' // Bronze
-                                        textColor = '#000'
-                                        fontFamily = 'Helvetica-Bold'
-                                    } else if (prRank > 0 && prRank <= 5) {
-                                        fontFamily = 'Helvetica-Bold' // Top 5 but not podium
-                                    }
-
-                                    return (
-                                        <View key={i} style={[styles.dataRow, { backgroundColor, paddingVertical: prRank <= 3 ? 1 : 0 }]}>
-                                            <Text style={[styles.dataLabel, { fontFamily, color: prRank <= 3 ? textColor : '#666' }]}>
-                                                {effort.name}
-                                            </Text>
-                                            <Text style={[styles.dataValue, { fontFamily, color: prRank <= 3 ? textColor : '#000' }]}>
-                                                {paceMin}:{paceSec}
-                                            </Text>
-                                        </View>
-                                    )
-                                })}
-                            </View>
-                        </View>
-                    )}
+                    {/* Best Efforts Column */}
+                    <BestEffortsTable activity={activity} />
 
                     {/* Comments/Kudos Column */}
-                    {(comments.length > 0 || activity.kudos_count > 0) && (
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 2, marginBottom: 6, marginTop: 8 }}>
-                                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', color: '#333' }}>
-                                    {comments.length > 0 ? 'Comments' : 'Kudos'}
-                                </Text>
-                                {activity.kudos_count > 0 && (
-                                    <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#fc4c02' }}>👍 {activity.kudos_count}</Text>
-                                )}
-                            </View>
-                            {comments.length > 0 && (
-                                <View style={styles.commentsSection}>
-                                    {comments.map((comment, i) => (
-                                        <View key={i} style={styles.comment}>
-                                            <Text style={styles.commentAuthor}>
-                                                {comment.athlete.firstname} {comment.athlete.lastname}:
-                                            </Text>
-                                            <Text style={styles.commentText}>{comment.text}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
-                    )}
+                    {/* Comments Column */}
+                    <CommentsSection activity={activity} />
                 </View>
 
                 <View style={styles.footer}>

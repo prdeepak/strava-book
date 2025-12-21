@@ -1,6 +1,7 @@
 import { Page, Text, View, StyleSheet, Svg, Polyline, Image } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
+import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
 
 const styles = StyleSheet.create({
     page: {
@@ -246,73 +247,7 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
             </View>
 
             {/* Best Efforts Section */}
-            {activity.best_efforts && activity.best_efforts.length > 0 && (
-                <View style={{ marginTop: 20 }}>
-                    <Text style={styles.sectionTitle}>Best Efforts</Text>
-                    <View style={styles.splitsContainer}>
-                        {/* Headers */}
-                        <View style={styles.splitHeader}>
-                            <Text style={styles.splitHeaderText}>Distance</Text>
-                            <Text style={styles.splitHeaderText}>Time</Text>
-                            <Text style={styles.splitHeaderText}>Pace</Text>
-                        </View>
-                        <View style={styles.splitHeader}>
-                            <Text style={styles.splitHeaderText}>Distance</Text>
-                            <Text style={styles.splitHeaderText}>Time</Text>
-                            <Text style={styles.splitHeaderText}>Pace</Text>
-                        </View>
-
-                        {activity.best_efforts.map((effort, i) => {
-                            // Format time: hh:mm:ss if over an hour, mm:ss otherwise
-                            let timeDisplay = ''
-                            if (effort.elapsed_time >= 3600) {
-                                const hours = Math.floor(effort.elapsed_time / 3600)
-                                const minutes = Math.floor((effort.elapsed_time % 3600) / 60)
-                                const seconds = Math.round(effort.elapsed_time % 60)
-                                timeDisplay = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                            } else {
-                                const timeMin = Math.floor(effort.elapsed_time / 60)
-                                const timeSec = Math.round(effort.elapsed_time % 60).toString().padStart(2, '0')
-                                timeDisplay = `${timeMin}:${timeSec}`
-                            }
-
-                            const paceSeconds = effort.elapsed_time / (effort.distance / 1000)
-                            const paceMin = Math.floor(paceSeconds / 60)
-                            const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
-
-                            // Determine highlighting based on PR rank
-                            const prRank = effort.pr_rank || 0
-                            let backgroundColor = 'transparent'
-                            let textColor = '#555'
-                            let fontFamily = 'Helvetica'
-
-                            if (prRank === 1) {
-                                backgroundColor = '#FFD700' // Gold
-                                textColor = '#000'
-                                fontFamily = 'Helvetica-Bold'
-                            } else if (prRank === 2) {
-                                backgroundColor = '#C0C0C0' // Silver
-                                textColor = '#000'
-                                fontFamily = 'Helvetica-Bold'
-                            } else if (prRank === 3) {
-                                backgroundColor = '#CD7F32' // Bronze
-                                textColor = '#000'
-                                fontFamily = 'Helvetica-Bold'
-                            } else if (prRank > 0 && prRank <= 5) {
-                                fontFamily = 'Helvetica-Bold' // Top 5 but not podium
-                            }
-
-                            return (
-                                <View key={i} style={[styles.splitRow, { backgroundColor, paddingVertical: 3 }]}>
-                                    <Text style={[styles.splitText, { width: 50, fontFamily, color: textColor }]}>{effort.name}</Text>
-                                    <Text style={[styles.splitText, { fontFamily, color: textColor }]}>{timeDisplay}</Text>
-                                    <Text style={[styles.splitText, { fontFamily, color: textColor }]}>{paceMin}:{paceSec}/km</Text>
-                                </View>
-                            )
-                        })}
-                    </View>
-                </View>
-            )}
+            <BestEffortsTable activity={activity} maxEfforts={20} />
         </Page>
     )
 }
