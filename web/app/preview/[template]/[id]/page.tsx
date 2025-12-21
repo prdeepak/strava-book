@@ -3,7 +3,8 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
-import { fetchActivityForPreview, enrichActivityWithGeocoding } from "@/lib/activity-utils"
+import { enrichActivityWithGeocoding } from "@/lib/activity-utils"
+import { getActivity, getActivityComments, getActivityPhotos } from "@/lib/strava"
 
 type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
 
@@ -37,18 +38,43 @@ export default async function PreviewPage(props: {
     const template = params.template as RaceTemplate
     const accessToken = session.accessToken
 
-    // Fetch activity with template-specific options
-    const activity = await fetchActivityForPreview(accessToken, params.id, template)
+    // Fetch comprehensive activity data (same as comprehensive-activity-data API)
+    let activity
+    let error = null
 
-    if (!activity) {
+    try {
+        const [activityData, photos, comments] = await Promise.all([
+            getActivity(accessToken, params.id),
+            getActivityPhotos(accessToken, params.id),
+            getActivityComments(accessToken, params.id),
+        ])
+
+        if (!activityData) {
+            error = 'not_found'
+        } else {
+            // Attach fetched data to activity object
+            activityData.allPhotos = photos
+            activityData.comments = comments
+            activity = activityData
+        }
+    } catch (err) {
+        console.error('Error fetching activity:', err)
+        error = 'fetch_failed'
+    }
+
+    // Handle errors outside try/catch to avoid JSX in try/catch
+    if (error === 'not_found') {
         return <div className="p-8 text-center">Activity not found or failed to load.</div>
+    }
+    if (error === 'fetch_failed') {
+        return <div className="p-8 text-center">Failed to load activity data.</div>
     }
 
     // Enrich with geocoding if needed
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
     console.log("[Server] Passing Mapbox Token:", !!mapboxToken)
 
-    await enrichActivityWithGeocoding(activity, mapboxToken)
+    await enrichActivityWithGeocoding(activity!, mapboxToken)
 
-    return <AsyncPDFPreview activity={activity} mapboxToken={mapboxToken} template={template} />
+    return <AsyncPDFPreview activity={activity!} mapboxToken={mapboxToken} template={template} />
 }
