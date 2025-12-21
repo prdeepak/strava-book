@@ -18,6 +18,21 @@ import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 //   src: 'path/to/your/handwritten-font.ttf',
 // });
 
+// Register handwritten font for scrapbook aesthetic
+// Using only Bold weight since it downloaded successfully
+Font.register({
+  family: 'Comic Sans MS',
+  src: '/fonts/Comic Sans MS.ttf',
+});
+Font.register({
+  family: 'HennyPenny',
+  src: '/fonts/HennyPenny-Regular.ttf',
+});
+Font.register({
+  family: 'IndieFlower',
+  src: '/fonts/IndieFlower-Regular.ttf',
+});
+
 // Define the data structure passed to the component
 export interface ScrapbookPageProps {
   title: string;
@@ -81,12 +96,14 @@ const styles = StyleSheet.create({
     width: 500,
     height: 70,
     top: -5,
+    zIndex: 0, // Background behind text
   },
   bannerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontFamily: 'IndieFlower',
     textAlign: 'center',
     position: 'relative',
+    top: -5, // Move up slightly to center within banner
     maxWidth: '50%', // Constrain to 50% of banner width
     alignSelf: 'center', // Center horizontally
   },
