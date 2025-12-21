@@ -198,28 +198,6 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                 </select>
                             </div>
 
-                            {/* Page Count Selector - Only show for non-AI templates */}
-                            {dataSelection.selectedTemplate !== 'ai-generated' && (
-                                <div className="bg-white border border-stone-200 rounded-lg p-4">
-                                    <label className="block text-sm font-semibold text-stone-800 mb-3">
-                                        How many pages?
-                                    </label>
-                                    <div className="flex gap-3">
-                                        {([1, 2, 3] as const).map((count) => (
-                                            <button
-                                                key={count}
-                                                onClick={() => setDataSelection(prev => ({ ...prev, pageCount: count }))}
-                                                className={`flex-1 py-3 px-4 rounded-lg border-2 font-semibold transition-all ${dataSelection.pageCount === count
-                                                    ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                                    : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
-                                                    }`}
-                                            >
-                                                {count} Page{count > 1 ? 's' : ''}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Data Elements Selection */}
                             <div className="bg-white border border-stone-200 rounded-lg p-4">
