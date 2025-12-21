@@ -12,12 +12,6 @@ import { StravaActivity } from '@/lib/strava';
 import { resolveActivityLocation } from '@/lib/activity-utils';
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 
-// OPTIONAL: Register a hand-drawn font for realism
-// Font.register({
-//   family: 'Handwritten',
-//   src: 'path/to/your/handwritten-font.ttf',
-// });
-
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
   family: 'IndieFlower',
@@ -268,10 +262,8 @@ const styles = StyleSheet.create({
   polaroidRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
     marginTop: 20,
     marginBottom: 20,
-    gap: 15,
   },
   polaroidContainer: {
     width: 110,
@@ -279,6 +271,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     padding: 8,
     paddingBottom: 25,
+    marginHorizontal: 8,
   },
   polaroidBg: {
     position: 'absolute',
@@ -286,11 +279,13 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    zIndex: -1,
   },
   polaroidImage: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 'calc(90% - 16px)',
+    height: 'calc(90% - 40px)',
     objectFit: 'cover',
     backgroundColor: '#ddd',
   },
@@ -372,7 +367,39 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             <WashiItem value={stats.elevation} label="ELEVATION" color="blue" />
           </View>
 
-          {/* 6. Data Row (Splits, Efforts, Kudos) */}
+          {/* 6. Polaroid Photos Row */}
+          {morePhotosUrls.filter(url => url).length > 0 && (() => {
+            // Available width ~550px, leave gaps between polaroids
+            const polaroidWidth = 165;
+            const polaroidHeight = polaroidWidth * 1.2;
+
+            return (
+              <View style={styles.polaroidRow}>
+                {morePhotosUrls.filter(url => url).map((photoUrl, index) => {
+                  // Slightly vary rotation for visual interest
+                  const rotation = index % 2 === 0 ? -3 : 2;
+                  return (
+                    <View
+                      key={index}
+                      style={[
+                        styles.polaroidContainer,
+                        {
+                          transform: `rotate(${rotation}deg)`,
+                          width: polaroidWidth,
+                          height: polaroidHeight
+                        }
+                      ]}
+                    >
+                      <Image src={photoUrl} style={styles.polaroidImage} />
+                      <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })()}
+
+          {/* 7. Data Row (Splits, Efforts, Kudos) */}
           <View style={styles.dataRow}>
             {/* Splits Graph */}
             <View style={[styles.paperContainer, styles.splitsContainer]}>
@@ -403,23 +430,6 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
               <Text style={styles.kudosValue}>{kudosCount}</Text>
             </View>
           </View>
-
-          {/* 7. Polaroid Photos Row */}
-          {morePhotosUrls.filter(url => url).length > 0 && (
-            <View style={styles.polaroidRow}>
-              {morePhotosUrls.filter(url => url).map((photoUrl, index) => {
-                // Slightly vary rotation for visual interest
-                const rotation = index % 2 === 0 ? -3 : 2;
-                return (
-                  <View key={index} style={[styles.polaroidContainer, { transform: `rotate(${rotation}deg)` }]}>
-                    <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
-                    <Image src={photoUrl} style={styles.polaroidImage} />
-                    <Text style={styles.polaroidCaption}>more photos</Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
 
         </View>
       </Page>
@@ -510,8 +520,9 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
   }
 
   // Get additional photos from activity.allPhotos (up to 4 for polaroid row)
+  // Skip the first photo since Strava returns the primary photo first
   const morePhotosUrls: string[] = (activity.allPhotos || [])
-    .slice(0, 4)
+    .slice(1, 5) // Skip first (primary), take next 4
     .map(photo => {
       // Use 600px size if available, otherwise fall back to 5000px
       const photoUrl = photo.urls['600'] || photo.urls['5000'] || Object.values(photo.urls)[0]
