@@ -2,8 +2,8 @@ import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } fr
 import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
 import { SplitsChartSVG } from '@/lib/generateSplitsChart'
-import { resolveActivityLocation } from '@/lib/activity-utils'
 import { StatsGrid } from '@/components/pdf/StatsGrid'
+import { Header } from '@/components/pdf/Header'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -17,36 +17,7 @@ const styles = StyleSheet.create({
         padding: 25,
         flexDirection: 'column',
     },
-    heroHeader: {
-        marginBottom: 12,
-        borderBottomWidth: 2,
-        borderBottomColor: '#000000',
-        paddingBottom: 10,
-    },
-    title: {
-        fontSize: 28,
-        fontFamily: 'Helvetica-Bold',
-        color: '#000000',
-        textTransform: 'uppercase',
-        marginBottom: 6,
-        lineHeight: 1.1,
-    },
-    meta: {
-        color: '#666666',
-        fontSize: 10,
-        fontFamily: 'Helvetica',
-        textTransform: 'uppercase',
-        letterSpacing: 1.2,
-        marginBottom: 2,
-    },
-    description: {
-        fontSize: 9,
-        fontFamily: 'Helvetica',
-        color: '#333',
-        marginTop: 6,
-        fontStyle: 'italic',
-        lineHeight: 1.3,
-    },
+
     imagesSection: {
         flexDirection: 'row',
         gap: 12,
@@ -192,8 +163,6 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
     const hasOnlyMap = !stravaPhoto && satelliteMap
     const hasNoImages = !stravaPhoto && !satelliteMap
 
-    // Use utility function for location resolution
-    const location = resolveActivityLocation(activity)
 
     // Prepare chart data - prefer laps over splits
     // Laps represent manual lap markers (e.g., race laps), splits are auto-generated per km
@@ -253,21 +222,7 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
         <Document>
             <Page size="LETTER" style={styles.page}>
                 {/* Hero Header - Title and Meta at Top */}
-                <View style={styles.heroHeader}>
-                    <Text style={styles.meta}>
-                        {new Date(activity.start_date).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
-                    </Text>
-                    <Text style={styles.meta}>{location}</Text>
-                    <Text style={styles.title}>{activity.name}</Text>
-                    {activity.description && (
-                        <Text style={styles.description}>{activity.description}</Text>
-                    )}
-                </View>
+                <Header activity={activity} />
 
                 {/* Images Section - Photo and/or Map */}
                 {hasBothImages && (

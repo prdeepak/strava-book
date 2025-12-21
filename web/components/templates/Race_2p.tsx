@@ -3,6 +3,7 @@ import { StravaActivity } from '@/lib/strava'
 import { Race_2pLeft } from './Race_2pLeft'
 import { Race_2pRight } from './Race_2pRight'
 import { StatsGrid } from '@/components/pdf/StatsGrid'
+import { Header } from '@/components/pdf/Header'
 
 // Register a nice font if possible, using standard Helvetica for now
 const styles = StyleSheet.create({
@@ -11,24 +12,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         padding: 40,
     },
-    header: {
-        marginBottom: 20,
-        borderBottomWidth: 2,
-        borderBottomColor: '#000000',
-        paddingBottom: 10,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        fontFamily: 'Helvetica-Bold',
-        marginBottom: 5,
-        textTransform: 'uppercase',
-    },
-    date: {
-        fontSize: 12,
-        color: '#666666',
-        fontFamily: 'Helvetica',
-    },
+
     mapPlaceholder: {
         height: 300,
         backgroundColor: '#F0F0F0',
@@ -54,22 +38,9 @@ interface Race_2pProps {
     highlightLabel?: string
 }
 
-export const Race_2pContent = ({ activity, highlightLabel }: Race_2pProps) => (
+export const Race_2pContent = ({ activity }: Race_2pProps) => (
     <Page size="LETTER" style={styles.page}>
-        <View style={styles.header}>
-            {highlightLabel && (
-                <Text style={{ fontSize: 10, color: 'orange', textTransform: 'uppercase', marginBottom: 4 }}>
-                    {highlightLabel}
-                </Text>
-            )}
-            <Text style={styles.title}>{activity.name}</Text>
-            <Text style={styles.date}>{new Date(activity.start_date).toLocaleDateString(undefined, {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })}</Text>
-        </View>
+        <Header activity={activity} showLocation={false} />
 
         <View style={styles.mapPlaceholder}>
             <Text style={{ color: '#999' }}>[ Map Image Placeholder ]</Text>
