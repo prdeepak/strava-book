@@ -132,16 +132,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-// --- Top Note Section ---
+  // --- Top Note Section ---
   noteSection: {
     position: 'relative',
     alignSelf: 'center',
     alignItems: 'flex-start',
     width: 640,
-    height: 250,
-    marginBottom:10,
+    minHeight: 180,
+    marginBottom: 10,
     padding: 20,
     paddingLeft: 35,
+    paddingBottom: 40,
   },
   noteBg: {
     position: 'absolute',
@@ -152,8 +153,9 @@ const styles = StyleSheet.create({
     zIndex: -1,
     objectFit: 'fill',
   },
-  noteTitle: { fontFamily: 'PatrickHand', fontSize: 12, 
-    marginBottom: 4, paddingTop: 20, paddingLeft: 70 
+  noteTitle: {
+    fontFamily: 'PatrickHand', fontSize: 12,
+    marginBottom: 4, paddingTop: 20, paddingLeft: 70
   },
   noteSubtitle: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, paddingLeft: 70 },
   noteBody: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, lineHeight: 1.4, paddingLeft: 70 },
