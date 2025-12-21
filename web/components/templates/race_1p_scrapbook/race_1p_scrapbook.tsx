@@ -18,19 +18,14 @@ import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 //   src: 'path/to/your/handwritten-font.ttf',
 // });
 
-// Register handwritten font for scrapbook aesthetic
-// Using only Bold weight since it downloaded successfully
-Font.register({
-  family: 'Comic Sans MS',
-  src: '/fonts/Comic Sans MS.ttf',
-});
-Font.register({
-  family: 'HennyPenny',
-  src: '/fonts/HennyPenny-Regular.ttf',
-});
+// Register handwritten fonts for scrapbook aesthetic
 Font.register({
   family: 'IndieFlower',
   src: '/fonts/IndieFlower-Regular.ttf',
+});
+Font.register({
+  family: 'PatrickHand',
+  src: '/fonts/PatrickHand-Regular.ttf',
 });
 
 // Define the data structure passed to the component
@@ -78,8 +73,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20, // Internal padding away from edge
     position: 'relative',
-    // fontFamily: 'Handwritten', // Uncomment if using custom font
-    fontFamily: 'Helvetica',
+    fontFamily: 'PatrickHand',
     color: '#333',
   },
   // --- Header Section ---
@@ -107,34 +101,12 @@ const styles = StyleSheet.create({
     maxWidth: '50%', // Constrain to 50% of banner width
     alignSelf: 'center', // Center horizontally
   },
-  // --- Top Note Section ---
-  noteSection: {
-    position: 'relative',
-    alignSelf: 'center',
-    width: 450,
-    height: 130,
-    marginBottom: 20,
-    padding: 20,
-    paddingTop: 30, // Make room for pin
-  },
-  noteBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: -1,
-  },
-  noteTitle: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
-  noteSubtitle: { fontSize: 10, marginBottom: 10 },
-  noteBody: { fontSize: 10, fontStyle: 'italic', marginBottom: 10, lineHeight: 1.4 },
-  noteFooter: { fontSize: 9, color: '#555' },
 
   // --- Main Photos Section ---
   mainPhotosRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 10,
     height: 220,
   },
   washiFrameContainer: {
@@ -160,6 +132,33 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
+// --- Top Note Section ---
+  noteSection: {
+    position: 'relative',
+    alignSelf: 'center',
+    alignItems: 'flex-start',
+    width: 640,
+    height: 250,
+    marginBottom:10,
+    padding: 20,
+    paddingLeft: 35,
+  },
+  noteBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: -1,
+    objectFit: 'fill',
+  },
+  noteTitle: { fontFamily: 'PatrickHand', fontSize: 12, 
+    marginBottom: 4, paddingTop: 20, paddingLeft: 70 
+  },
+  noteSubtitle: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, paddingLeft: 70 },
+  noteBody: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, lineHeight: 1.4, paddingLeft: 70 },
+  noteFooter: { fontFamily: 'PatrickHand', fontSize: 9, color: '#666', paddingLeft: 70 },
+
   // --- Stats Tags Section ---
   statsRow: {
     flexDirection: 'row',
@@ -183,8 +182,8 @@ const styles = StyleSheet.create({
     height: '100%',
     zIndex: -1,
   },
-  tagValue: { fontSize: 16, fontWeight: 'bold' },
-  tagLabel: { fontSize: 9, textTransform: 'uppercase', color: '#555' },
+  tagValue: { fontFamily: 'PatrickHand', fontSize: 16 },
+  tagLabel: { fontFamily: 'PatrickHand', fontSize: 9, textTransform: 'uppercase', color: '#555' },
 
   // --- Data / Splits / Kudos Row ---
   dataRow: {
@@ -209,7 +208,10 @@ const styles = StyleSheet.create({
     zIndex: -1,
   },
   sectionTitle: {
-    fontSize: 10, fontWeight: 'bold', marginBottom: 5, textTransform: 'uppercase',
+    fontFamily: 'PatrickHand',
+    fontSize: 10,
+    marginBottom: 5,
+    textTransform: 'uppercase',
   },
 
   // Specific Data Containers
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
     borderBottom: '1px dashed #ccc',
     paddingVertical: 4,
   },
-  effortText: { fontSize: 9 },
+  effortText: { fontFamily: 'PatrickHand', fontSize: 9 },
 
   kudosContainer: {
     width: '25%',
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   thumbsUpIcon: { width: 30, height: 30, marginRight: 10 },
-  kudosValue: { fontSize: 30, fontWeight: 'bold' },
+  kudosValue: { fontFamily: 'PatrickHand', fontSize: 30 },
 
   // --- Footer Section ---
   footerRow: {
@@ -298,16 +300,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             <Text style={[styles.bannerText, { fontSize: titleFontSize }]}>{title}</Text>
           </View>
 
-          {/* 3. Pinned Note Details */}
-          <View style={styles.noteSection}>
-            <Image src="/assets/note-paper-pinned.png" style={styles.noteBg} />
-            <Text style={styles.noteTitle}>{date}</Text>
-            <Text style={styles.noteSubtitle}>{location}</Text>
-            <Text style={styles.noteBody}>{description}</Text>
-            <Text style={styles.noteFooter}>{trainingLoad}</Text>
-          </View>
-
-          {/* 4. Main Photos with Washi Frames */}
+          {/* 3. Main Photos with Washi Frames */}
           <View style={styles.mainPhotosRow}>
             {/* Photo 1 */}
             <View style={styles.washiFrameContainer}>
@@ -319,6 +312,15 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
               <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
               <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
             </View>
+          </View>
+
+          {/* 4. Overview Note Details */}
+          <View style={styles.noteSection}>
+            <Image src="/assets/torn-paper-wide.png" style={styles.noteBg} />
+            <Text style={styles.noteTitle}>{date}</Text>
+            <Text style={styles.noteSubtitle}>{location}</Text>
+            <Text style={styles.noteBody}>{description}</Text>
+            <Text style={styles.noteFooter}>{trainingLoad}</Text>
           </View>
 
           {/* 5. Stats Tags */}
