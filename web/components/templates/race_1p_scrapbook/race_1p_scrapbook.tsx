@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
   // --- Polaroid Section ---
   polaroidRow: {
     flexDirection: 'row',
+    flexWrap: 'nowrap',
     justifyContent: 'center',
     marginTop: 20,
     marginBottom: 20,
@@ -370,6 +371,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           {/* 6. Polaroid Photos Row */}
           {morePhotosUrls.filter(url => url).length > 0 && (() => {
             // Available width ~550px, leave gaps between polaroids
+            const countPolaroids = morePhotosUrls.filter(url => url).length;
             const polaroidWidth = 165;
             const polaroidHeight = polaroidWidth * 1.2;
 
