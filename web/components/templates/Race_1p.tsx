@@ -3,6 +3,7 @@ import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
 import { SplitsChartSVG } from '@/lib/generateSplitsChart'
 import { resolveActivityLocation } from '@/lib/activity-utils'
+import { StatsGrid } from '@/components/pdf/StatsGrid'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -65,28 +66,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f0f0',
         marginBottom: 12,
     },
-    statsGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 12,
-        paddingBottom: 10,
-        borderBottomWidth: 2,
-        borderBottomColor: '#000000',
-    },
-    statBox: {
-        alignItems: 'center',
-    },
-    statValue: {
-        fontSize: 18,
-        fontFamily: 'Helvetica-Bold',
-        color: '#000',
-    },
-    statLabel: {
-        fontSize: 8,
-        color: '#666',
-        textTransform: 'uppercase',
-        marginTop: 2,
-    },
+
     sectionTitle: {
         fontSize: 10,
         fontFamily: 'Helvetica-Bold',
@@ -268,13 +248,6 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
             .slice(0, 3)
         : []
 
-    // Calculate key stats
-    const distanceKm = (activity.distance / 1000).toFixed(2)
-    const movingTime = new Date(activity.moving_time * 1000).toISOString().substr(11, 8)
-    const paceSeconds = activity.moving_time / (activity.distance / 1000)
-    const paceMin = Math.floor(paceSeconds / 60)
-    const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
-    const avgPace = `${paceMin}:${paceSec}/km`
 
     return (
         <Document>
@@ -340,24 +313,7 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                 )}
 
                 {/* Key Stats */}
-                <View style={styles.statsGrid}>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{distanceKm}</Text>
-                        <Text style={styles.statLabel}>Kilometers</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{movingTime}</Text>
-                        <Text style={styles.statLabel}>Time</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{avgPace}</Text>
-                        <Text style={styles.statLabel}>Avg Pace</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{activity.total_elevation_gain}m</Text>
-                        <Text style={styles.statLabel}>Elevation</Text>
-                    </View>
-                </View>
+                <StatsGrid activity={activity} />
 
                 {/* Three-column layout for splits chart, best efforts, and comments */}
                 <View style={{ flexDirection: 'row', gap: 10 }}>
