@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/alt-text */
 import React from 'react';
 import {
   Page,
@@ -305,7 +306,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
     title, titleFontSize, date, location, description, trainingLoad,
     mainPhotoUrl, mapPhotoUrl, stats,
     displaySplits, totalTime, bestEfforts, kudosCount,
-    morePhotosUrls = [], moreComments
+    morePhotosUrls = []
   } = props;
 
   // Helper for Best Efforts table rows
@@ -371,7 +372,6 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           {/* 6. Polaroid Photos Row */}
           {morePhotosUrls.filter(url => url).length > 0 && (() => {
             // Available width ~550px, leave gaps between polaroids
-            const countPolaroids = morePhotosUrls.filter(url => url).length;
             const polaroidWidth = 165;
             const polaroidHeight = polaroidWidth * 1.2;
 

@@ -43,7 +43,7 @@ interface AIGenerationResult {
 
 // Mock AI response for POC
 // When GEMINI_API_KEY is available, this will be replaced with real Gemini API calls
-function generateMockAIResponse(comprehensiveData: ComprehensiveData, pageCount: number = 1): Promise<AIGenerationResult> {
+function generateMockAIResponse(comprehensiveData: ComprehensiveData): Promise<AIGenerationResult> {
     const activity = comprehensiveData.activity
     const photos = comprehensiveData.photos || []
     const comments = comprehensiveData.comments || []
@@ -364,58 +364,6 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // If we have a layoutDescription from the text-based workflow, use it as guidance
-        let preliminaryDesignSpec = null
-        if (layoutDescription) {
-            console.log('[AI Generate] Using layout description as guidance for bodyElements generation')
-
-            // Helper function to parse typography strings like "Helvetica-Bold, 36pt"
-            const parseTypography = (typographyString: string, defaultColor: string) => {
-                const match = typographyString.match(/^(.+?),\s*(\d+)pt/)
-                if (match) {
-                    return {
-                        family: match[1].trim(),
-                        size: parseInt(match[2]),
-                        color: defaultColor
-                    }
-                }
-                // Fallback if format doesn't match
-                return {
-                    family: 'Helvetica',
-                    size: 12,
-                    color: defaultColor
-                }
-            }
-
-            preliminaryDesignSpec = {
-                layout: 'custom',
-                theme: layoutDescription.theme,
-                fonts: {
-                    pageTitle: parseTypography(layoutDescription.typography.pageTitle, layoutDescription.colorPalette.primary),
-                    sectionTitle: parseTypography(layoutDescription.typography.sectionTitle, layoutDescription.colorPalette.primary),
-                    body: parseTypography(layoutDescription.typography.body, layoutDescription.colorPalette.text),
-                    accent: parseTypography(layoutDescription.typography.accent, layoutDescription.colorPalette.accent)
-                },
-                colorScheme: {
-                    primary: layoutDescription.colorPalette.primary,
-                    secondary: layoutDescription.colorPalette.secondary,
-                    background: layoutDescription.colorPalette.background,
-                    text: layoutDescription.colorPalette.text,
-                    accent: layoutDescription.colorPalette.accent
-                },
-                background: {
-                    type: 'solid' as const,
-                    color: layoutDescription.colorPalette.background
-                },
-                narrative: layoutDescription.aesthetic,
-                layoutStrategy: layoutDescription.layoutStrategy,
-                photoPlacement: layoutDescription.photoPlacement,
-                textElements: layoutDescription.textElements,
-            }
-
-            console.log('[AI Generate] Created preliminary designSpec from layout description')
-        }
-
         // Check environment variables
         const geminiKey = process.env.GEMINI_API_KEY
         const useRealAI = process.env.USE_REAL_AI === 'true'
@@ -434,7 +382,7 @@ export async function POST(request: NextRequest) {
 
         const result: AIGenerationResult = shouldUseRealAI
             ? await generateWithGemini(comprehensiveData, pageCount)
-            : await generateMockAIResponse(comprehensiveData, pageCount)
+            : await generateMockAIResponse(comprehensiveData)
 
         console.log('[AI Generate] Generation successful:', {
             hasDesignSpec: !!result.designSpec,
