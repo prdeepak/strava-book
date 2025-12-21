@@ -264,35 +264,43 @@ const styles = StyleSheet.create({
   thumbsUpIcon: { width: 30, height: 30, marginRight: 10 },
   kudosValue: { fontFamily: 'PatrickHand', fontSize: 30 },
 
-  // --- Footer Section ---
-  footerRow: {
+  // --- Polaroid Section ---
+  polaroidRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    height: 140,
-    marginTop: 'auto', // Push to bottom
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+    gap: 15,
   },
   polaroidContainer: {
-    width: '18%',
-    height: 120,
+    width: 110,
+    height: 130,
     position: 'relative',
-    padding: 8, // Internal padding for photo
-    paddingBottom: 25, // Space for caption area
-    // Slight rotations for realism (requires trial and error in PDF)
-    transform: 'rotate(-3deg)',
+    padding: 8,
+    paddingBottom: 25,
   },
   polaroidBg: {
-    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: -1,
   },
-  polaroidImage: { width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#ddd' },
-  polaroidCaption: { position: 'absolute', bottom: 5, left: 10, fontSize: 8, color: '#555' },
-
-  commentsContainer: {
-    width: '25%',
-    position: 'relative',
-    padding: 15,
-    paddingTop: 30,
+  polaroidImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    backgroundColor: '#ddd',
   },
-  commentsText: { fontSize: 10, lineHeight: 1.5 },
+  polaroidCaption: {
+    position: 'absolute',
+    bottom: 5,
+    left: 10,
+    fontSize: 8,
+    color: '#555',
+  },
 });
 
 // Internal component that uses the ScrapbookPageProps interface
@@ -396,30 +404,22 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             </View>
           </View>
 
-          {/* 7. Footer (Polaroids & Comments) */}
-          <View style={styles.footerRow}>
-            {/* Map up to 4 extra photos - only show if photos exist */}
-            {morePhotosUrls.filter(url => url).length > 0 && morePhotosUrls.filter(url => url).map((photoUrl, index) => {
-              // Slightly vary rotation for visual interest
-              const rotation = index % 2 === 0 ? -3 : 2;
-              return (
-                <View key={index} style={[styles.polaroidContainer, { transform: `rotate(${rotation}deg)` }]}>
-                  <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
-                  <Image src={photoUrl} style={styles.polaroidImage} />
-                  <Text style={styles.polaroidCaption}>more photos</Text>
-                </View>
-              )
-            })}
-
-            {/* Comments Note - only show if comments exist */}
-            {moreComments && moreComments.trim() && (
-              <View style={styles.commentsContainer}>
-                <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
-                <Text style={styles.sectionTitle}>more comments</Text>
-                <Text style={styles.commentsText}>{moreComments}</Text>
-              </View>
-            )}
-          </View>
+          {/* 7. Polaroid Photos Row */}
+          {morePhotosUrls.filter(url => url).length > 0 && (
+            <View style={styles.polaroidRow}>
+              {morePhotosUrls.filter(url => url).map((photoUrl, index) => {
+                // Slightly vary rotation for visual interest
+                const rotation = index % 2 === 0 ? -3 : 2;
+                return (
+                  <View key={index} style={[styles.polaroidContainer, { transform: `rotate(${rotation}deg)` }]}>
+                    <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
+                    <Image src={photoUrl} style={styles.polaroidImage} />
+                    <Text style={styles.polaroidCaption}>more photos</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
 
         </View>
       </Page>
@@ -509,10 +509,15 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
     displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }));
   }
 
-  // Get additional photos (if any)
-  const morePhotosUrls: string[] = [];
-  // Note: Strava API doesn't typically provide multiple photos in the standard response
-  // This would need to be populated from activity.photos if available
+  // Get additional photos from activity.allPhotos (up to 4 for polaroid row)
+  const morePhotosUrls: string[] = (activity.allPhotos || [])
+    .slice(0, 4)
+    .map(photo => {
+      // Use 600px size if available, otherwise fall back to 5000px
+      const photoUrl = photo.urls['600'] || photo.urls['5000'] || Object.values(photo.urls)[0]
+      return photoUrl ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` : ''
+    })
+    .filter(url => url) // Remove any empty URLs
 
   // Get comments
   const comments = (activity.comments || []).slice(0, 3);

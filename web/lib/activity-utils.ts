@@ -1,4 +1,4 @@
-import { StravaActivity, getActivity, getActivityComments } from './strava'
+import { StravaActivity, getActivity, getActivityComments, getActivityPhotos } from './strava'
 
 /**
  * Resolves the location string for an activity.
@@ -50,6 +50,7 @@ export async function enrichActivityWithGeocoding(
 /**
  * Fetches an activity with all required data for preview rendering.
  * Includes comments for race_1p, race_1p_graph, and race_1p_scrapbook templates.
+ * Includes photos for race_1p_scrapbook template.
  */
 export async function fetchActivityForPreview(
     accessToken: string,
@@ -73,9 +74,17 @@ export async function fetchActivityForPreview(
             console.log('Comments Fetched:', comments.length)
         }
 
+        // Fetch all photos for race_1p_scrapbook template
+        if (template === 'race_1p_scrapbook') {
+            const photos = await getActivityPhotos(accessToken, activityId)
+            activity.allPhotos = photos
+            console.log('All Photos Fetched:', photos.length)
+        }
+
         return activity
     } catch (error) {
         console.error('Error fetching activity:', error)
         return null
     }
 }
+

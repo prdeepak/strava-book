@@ -195,4 +195,5 @@ export type StravaActivity = {
         pr_rank?: number | null // 1 = PR, 2 = 2nd best, 3 = 3rd best, etc.
     }>
     comments?: StravaComment[] // Added for convenience when fetched
+    allPhotos?: StravaPhoto[] // All photos from getActivityPhotos API
 }
