@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    zIndex: -1,
+    zIndex: -100,
   },
   container: {
     flex: 1,
@@ -109,27 +109,43 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     height: 220,
   },
-  washiFrameContainer: {
+  photoContainer: {
     width: '48%',
     height: '100%',
     position: 'relative',
-    padding: 20, // Padding to create space for frame border
-    justifyContent: 'center', // Center vertically
-    alignItems: 'center', // Center horizontally
-  },
-  washiFrameBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainPhotoImage: {
-    width: '80%',
-    height: '80%',
+    width: '90%',
+    height: '90%',
     objectFit: 'cover',
     borderRadius: 4,
+    zIndex: 0
+  },
+  washiCorner: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+  },
+  cornerTopLeft: {
+    top: 10,
+    left: 10,
+  },
+  cornerTopRight: {
+    top: 10,
+    right: 10,
+    transform: 'rotate(90deg)',
+  },
+  cornerBottomLeft: {
+    bottom: 10,
+    left: 10,
+    transform: 'rotate(-90deg)',
+  },
+  cornerBottomRight: {
+    bottom: 10,
+    right: 10,
+    transform: 'rotate(180deg)',
   },
 
   // --- Top Note Section ---
@@ -137,12 +153,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignSelf: 'center',
     alignItems: 'flex-start',
-    width: 640,
+    width: 540,
     minHeight: 180,
     marginBottom: 10,
-    padding: 20,
-    paddingLeft: 35,
-    paddingBottom: 40,
+    // padding: 10,
+    paddingLeft: 20,
+    paddingBottom: 20,
   },
   noteBg: {
     position: 'absolute',
@@ -155,37 +171,38 @@ const styles = StyleSheet.create({
   },
   noteTitle: {
     fontFamily: 'PatrickHand', fontSize: 12,
-    marginBottom: 4, paddingTop: 20, paddingLeft: 70
+    marginBottom: 4, paddingTop: 20, paddingLeft: 20
   },
-  noteSubtitle: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, paddingLeft: 70 },
-  noteBody: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, lineHeight: 1.4, paddingLeft: 70 },
-  noteFooter: { fontFamily: 'PatrickHand', fontSize: 9, color: '#666', paddingLeft: 70 },
+  noteSubtitle: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, paddingLeft: 20 },
+  noteBody: { fontFamily: 'PatrickHand', fontSize: 10, marginBottom: 10, lineHeight: 1.4, paddingLeft: 20 },
+  noteFooter: { fontFamily: 'PatrickHand', fontSize: 9, color: '#666', paddingLeft: 20 },
 
-  // --- Stats Tags Section ---
+  // --- Stats Washi Tape Section ---
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
-    height: 60,
+    height: 70,
     paddingHorizontal: 10,
   },
-  tagContainer: {
+  washiContainer: {
     width: '22%',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 15, // Adjust based on tag asset hole position
+    paddingVertical: 10,
   },
-  tagBg: {
+  washiBg: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
     zIndex: -1,
+    objectFit: 'fill',
   },
-  tagValue: { fontFamily: 'PatrickHand', fontSize: 16 },
-  tagLabel: { fontFamily: 'PatrickHand', fontSize: 9, textTransform: 'uppercase', color: '#555' },
+  washiValue: { fontFamily: 'PatrickHand', fontSize: 18, fontWeight: 'bold', color: '#333' },
+  washiLabel: { fontFamily: 'PatrickHand', fontSize: 9, textTransform: 'uppercase', color: '#555', marginTop: 2 },
 
   // --- Data / Splits / Kudos Row ---
   dataRow: {
@@ -235,6 +252,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+  },
+  kudosBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: -1,
   },
   thumbsUpIcon: { width: 30, height: 30, marginRight: 10 },
   kudosValue: { fontFamily: 'PatrickHand', fontSize: 30 },
@@ -302,17 +327,23 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             <Text style={[styles.bannerText, { fontSize: titleFontSize }]}>{title}</Text>
           </View>
 
-          {/* 3. Main Photos with Washi Frames */}
+          {/* 3. Main Photos with Washi Corner Tape */}
           <View style={styles.mainPhotosRow}>
             {/* Photo 1 */}
-            <View style={styles.washiFrameContainer}>
+            <View style={styles.photoContainer}>
               <Image src={mainPhotoUrl} style={styles.mainPhotoImage} />
-              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomRight]} />
             </View>
             {/* Photo 2 (Map) */}
-            <View style={[styles.washiFrameContainer, { transform: 'rotate(2deg)' }]}>
+            <View style={[styles.photoContainer, { transform: 'rotate(2deg)' }]}>
               <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
-              <Image src="/assets/wash-frame.png" style={styles.washiFrameBg} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
+              <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomRight]} />
             </View>
           </View>
 
@@ -325,12 +356,12 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             <Text style={styles.noteFooter}>{trainingLoad}</Text>
           </View>
 
-          {/* 5. Stats Tags */}
+          {/* 5. Stats Washi Tape */}
           <View style={styles.statsRow}>
-            <TagItem value={stats.distance} label="KILOMETERS" />
-            <TagItem value={stats.time} label="TIME" />
-            <TagItem value={stats.avgPace} label="AVG PACE" />
-            <TagItem value={stats.elevation} label="ELEVATION" />
+            <WashiItem value={stats.distance} label="KILOMETERS" color="coral" />
+            <WashiItem value={stats.time} label="TIME" color="mint" />
+            <WashiItem value={stats.avgPace} label="AVG PACE" color="yellow" />
+            <WashiItem value={stats.elevation} label="ELEVATION" color="blue" />
           </View>
 
           {/* 6. Data Row (Splits, Efforts, Kudos) */}
@@ -359,7 +390,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
 
             {/* Kudos Tag */}
             <View style={styles.kudosContainer}>
-              <Image src="/assets/tag-brown.png" style={styles.tagBg} />
+              <Image src="/assets/tag-brown.png" style={styles.kudosBg} />
               <Image src="/assets/thumbs-up.png" style={styles.thumbsUpIcon} />
               <Text style={styles.kudosValue}>{kudosCount}</Text>
             </View>
@@ -396,14 +427,17 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
   );
 };
 
-// Helper component for the Stat Tags
-const TagItem = ({ value, label }: { value: string, label: string }) => (
-  <View style={styles.tagContainer}>
-    <Image src="/assets/tag-brown.png" style={styles.tagBg} />
-    <Text style={styles.tagValue}>{value}</Text>
-    <Text style={styles.tagLabel}>{label}</Text>
-  </View>
-);
+// Helper component for the Washi Tape Stats
+const WashiItem = ({ value, label, color }: { value: string, label: string, color: 'coral' | 'mint' | 'yellow' | 'blue' }) => {
+  const washiSrc = `/assets/washi-${color}.png`;
+  return (
+    <View style={styles.washiContainer}>
+      <Image src={washiSrc} style={styles.washiBg} />
+      <Text style={styles.washiValue}>{value}</Text>
+      <Text style={styles.washiLabel}>{label}</Text>
+    </View>
+  );
+};
 
 // Main export component that accepts StravaActivity
 interface ScrapbookPDFProps {
