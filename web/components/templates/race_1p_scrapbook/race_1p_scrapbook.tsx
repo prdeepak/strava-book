@@ -60,13 +60,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 0, // Full bleed background
   },
-  // The main crumpled paper texture covering the whole page
+  // The main crumpled paper texture covering the whole page with bleed
   backgroundImage: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
+    top: -10,
+    left: -10,
+    width: '110%',
+    height: '110%',
     zIndex: -100,
   },
   container: {
