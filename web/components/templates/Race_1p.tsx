@@ -229,15 +229,17 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
                 {/* Three-column layout for splits chart, best efforts, and comments */}
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                     {/* Splits Chart Column */}
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.sectionTitle}>Splits</Text>
-                        <SplitsChartSVG
-                            splits={displaySplits}
-                            totalTime={activity.moving_time}
-                            width={180}
-                            height={120}
-                        />
-                    </View>
+                    {displaySplits.length > 0 && (
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.sectionTitle}>Splits</Text>
+                            <SplitsChartSVG
+                                splits={displaySplits}
+                                totalTime={activity.moving_time}
+                                width={180}
+                                height={120}
+                            />
+                        </View>
+                    )}
 
                     {/* Best Efforts Column */}
                     {/* Best Efforts Column */}

@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 export default async function PreviewPage(props: {
     params: Promise<{ template: string; id: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
     const params = await props.params
     const session = await getServerSession(authOptions)
@@ -70,9 +71,51 @@ export default async function PreviewPage(props: {
         return <div className="p-8 text-center">Failed to load activity data.</div>
     }
 
+    // Read user selections from URL parameters
+    const searchParams = await props.searchParams
+    const includePhotos = searchParams?.includePhotos !== 'false'
+    const includeComments = searchParams?.includeComments !== 'false'
+    const includeSplits = searchParams?.includeSplits !== 'false'
+    const includeLaps = searchParams?.includeLaps !== 'false'
+    const includeBestEfforts = searchParams?.includeBestEfforts !== 'false'
+    const includeElevation = searchParams?.includeElevation !== 'false'
+    const photoIds = typeof searchParams?.photoIds === 'string'
+        ? searchParams.photoIds.split(',').filter(Boolean)
+        : []
+
+    // Filter activity data based on user selections
+    if (!includeComments) {
+        activity!.comments = []
+    }
+    if (!includeBestEfforts) {
+        activity!.best_efforts = []
+    }
+    if (!includeSplits) {
+        activity!.splits_metric = []
+        activity!.laps = []
+    }
+    if (!includeLaps) {
+        activity!.laps = []
+    }
+    if (!includePhotos || photoIds.length > 0) {
+        // If photos not included, clear all photos
+        // If specific photos selected, filter to only those
+        if (!includePhotos) {
+            activity!.allPhotos = []
+            if (activity!.photos) {
+                // @ts-expect-error - Setting to null to clear primary photo
+                activity!.photos.primary = null
+            }
+        } else if (photoIds.length > 0) {
+            // Filter allPhotos to only selected IDs
+            activity!.allPhotos = activity!.allPhotos?.filter(p => photoIds.includes(p.unique_id)) || []
+        }
+    }
+
     // Enrich with geocoding if needed
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
     console.log("[Server] Passing Mapbox Token:", !!mapboxToken)
+    console.log("[Server] User selections:", { includePhotos, includeComments, includeSplits, includeLaps, includeBestEfforts, includeElevation, photoCount: photoIds.length })
 
     await enrichActivityWithGeocoding(activity!, mapboxToken)
 

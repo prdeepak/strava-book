@@ -206,45 +206,42 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
                 )}
             </View>
 
-            <View>
-                <Text style={styles.sectionTitle}>Splits {rawSplits.length > 20 ? '(5km Summary)' : '(Metric)'}</Text>
+            {/* Splits Section - only show if data exists */}
+            {displaySplits.length > 0 && (
+                <View>
+                    <Text style={styles.sectionTitle}>Splits {rawSplits.length > 20 ? '(5km Summary)' : '(Metric)'}</Text>
 
-                <View style={styles.splitsContainer}>
-                    {/* Headers for columns */}
-                    <View style={styles.splitHeader}>
-                        <Text style={styles.splitHeaderText}>Dist</Text>
-                        <Text style={styles.splitHeaderText}>Pace</Text>
-                        <Text style={styles.splitHeaderText}>Elev</Text>
+                    <View style={styles.splitsContainer}>
+                        {/* Headers for columns */}
+                        <View style={styles.splitHeader}>
+                            <Text style={styles.splitHeaderText}>Dist</Text>
+                            <Text style={styles.splitHeaderText}>Pace</Text>
+                            <Text style={styles.splitHeaderText}>Elev</Text>
+                        </View>
+                        <View style={styles.splitHeader}>
+                            <Text style={styles.splitHeaderText}>Dist</Text>
+                            <Text style={styles.splitHeaderText}>Pace</Text>
+                            <Text style={styles.splitHeaderText}>Elev</Text>
+                        </View>
+
+                        {displaySplits.map((split, i) => {
+                            // Calculate pace from moving_time/distance
+                            // split.distance is usually ~1000m or ~5000m
+                            const paceSeconds = split.moving_time / (split.distance / 1000)
+                            const paceMin = Math.floor(paceSeconds / 60)
+                            const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
+
+                            return (
+                                <View key={i} style={styles.splitRow}>
+                                    <Text style={[styles.splitText, { width: 30 }]}>{split.label}</Text>
+                                    <Text style={styles.splitText}>{paceMin}:{paceSec}/km</Text>
+                                    <Text style={styles.splitText}>{split.elevation_difference > 0 ? '+' : ''}{Math.round(split.elevation_difference)}m</Text>
+                                </View>
+                            )
+                        })}
                     </View>
-                    <View style={styles.splitHeader}>
-                        <Text style={styles.splitHeaderText}>Dist</Text>
-                        <Text style={styles.splitHeaderText}>Pace</Text>
-                        <Text style={styles.splitHeaderText}>Elev</Text>
-                    </View>
-
-                    {displaySplits.map((split, i) => {
-                        // Calculate pace from moving_time/distance
-                        // split.distance is usually ~1000m or ~5000m
-                        const paceSeconds = split.moving_time / (split.distance / 1000)
-                        const paceMin = Math.floor(paceSeconds / 60)
-                        const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
-
-                        return (
-                            <View key={i} style={styles.splitRow}>
-                                <Text style={[styles.splitText, { width: 30 }]}>{split.label}</Text>
-                                <Text style={styles.splitText}>{paceMin}:{paceSec}/km</Text>
-                                <Text style={styles.splitText}>{split.elevation_difference > 0 ? '+' : ''}{Math.round(split.elevation_difference)}m</Text>
-                            </View>
-                        )
-                    })}
-
-                    {rawSplits.length === 0 && (
-                        <Text style={{ fontSize: 10, color: '#999', padding: 10 }}>
-                            No split data available. (Requires full activity detail fetch)
-                        </Text>
-                    )}
                 </View>
-            </View>
+            )}
 
             {/* Best Efforts Section */}
             <BestEffortsTable activity={activity} maxEfforts={20} />

@@ -403,27 +403,31 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
 
           {/* 7. Data Row (Splits, Efforts, Kudos) */}
           <View style={styles.dataRow}>
-            {/* Splits Graph */}
-            <View style={[styles.paperContainer, styles.splitsContainer]}>
-              <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
-              <Text style={styles.sectionTitle}>SPLITS</Text>
-              {/* Render actual splits chart */}
-              <SplitsChartSVG
-                splits={displaySplits}
-                totalTime={totalTime}
-                width={180}
-                height={100}
-              />
-            </View>
-
-            {/* Best Efforts Table */}
-            <View style={[styles.paperContainer, styles.bestEffortsContainer]}>
-              <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
-              <Text style={styles.sectionTitle}>BEST EFFORTS</Text>
-              <View>
-                {bestEfforts.map((effort, i) => renderEffortRow(effort.label, effort.value, i))}
+            {/* Splits Graph - only show if data exists */}
+            {displaySplits.length > 0 && (
+              <View style={[styles.paperContainer, styles.splitsContainer]}>
+                <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
+                <Text style={styles.sectionTitle}>SPLITS</Text>
+                {/* Render actual splits chart */}
+                <SplitsChartSVG
+                  splits={displaySplits}
+                  totalTime={totalTime}
+                  width={180}
+                  height={100}
+                />
               </View>
-            </View>
+            )}
+
+            {/* Best Efforts Table - only show if data exists */}
+            {bestEfforts.length > 0 && (
+              <View style={[styles.paperContainer, styles.bestEffortsContainer]}>
+                <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
+                <Text style={styles.sectionTitle}>BEST EFFORTS</Text>
+                <View>
+                  {bestEfforts.map((effort, i) => renderEffortRow(effort.label, effort.value, i))}
+                </View>
+              </View>
+            )}
 
             {/* Kudos Tag */}
             <View style={styles.kudosContainer}>

@@ -91,9 +91,24 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
             return
         }
 
-        // For other templates, open preview in new tab
+        // Build URL with user selections as query parameters
         const template = dataSelection.selectedTemplate
-        window.open(`/preview/${template}/${activity.id}`, '_blank')
+        const params = new URLSearchParams({
+            includePhotos: dataSelection.includePhotos.toString(),
+            includeComments: dataSelection.includeComments.toString(),
+            includeSplits: dataSelection.includeSplits.toString(),
+            includeLaps: dataSelection.includeLaps.toString(),
+            includeBestEfforts: dataSelection.includeBestEfforts.toString(),
+            includeElevation: dataSelection.includeElevation.toString(),
+            pageCount: dataSelection.pageCount.toString(),
+        })
+
+        // Add selected photo IDs if photos are included
+        if (dataSelection.includePhotos && dataSelection.selectedPhotoIds.length > 0) {
+            params.append('photoIds', dataSelection.selectedPhotoIds.join(','))
+        }
+
+        window.open(`/preview/${template}/${activity.id}?${params.toString()}`, '_blank')
     }
 
     // Format date for display
@@ -195,8 +210,8 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                                 key={count}
                                                 onClick={() => setDataSelection(prev => ({ ...prev, pageCount: count }))}
                                                 className={`flex-1 py-3 px-4 rounded-lg border-2 font-semibold transition-all ${dataSelection.pageCount === count
-                                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                                        : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
+                                                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                                    : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
                                                     }`}
                                             >
                                                 {count} Page{count > 1 ? 's' : ''}
@@ -313,8 +328,8 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                                         }))
                                                     }}
                                                     className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${isSelected
-                                                            ? 'border-orange-500 ring-2 ring-orange-200'
-                                                            : 'border-stone-200 hover:border-stone-300'
+                                                        ? 'border-orange-500 ring-2 ring-orange-200'
+                                                        : 'border-stone-200 hover:border-stone-300'
                                                         }`}
                                                 >
                                                     {thumbnailUrl ? (
