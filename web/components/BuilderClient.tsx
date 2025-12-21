@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { StravaActivity } from '@/lib/strava'
-import AIGenerationModal from '@/components/AIGenerationModal'
+import PDFGenerationModal from '@/components/PDFGenerationModal'
 
 interface BuilderClientProps {
     initialActivities: StravaActivity[]
@@ -227,27 +227,15 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                             </div>
 
                             <div className="mt-4">
-                                <label className="block text-xs text-stone-500 mb-1">Preview Template</label>
-                                <select
-                                    onChange={(e) => {
-                                        const value = e.target.value
-                                        if (value === 'ai-generated') {
-                                            setSelectedActivity(activity)
-                                            setModalOpen(true)
-                                            e.target.value = '' // Reset dropdown
-                                        } else if (value) {
-                                            window.location.href = value
-                                        }
+                                <button
+                                    onClick={() => {
+                                        setSelectedActivity(activity)
+                                        setModalOpen(true)
                                     }}
-                                    defaultValue=""
-                                    className="w-full px-3 py-2 rounded border border-orange-200 text-orange-600 text-sm bg-white hover:bg-orange-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-4 py-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-orange-700 text-sm font-semibold hover:bg-orange-100 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 >
-                                    <option value="" disabled>Select template...</option>
-                                    <option value="ai-generated">Race (AI-generated) ✨</option>
-                                    <option value={`/preview/race_1p/${activity.id}`}>Race (1 Page)</option>
-                                    <option value={`/preview/race_1p_scrapbook/${activity.id}`}>Race (1 Page - Scrapbook)</option>
-                                    <option value={`/preview/race_2p/${activity.id}`}>Race (2 Pages)</option>
-                                </select>
+                                    Generate PDF pages
+                                </button>
                             </div>
                         </div>
                     )
@@ -266,9 +254,9 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                 </div>
             )}
 
-            {/* AI Generation Modal */}
+            {/* PDF Generation Modal */}
             {selectedActivity && (
-                <AIGenerationModal
+                <PDFGenerationModal
                     activity={selectedActivity}
                     isOpen={modalOpen}
                     onClose={() => {
