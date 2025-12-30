@@ -1,13 +1,22 @@
-Here is a comprehensive Product Requirements Document (PRD) for your application. I have structured this to be hand-off ready for a developer or designer, while incorporating the specific workflow you requested.
-
-I have also added a section at the end called **"UX Enhancements"** with specific suggestions to make the app feel more "magical" and less like a data entry tool.
-
----
-
 # Product Requirements Document (PRD)
-**Project Name:** Strava Commemorative Book Generator (Working Title: *VeloPress*)
-**Version:** 1.0
+**Project Name:** Strava Commemorative Book Generator (Working Title: *MedalBook* [TBC])
+**Version:** 1.1
 **Status:** Draft
+
+## Current Status (2025-12-29)
+- Can log into Strava, pull down activities
+- Can generate a "race page" PDF for a single activity -- it's a bit simplistic, but it's a POC
+- Have experimented with alternate templates / more dynamic layouts (e.g., scrapbook)
+
+## Next Steps for Development
+* Goal: generate a full book, even if it's a bit simplistic
+-- Shift format to square? (better for printing)
+-- Generate a full table of contents / section titles
+-- Key overview pages (year at a glance; calendar style?)
+-- Journal section (one row per activity; dynamic layout based on content available, e.g., map photos, splits, etc.)
+-- Improved race section; dynamically decide how many pages
+
+
 
 ## 1. Executive Summary
 The goal is to build a web application that ingests a user's Strava activity data and programmatically generates a high-quality, print-ready PDF "Yearbook." The output is designed to be a "coffee table" style keepsake, preserving ephemeral digital stats in a tangible, aesthetic format. The user experience prioritizes ease of use (automation) with optional depth of customization.
@@ -28,7 +37,7 @@ The goal is to build a web application that ingests a user's Strava activity dat
     * *System Action:* Backend initiates API calls to fetch user activities, activity streams (lat/long for maps), and profile stats.
     * *User Action:* While data loads, the user is presented with **Global Configuration** options:
         * **Book Title:** (Default: "My [Year] in Review")
-        * **Theme/Style:** Select from 3 presets (e.g., *Minimalist B&W*, *Bold/Editorial*, *Technical/Blueprint*).
+        * **Theme/Style:** Select from [x] presets (e.g., *Minimalist B&W*, *Bold/Editorial*, *Technical/Blueprint*).
         * **Unit Preference:** Metric vs. Imperial (Auto-detect from Strava, but allow override).
 
 ### Phase 2: Curation (The Builder)
@@ -53,16 +62,14 @@ The goal is to build a web application that ingests a user's Strava activity dat
 
 ## 4. Feature Requirements (The Templates)
 *Based on previous designs:*
-
 | Template Name | Data Requirements | Logic |
 | :--- | :--- | :--- |
-| **Race Page (Run)** | Map (Polyline), Elevation, Splits, Total Time, Date, Title. | User selects specific activity ID. System identifies if photos exist attached to activity. |
-| **Triathlon Page** | Swim/Bike/Run segments, Transition times. | Requires "Multi-sport" activity type parsing from Strava. |
+| **Race Section (Run)** | Map (Polyline), Elevation, Splits, Total Time, Date, Title. | User selects specific activity ID. System identifies if photos exist attached to activity. |
 | **Year at a Glance** | Daily active/inactive boolean, activity type. | **Visual A:** Calendar Grid. **Visual B:** Streak Heatmap (GitHub style). |
 | **Year Graph View** | Monthly distances, Avg Pace vs. HR trends. | Aggregation of all activities within the selected date range. |
 | **Best Efforts** | PR data (1k, 5k, 10k, Half, Full). | Compare current period bests vs. all-time bests (if historical data allows). |
 | **Full History** | List of *all* activities (Date, Title, Dist, Time). | Paginated list. Likely requires multiple pages for active users. |
-| **Route Heatmap** | All polylines for the year overlayed. | Centered on the user's most frequent geolocation. |
+| **Route Heatmap** | All polylines for the year overlaid. | Centered on the user's most frequent geolocation. |
 
 ## 5. Technical Requirements
 * **Strava API:** Strict adherence to rate limits (100 requests/15 min, 1,000/day).
@@ -129,16 +136,61 @@ Requests to the AI agent (e.g., Claude 3.5 Sonnet or GPT-4o) will include:
 Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)" button.
 * Integration with an API like Blurb, Lulu, or Gelato.
 
-## 7. Next Steps for Development
 
-### Current Status (December 2024)
-- ✅ Basic AI generation working with Gemini 2.0 Flash
-- ✅ Dynamic PDF generation with fonts and colors
-- ✅ Photo display in PDFs working
-- ✅ Text-based layout description workflow implemented (Option A)
-- ✅ Google Fonts registered (Roboto, Open Sans, Montserrat, Playfair Display, Pacifico)
-- ⚠️ Free-form bodyElements generation produces chaotic, unprofessional layouts
 
+
+=====
+# OLD NOTES
+
+## CURRENT STATUS (Updated 2025-12-20)
+
+### ✅ Completed
+1. **PDF Generation Modal**: Unified modal for all templates with data selection
+2. **Component Extraction**: Reusable components (StatsGrid, Header, CommentsSection, BestEffortsTable)
+3. **Data Filtering**: User selections from modal properly filter activity data
+4. **Null-Safety**: All templates handle missing data gracefully
+5. **Unified Data Fetching**: Single comprehensive-activity-data endpoint
+
+### 🔄 On Hold
+- **Art Director Workflow**: Paused for now
+
+### 📋 Next Steps
+
+#### 1. AI Font & Color Recommendations
+- Test whether AI can intelligently recommend:
+  - Fonts for race_1p and race_2p templates
+  - Color schemes for race_1p and race_2p templates
+- Goal: Personalized styling based on activity data
+
+#### 2. Improve race_2p Template
+- Add support for all components selected by user from modal
+- Ensure all data elements (photos, comments, splits, laps, best efforts) are displayed when selected
+- Currently missing some components that race_1p has
+
+#### 3. Improve race_1p Template  
+- Add PhotoGrid component for displaying additional photos (beyond primary)
+- Allow user to select which photos to include via modal
+- Display selected photos in a grid layout
+
+#### 4. Fix Splits Chart
+Priority improvements to splits chart rendering:
+
+**a) Remove Elevation Display**
+- Take out elevation profile from splits chart
+- Simplify to focus on pace/splits only
+
+**b) Generate PNG Instead of SVG**
+- Convert splits chart to PNG generation
+- Accept dimensions as parameters from template
+- Ensure proper scaling for different sizes
+
+**c) Simplify for Small Renditions**
+- If image dimensions are too small:
+  - Do not display the black finish flag
+  - Identify other components that can be simplified/removed
+  - Maintain readability at small sizes
+
+---
 ### Lessons Learned (December 18, 2024)
 
 **What Worked:**
@@ -212,3 +264,6 @@ AI's role is to:
 ### Future Enhancements
 (As of 2025-12-14 05:39 EST)
 * Establish a default global style guide for the book.  Ensure all PDF pages use the global design
+
+
+
