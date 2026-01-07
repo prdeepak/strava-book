@@ -1,9 +1,17 @@
-import { Document, Page, Text, StyleSheet, View } from '@react-pdf/renderer'
+import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
 import { Race_2pSpread } from './Race_2p'
 import { TableOfContents, TOCEntry } from './TableOfContents'
-import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { Cover } from './Cover'
+import { Foreword } from './Foreword'
+import { BackCover } from './BackCover'
+import { YearCalendar } from './YearCalendar'
+import { YearStats } from './YearStats'
+import { MonthlyDivider } from './MonthlyDivider'
+import { ActivityLog } from './ActivityLog'
+import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { calculateActivitiesPerPage } from '@/lib/activity-log-utils'
 
 const styles = StyleSheet.create({
     coverPage: {
@@ -50,6 +58,9 @@ interface BookDocumentProps {
     activities: StravaActivity[]
     format?: BookFormat
     theme?: BookTheme
+    athleteName?: string
+    year?: number
+    yearSummary?: YearSummary
 }
 
 /**
@@ -61,7 +72,24 @@ export const BookDocument = ({
     activities,
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
+    athleteName = 'Athlete',
+    year = new Date().getFullYear(),
+    yearSummary,
 }: BookDocumentProps) => {
+    // Calculate year summary from activities if not provided
+    const computedYearSummary: YearSummary = yearSummary || {
+        totalDistance: activities.reduce((sum, a) => sum + a.distance, 0),
+        totalTime: activities.reduce((sum, a) => sum + a.moving_time, 0),
+        totalElevation: activities.reduce((sum, a) => sum + a.total_elevation_gain, 0),
+        activityCount: activities.length,
+        longestActivity: activities.reduce((max, a) => a.distance > (max?.distance || 0) ? a : max, activities[0]),
+        fastestActivity: activities[0], // Simplified
+        activeDays: new Set(activities.map(a => a.start_date_local.split('T')[0])),
+        monthlyStats: [],
+        races: activities.filter(a => a.workout_type === 1),
+        year,
+    }
+
     // Build TOC entries from draft entries
     const tocEntries: TOCEntry[] = entries
         .filter(entry => entry.type !== 'COVER' && entry.type !== 'TABLE_OF_CONTENTS')
@@ -78,10 +106,14 @@ export const BookDocument = ({
                 // COVER
                 if (entry.type === 'COVER') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.coverPage}>
-                            <Text style={styles.coverTitle}>{entry.title || 'My Strava Book'}</Text>
-                            <Text style={styles.coverSubtitle}>A collection of your greatest efforts</Text>
-                        </Page>
+                        <Cover
+                            key={index}
+                            title={entry.title || 'My Year in Review'}
+                            year={year}
+                            athleteName={athleteName}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
@@ -111,58 +143,84 @@ export const BookDocument = ({
                     }
                 }
 
-                // MONTHLY_DIVIDER - Placeholder
+                // MONTHLY_DIVIDER
                 if (entry.type === 'MONTHLY_DIVIDER') {
-                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                       'July', 'August', 'September', 'October', 'November', 'December']
-                    const monthName = entry.month !== undefined ? monthNames[entry.month] : 'Month'
+                    const monthActivities = activities.filter(a => {
+                        const activityMonth = new Date(a.start_date_local).getMonth()
+                        return activityMonth === entry.month
+                    })
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
-                            <Text style={styles.placeholderTitle}>{monthName}</Text>
-                            <Text style={styles.placeholderText}>{monthName} {entry.year}</Text>
-                        </Page>
+                        <MonthlyDivider
+                            key={index}
+                            month={entry.month ?? 0}
+                            year={entry.year ?? year}
+                            stats={{
+                                activityCount: monthActivities.length,
+                                totalDistance: monthActivities.reduce((sum, a) => sum + a.distance, 0),
+                                totalTime: monthActivities.reduce((sum, a) => sum + a.moving_time, 0),
+                            }}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
-                // YEAR_AT_A_GLANCE - Placeholder
+                // YEAR_AT_A_GLANCE
                 if (entry.type === 'YEAR_AT_A_GLANCE') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
-                            <Text style={styles.placeholderTitle}>Year at a Glance</Text>
-                            <Text style={styles.placeholderText}>{entry.year}</Text>
-                        </Page>
+                        <YearCalendar
+                            key={index}
+                            year={entry.year ?? year}
+                            activities={activities}
+                            colorBy="distance"
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
-                // YEAR_STATS - Placeholder
+                // YEAR_STATS
                 if (entry.type === 'YEAR_STATS') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
-                            <Text style={styles.placeholderTitle}>Year Summary</Text>
-                            <Text style={styles.placeholderText}>{entry.year}</Text>
-                        </Page>
+                        <YearStats
+                            key={index}
+                            yearSummary={computedYearSummary}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
-                // ACTIVITY_LOG - Placeholder
+                // ACTIVITY_LOG
                 if (entry.type === 'ACTIVITY_LOG') {
+                    const perPage = calculateActivitiesPerPage(format)
+                    const startIdx = (entry.pageNumber || 1 - 1) * perPage
+                    const pageActivities = entry.activityIds
+                        ? activities.filter(a => entry.activityIds?.includes(a.id))
+                        : activities.slice(startIdx, startIdx + perPage)
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
-                            <Text style={styles.placeholderTitle}>Activity Log</Text>
-                            <Text style={styles.placeholderText}>
-                                {entry.activityIds?.length || 0} activities
-                            </Text>
-                        </Page>
+                        <ActivityLog
+                            key={index}
+                            activities={pageActivities}
+                            startIndex={startIdx}
+                            activitiesPerPage={perPage}
+                            showMiniMaps={true}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
-                // FOREWORD - Placeholder
+                // FOREWORD
                 if (entry.type === 'FOREWORD') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
-                            <Text style={styles.placeholderTitle}>Foreword</Text>
-                            <Text style={styles.placeholderText}>{entry.forewordText || 'Your story here'}</Text>
-                        </Page>
+                        <Foreword
+                            key={index}
+                            title={entry.title || 'Foreword'}
+                            body={entry.forewordText || 'Your story here...'}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
@@ -196,13 +254,15 @@ export const BookDocument = ({
                     )
                 }
 
-                // BACK_COVER - Placeholder
+                // BACK_COVER
                 if (entry.type === 'BACK_COVER') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.coverPage}>
-                            <Text style={styles.coverTitle}>The End</Text>
-                            <Text style={styles.coverSubtitle}>Created with Strava Book</Text>
-                        </Page>
+                        <BackCover
+                            key={index}
+                            yearSummary={computedYearSummary}
+                            format={format}
+                            theme={theme}
+                        />
                     )
                 }
 
