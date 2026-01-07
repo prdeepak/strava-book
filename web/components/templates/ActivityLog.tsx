@@ -186,7 +186,7 @@ export const ActivityLog = ({
               <Text style={styles.cellText}>{dateStr}</Text>
             </View>
             <View style={styles.nameCol}>
-              <Text style={styles.cellText} numberOfLines={1}>
+              <Text style={styles.cellText}>
                 {activity.name}
               </Text>
             </View>

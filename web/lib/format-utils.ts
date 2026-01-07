@@ -42,9 +42,12 @@ export function scaledFontSize(
  *   }
  * })
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StyleObject = Record<string, any>
+
 export function createScaledStyles(format: BookFormat) {
-  return <T extends Record<string, any>>(styles: T) => {
-    const scaledStyles: Record<string, any> = {}
+  return <T extends StyleObject>(styles: T): ReturnType<typeof StyleSheet.create> => {
+    const scaledStyles: StyleObject = {}
 
     for (const [key, value] of Object.entries(styles)) {
       if (value && typeof value === 'object') {

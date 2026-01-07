@@ -130,7 +130,7 @@ export const TableOfContents = ({
             {/* Entries in Category */}
             {groupedEntries[category]?.map((entry, idx) => (
               <View key={`${category}-${idx}`} style={styles.tocEntry}>
-                <Text style={styles.tocTitle} numberOfLines={1}>
+                <Text style={styles.tocTitle}>
                   {entry.title}
                 </Text>
                 <View style={styles.dotsContainer} />

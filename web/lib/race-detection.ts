@@ -33,7 +33,7 @@ export function detectRaces(activities: StravaActivity[]): RaceInfo[] {
     const distanceKm = activity.distance / 1000
     const raceType = classifyRaceType(distanceKm)
     const significance = calculateSignificance(activity, raceType)
-    const matchedEvent = matchActivityToKnownRace(activity)
+    const matchedEvent = matchActivityToKnownRace(activity) ?? undefined
 
     races.push({
       activity,

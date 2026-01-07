@@ -113,14 +113,14 @@ export const Cover = ({
           <View style={styles.gradientOverlay} />
         </>
       ) : (
-        // Fallback gradient when no image provided
+        // Fallback solid color when no image provided (react-pdf doesn't support gradients)
         <View style={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
           height: '100%',
-          background: `linear-gradient(135deg, ${theme.primaryColor} 0%, ${theme.accentColor} 100%)`,
+          backgroundColor: theme.primaryColor,
         }} />
       )}
 

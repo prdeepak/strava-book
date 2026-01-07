@@ -142,11 +142,11 @@ export const BODY_FONTS = [
  * Validate if a font is available
  */
 export function isValidHeadingFont(font: string): boolean {
-  return HEADING_FONTS.includes(font as any)
+  return (HEADING_FONTS as readonly string[]).includes(font)
 }
 
 export function isValidBodyFont(font: string): boolean {
-  return BODY_FONTS.includes(font as any)
+  return (BODY_FONTS as readonly string[]).includes(font)
 }
 
 /**
