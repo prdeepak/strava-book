@@ -252,6 +252,8 @@ function getDefaultTitle(entry: BookEntry): string {
             const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                                'July', 'August', 'September', 'October', 'November', 'December']
             return entry.month !== undefined ? monthNames[entry.month] : 'Month'
+        case 'FOREWORD':
+            return 'Foreword'
         case 'YEAR_AT_A_GLANCE':
             return 'Year at a Glance'
         case 'YEAR_STATS':
@@ -260,6 +262,10 @@ function getDefaultTitle(entry: BookEntry): string {
             return `Activity Log - Page ${entry.pageNumber || 1}`
         case 'BEST_EFFORTS':
             return 'Personal Records'
+        case 'ROUTE_HEATMAP':
+            return 'Route Heatmap'
+        case 'STATS_SUMMARY':
+            return 'Stats Summary'
         case 'BACK_COVER':
             return 'Back Cover'
         default:
