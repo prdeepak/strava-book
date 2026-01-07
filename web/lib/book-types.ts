@@ -1,4 +1,8 @@
 import { StravaActivity } from "./strava"
+import { BookPageType } from "./curator"
+
+// Re-export BookPageType for convenience
+export type { BookPageType }
 
 // === BOOK FORMAT (Square, print-ready) ===
 export interface BookFormat {
@@ -67,6 +71,7 @@ export interface RaceTheme {
 
 // === YEAR SUMMARY ===
 export interface YearSummary {
+  year: number
   totalDistance: number
   totalTime: number
   totalElevation: number
