@@ -1,5 +1,20 @@
 {
   "permissions": {
-    "allow": ["WebSearch"]
+    "allow": [
+      "WebSearch",
+      "Bash(make:*)",
+      "Bash(npm:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "cd /Users/deepak/bin/strava-book/web && npm run lint --fix 2>/dev/null || true"
+      }
+    ]
   }
 }
