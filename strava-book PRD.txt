@@ -10,11 +10,12 @@
 
 ## Next Steps for Development
 * Goal: generate a full book, even if it's a bit simplistic
--- Shift format to square? (better for printing)
--- Generate a full table of contents / section titles
--- Key overview pages (year at a glance; calendar style?)
--- Journal section (one row per activity; dynamic layout based on content available, e.g., map photos, splits, etc.)
--- Improved race section; dynamically decide how many pages
+* Square format for print-on-demand compatibility (see Section 7)
+* Generate a full table of contents / section titles
+* Key overview pages (year at a glance; calendar style?)
+* Journal section (one row per activity; dynamic layout based on content available, e.g., map photos, splits, etc.)
+* Improved race section; dynamically decide how many pages
+* AI-driven race theming with logos and photography (see Section 8)
 
 
 
@@ -136,8 +137,151 @@ Requests to the AI agent (e.g., Claude 3.5 Sonnet or GPT-4o) will include:
 Eventually, instead of just downloading a PDF, add a "Order Physical Book ($50)" button.
 * Integration with an API like Blurb, Lulu, or Gelato.
 
+---
 
+## 7. Print Format & Size Flexibility
 
+### Square Format (Primary)
+The book uses a **square format** optimized for print-on-demand photo book services:
+
+| Size | Use Case | Notes |
+|------|----------|-------|
+| **8" × 8"** | Standard/Economy | Most affordable, good for journals |
+| **10" × 10"** | Premium | Ideal balance of impact and cost |
+| **12" × 12"** | Large Format | Maximum visual impact, coffee table worthy |
+
+### Print-on-Demand Compatibility
+Target compatibility with:
+- **Blurb** (Trade Books, Photo Books)
+- **Gelato** (Global fulfillment)
+- **Lulu** (Self-publishing)
+
+### Technical Implementation: Responsive Templates
+
+**Design Principle:** All templates should be designed at a base size (10" × 10" / 720pt × 720pt) and scale proportionally.
+
+**Approach:**
+1. **Base Design Grid:** 720pt × 720pt (10" at 72dpi)
+2. **Scale Factor:** Calculate from target size (e.g., 8" = 0.8x, 12" = 1.2x)
+3. **Proportional Sizing:** All dimensions use relative units or scale factor
+4. **Safe Margins:** Account for bleed (0.125") and trim on all sizes
+5. **Font Scaling:** Body text, headers scale proportionally with floor minimums
+
+```typescript
+interface BookFormat {
+  size: '8x8' | '10x10' | '12x12'
+  dimensions: { width: number; height: number }  // in points
+  bleed: number
+  safeMargin: number
+  scaleFactor: number
+}
+
+const FORMATS: Record<string, BookFormat> = {
+  '8x8':   { width: 576, height: 576, bleed: 9, safeMargin: 36, scaleFactor: 0.8 },
+  '10x10': { width: 720, height: 720, bleed: 9, safeMargin: 45, scaleFactor: 1.0 },
+  '12x12': { width: 864, height: 864, bleed: 9, safeMargin: 54, scaleFactor: 1.2 },
+}
+```
+
+**Template Pattern:**
+- Templates receive `format: BookFormat` prop
+- Use `format.scaleFactor` to adjust font sizes, spacing
+- Use percentage-based widths for layout columns
+- Test each template at all three sizes
+
+---
+
+## 8. AI-Driven Race Theming & Personalization
+
+### Vision
+The book automatically customizes its visual identity based on the user's key races, creating a cohesive "branded" feel that celebrates their achievements.
+
+### 8.1 Race Detection & Hierarchy
+
+**Automatic Race Identification:**
+- Detect races via Strava `workout_type` field (Race = 1)
+- Identify "A Race" (primary goal race) via:
+  - Longest race distance
+  - User explicit selection
+  - Race with most photos/kudos
+
+**Race Metadata Enrichment:**
+- Match race name to known race database (Boston Marathon, NYC Marathon, etc.)
+- Fetch race logos, official colors, course photography
+- Fall back to location-based imagery (city skylines, landmarks)
+
+### 8.2 Theme Cascade
+
+The book's visual identity flows from the "A Race" down:
+
+```
+A Race (e.g., Boston Marathon)
+    ↓
+Book Cover: Boston Marathon finish line photo, blue/yellow palette
+    ↓
+Section Dividers: Subtle Boston theming (Citgo sign silhouette, etc.)
+    ↓
+Race Pages: Each race gets its own mini-theme
+    ↓
+Journal Pages: Neutral palette that complements A Race colors
+```
+
+### 8.3 AI Agent Responsibilities
+
+**Global Style Agent (runs once per book):**
+- Analyzes user's A Race and top photos
+- Generates global style guide:
+  ```json
+  {
+    "primaryColor": "#0D2240",
+    "accentColor": "#FFD200",
+    "fontPairing": { "heading": "Oswald", "body": "Source Sans Pro" },
+    "motif": "boston-marathon",
+    "backgroundStyle": "photo-fade"
+  }
+  ```
+
+**Race Page Agent (runs per race):**
+- Fetches race-specific assets (logo, official photos)
+- Selects best user photos for hero placement
+- Writes narrative caption with emotional resonance
+- Outputs race-specific theme overlay:
+  ```json
+  {
+    "raceId": 12345,
+    "heroImage": "user_photo_3.jpg",
+    "backgroundImage": "boston_finish_aerial.jpg",
+    "logoPlacement": "top-right",
+    "accentColor": "#FFD200"
+  }
+  ```
+
+### 8.4 Human-in-the-Loop Workflow
+
+1. **Auto-Generate:** AI creates initial theme suggestions
+2. **Preview:** User sees themed book preview in browser
+3. **Adjust:** User can:
+   - Change A Race selection
+   - Swap photos
+   - Override colors/fonts
+   - Accept/reject individual race themes
+4. **Finalize:** Generate print-ready PDF with approved theme
+
+### 8.5 Asset Sources
+
+**Race Logos & Photos:**
+- Partner with race organizations for official assets
+- Scrape public race websites (with attribution)
+- Use stock photography for generic imagery
+- User-uploaded high-res photos
+
+**Fallback Strategy:**
+If race-specific assets unavailable:
+- Use location photography (city, trail, etc.)
+- Generate abstract patterns from route polyline
+- Apply user's own best photos as backgrounds
+
+---
 
 =====
 # OLD NOTES
