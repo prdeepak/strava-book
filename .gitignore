@@ -17,3 +17,4 @@ venv/
 /web/playwright-report/
 /web/test-results/
 /web/playwright/.cache/
+web/test-output/
