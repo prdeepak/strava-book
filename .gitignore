@@ -18,3 +18,4 @@ venv/
 /web/test-results/
 /web/playwright/.cache/
 web/test-output/
+outputs/
