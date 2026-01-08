@@ -2,6 +2,102 @@
 
 This document describes how autonomous agents should iterate on PDF templates.
 
+## Git Workflow for Parallel Agents
+
+Multiple agents can work on different templates simultaneously using separate branches.
+
+### Starting a Session
+
+```bash
+# Always start from latest main
+git checkout main && git pull origin main
+
+# Create a branch for your template work
+git checkout -b agent/<template-name>
+
+# Examples:
+git checkout -b agent/cover-redesign
+git checkout -b agent/yearstats-redesign
+git checkout -b agent/race-1p-redesign
+```
+
+### During Development
+
+Commit frequently as you iterate:
+
+```bash
+# After each significant change or iteration
+git add .
+git commit -m "Iteration N: <what changed>"
+
+# Example commit messages:
+git commit -m "Iteration 1: Initial layout with hero photo"
+git commit -m "Iteration 2: Improved typography hierarchy per feedback"
+git commit -m "Iteration 3: Fixed layout balance, score now 75"
+```
+
+### Completing Work
+
+When done (or session ends), push and create a PR:
+
+```bash
+# Push your branch
+git push -u origin agent/<template-name>
+
+# Create pull request
+gh pr create --title "Agent: Redesign <Template>" --body "$(cat <<'EOF'
+## Summary
+- Redesigned <Template> template
+- Final visual judge score: XX/100
+- Tested with fixtures: fixture1, fixture2, fixture3
+
+## Changes
+- <Key change 1>
+- <Key change 2>
+
+## Test Results
+- Print Readability: XX
+- Layout Balance: XX
+- Brand Cohesion: XX
+EOF
+)"
+```
+
+### Branch Naming Convention
+
+Use the prefix `agent/` followed by the template name:
+- `agent/cover-redesign`
+- `agent/yearstats-redesign`
+- `agent/yearcalendar-redesign`
+- `agent/race-1p-redesign`
+- `agent/race-2p-redesign`
+- `agent/activitylog-redesign`
+- `agent/monthlydivider-redesign`
+- `agent/backcover-redesign`
+
+### Why Branches + PRs (Not Direct Sync)
+
+1. **Isolation**: Each template's progress is independent
+2. **Review gate**: Human reviews before merging to main
+3. **Safe rollback**: If work is bad, main stays clean
+4. **Parallel work**: Multiple agents work without conflicts (templates are separate files)
+
+### Handling Conflicts
+
+Templates are in separate files, so conflicts are rare. If you do encounter a conflict:
+
+```bash
+# Update your branch with latest main
+git fetch origin main
+git rebase origin/main
+
+# If conflicts occur, resolve them and continue
+git add .
+git rebase --continue
+```
+
+---
+
 ## Test Infrastructure
 
 ### Quick Reference
