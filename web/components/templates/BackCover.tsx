@@ -127,7 +127,7 @@ export const BackCover = ({
           </View>
 
           <View style={styles.statRow}>
-            <Text style={styles.statValue}>{yearSummary.activeDays}</Text>
+            <Text style={styles.statValue}>{yearSummary.activeDays.size}</Text>
             <Text style={styles.statLabel}>active days</Text>
           </View>
         </View>

@@ -1,0 +1,4 @@
+PDF conversion requires pdftoppm.
+Install with: brew install poppler
+
+PDF file: /app/test-output/Race_1p-race_ultramarathon.pdf

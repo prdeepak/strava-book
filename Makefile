@@ -85,6 +85,24 @@ web-restart:
 	$(MAKE) web-dev
 
 
+# --- Testing Commands ---
+test-visual:
+	@echo "🧪 Running visual template tests..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --all --verbose
+
+test-template:
+	@echo "🧪 Testing template $(template) with fixture $(fixture)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --verbose
+
+test-list:
+	@echo "📋 Available templates and fixtures:"
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --list
+
+test-pdf:
+	@echo "📄 Generating PDF only (no visual judge)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+
+
 # --- Start the day ---
 start-work:
 	make up

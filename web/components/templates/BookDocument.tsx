@@ -130,17 +130,21 @@ export const BookDocument = ({
                 }
 
                 // RACE_PAGE
-                if (entry.type === 'RACE_PAGE' && entry.activityId) {
-                    const activity = activities.find(a => a.id === entry.activityId)
-                    if (activity) {
-                        return (
-                            <Race_2pSpread
-                                key={index}
-                                activity={activity}
-                                highlightLabel={entry.highlightLabel}
-                            />
-                        )
+                if (entry.type === 'RACE_PAGE') {
+                    if (!entry.activityId) {
+                        return null // Skip if no activity ID
                     }
+                    const activity = activities.find(a => a.id === entry.activityId)
+                    if (!activity) {
+                        return null // Skip if activity not found
+                    }
+                    return (
+                        <Race_2pSpread
+                            key={index}
+                            activity={activity}
+                            highlightLabel={entry.highlightLabel}
+                        />
+                    )
                 }
 
                 // MONTHLY_DIVIDER
@@ -194,15 +198,19 @@ export const BookDocument = ({
                 // ACTIVITY_LOG
                 if (entry.type === 'ACTIVITY_LOG') {
                     const perPage = calculateActivitiesPerPage(format)
-                    const startIdx = (entry.pageNumber || 1 - 1) * perPage
+                    // If activityIds provided, use those specific activities (already filtered)
+                    // Otherwise slice from full activities array
                     const pageActivities = entry.activityIds
                         ? activities.filter(a => entry.activityIds?.includes(a.id))
-                        : activities.slice(startIdx, startIdx + perPage)
+                        : activities.slice(
+                            ((entry.pageNumber || 1) - 1) * perPage,
+                            (entry.pageNumber || 1) * perPage
+                        )
                     return (
                         <ActivityLog
                             key={index}
                             activities={pageActivities}
-                            startIndex={startIdx}
+                            startIndex={0}  // Activities are already filtered for this page
                             activitiesPerPage={perPage}
                             showMiniMaps={true}
                             format={format}
