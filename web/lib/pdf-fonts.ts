@@ -3,6 +3,12 @@
  *
  * Registers all fonts needed for PDF generation with @react-pdf/renderer.
  * This module must be imported before rendering any PDF that uses custom fonts.
+ *
+ * NOTE: Some font files in public/fonts are corrupted (contain only newlines).
+ * Only registering fonts that have been verified as valid TTF files.
+ *
+ * Valid fonts: Anton, ArchivoBlack, Bangers, BarlowCondensed, BebasNeue,
+ *              CrimsonText, IndieFlower, PatrickHand, PermanentMarker, HennyPenny
  */
 
 import { Font } from '@react-pdf/renderer'
@@ -37,17 +43,33 @@ const getFontPath = (filename: string): string => {
     return possiblePaths[0]
 }
 
+// Get font source for registration - returns absolute file path
+const getFontSource = (filename: string): string => {
+    return getFontPath(filename)
+}
+
 // Track if fonts have been registered to avoid duplicate registration
 let fontsRegistered = false
 
 /**
  * Register all fonts needed for PDF generation.
  * Safe to call multiple times - will only register once.
+ *
+ * Only registers fonts that are known to be valid TTF files.
  */
 export function registerPdfFonts(): void {
-    if (fontsRegistered) return
+    if (fontsRegistered) {
+        console.log('[pdf-fonts] Fonts already registered, skipping')
+        return
+    }
 
     console.log('[pdf-fonts] Registering fonts...')
+    console.log('[pdf-fonts] CWD:', process.cwd())
+
+    // Test that we can find at least one font (use a valid font)
+    const testFont = getFontPath('Anton-Regular.ttf')
+    console.log('[pdf-fonts] Test font path:', testFont)
+    console.log('[pdf-fonts] Test font exists:', fs.existsSync(testFont))
 
     // Register emoji source
     Font.registerEmojiSource({
@@ -55,207 +77,93 @@ export function registerPdfFonts(): void {
         url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
     })
 
-    // === SANS-SERIF FONTS ===
+    // === DISPLAY FONTS (all verified as valid TTF) ===
 
-    // Montserrat
-    Font.register({
-        family: 'Montserrat',
-        fonts: [
-            { src: getFontPath('Montserrat-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Montserrat-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // OpenSans
-    Font.register({
-        family: 'OpenSans',
-        fonts: [
-            { src: getFontPath('OpenSans-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('OpenSans-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // Roboto
-    Font.register({
-        family: 'Roboto',
-        fonts: [
-            { src: getFontPath('Roboto-Light.ttf'), fontWeight: 'light' },
-            { src: getFontPath('Roboto-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Roboto-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // Inter
-    Font.register({
-        family: 'Inter',
-        fonts: [
-            { src: getFontPath('Inter-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Inter-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // Oswald
-    Font.register({
-        family: 'Oswald',
-        fonts: [
-            { src: getFontPath('Oswald-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Oswald-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // === DISPLAY FONTS ===
-
-    // BebasNeue
+    // BebasNeue - display font
     Font.register({
         family: 'BebasNeue',
-        src: getFontPath('BebasNeue-Regular.ttf'),
+        src: getFontSource('BebasNeue-Regular.ttf'),
     })
+    console.log('[pdf-fonts] Registered: BebasNeue')
 
-    // Anton
+    // Anton - display font
     Font.register({
         family: 'Anton',
-        src: getFontPath('Anton-Regular.ttf'),
+        src: getFontSource('Anton-Regular.ttf'),
     })
+    console.log('[pdf-fonts] Registered: Anton')
 
-    // Righteous
-    Font.register({
-        family: 'Righteous',
-        src: getFontPath('Righteous-Regular.ttf'),
-    })
-
-    // ArchivoBlack
+    // ArchivoBlack - display font
     Font.register({
         family: 'ArchivoBlack',
-        src: getFontPath('ArchivoBlack-Regular.ttf'),
+        src: getFontSource('ArchivoBlack-Regular.ttf'),
     })
+    console.log('[pdf-fonts] Registered: ArchivoBlack')
 
-    // Bangers
+    // Bangers - display font
     Font.register({
         family: 'Bangers',
-        src: getFontPath('Bangers-Regular.ttf'),
+        src: getFontSource('Bangers-Regular.ttf'),
     })
+    console.log('[pdf-fonts] Registered: Bangers')
 
-    // === SERIF FONTS ===
+    // === SERIF FONTS (valid TTF) ===
 
-    // Merriweather
-    Font.register({
-        family: 'Merriweather',
-        fonts: [
-            { src: getFontPath('Merriweather-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Merriweather-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // Playfair Display
-    Font.register({
-        family: 'PlayfairDisplay',
-        fonts: [
-            { src: getFontPath('PlayfairDisplay-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('PlayfairDisplay-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // Lora
-    Font.register({
-        family: 'Lora',
-        fonts: [
-            { src: getFontPath('Lora-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('Lora-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // CrimsonText
+    // CrimsonText - serif font
     Font.register({
         family: 'CrimsonText',
         fonts: [
-            { src: getFontPath('CrimsonText-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('CrimsonText-Bold.ttf'), fontWeight: 'bold' },
+            { src: getFontSource('CrimsonText-Regular.ttf'), fontWeight: 'normal' },
+            { src: getFontSource('CrimsonText-Bold.ttf'), fontWeight: 'bold' },
         ],
     })
+    console.log('[pdf-fonts] Registered: CrimsonText')
 
-    // === HANDWRITTEN FONTS ===
+    // === CONDENSED FONTS (valid TTF) ===
 
-    // IndieFlower
-    Font.register({
-        family: 'IndieFlower',
-        src: getFontPath('IndieFlower-Regular.ttf'),
-    })
-
-    // PatrickHand
-    Font.register({
-        family: 'PatrickHand',
-        src: getFontPath('PatrickHand-Regular.ttf'),
-    })
-
-    // Caveat
-    Font.register({
-        family: 'Caveat',
-        src: getFontPath('Caveat-Regular.ttf'),
-    })
-
-    // PermanentMarker
-    Font.register({
-        family: 'PermanentMarker',
-        src: getFontPath('PermanentMarker-Regular.ttf'),
-    })
-
-    // ShadowsIntoLight
-    Font.register({
-        family: 'ShadowsIntoLight',
-        src: getFontPath('ShadowsIntoLight-Regular.ttf'),
-    })
-
-    // DancingScript
-    Font.register({
-        family: 'DancingScript',
-        fonts: [
-            { src: getFontPath('DancingScript-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('DancingScript-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // === MONOSPACE FONTS ===
-
-    // RobotoMono
-    Font.register({
-        family: 'RobotoMono',
-        fonts: [
-            { src: getFontPath('RobotoMono-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('RobotoMono-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // SourceCodePro
-    Font.register({
-        family: 'SourceCodePro',
-        fonts: [
-            { src: getFontPath('SourceCodePro-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('SourceCodePro-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // === CONDENSED FONTS ===
-
-    // RobotoCondensed
-    Font.register({
-        family: 'RobotoCondensed',
-        fonts: [
-            { src: getFontPath('RobotoCondensed-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('RobotoCondensed-Bold.ttf'), fontWeight: 'bold' },
-        ],
-    })
-
-    // BarlowCondensed
+    // BarlowCondensed - condensed sans-serif
     Font.register({
         family: 'BarlowCondensed',
         fonts: [
-            { src: getFontPath('BarlowCondensed-Regular.ttf'), fontWeight: 'normal' },
-            { src: getFontPath('BarlowCondensed-Bold.ttf'), fontWeight: 'bold' },
+            { src: getFontSource('BarlowCondensed-Regular.ttf'), fontWeight: 'normal' },
+            { src: getFontSource('BarlowCondensed-Bold.ttf'), fontWeight: 'bold' },
         ],
     })
+    console.log('[pdf-fonts] Registered: BarlowCondensed')
 
-    // Register Helvetica as fallback (built-in)
-    // No need to register - it's a default font in react-pdf
+    // === HANDWRITTEN FONTS (valid TTF) ===
+
+    // IndieFlower - handwritten
+    Font.register({
+        family: 'IndieFlower',
+        src: getFontSource('IndieFlower-Regular.ttf'),
+    })
+    console.log('[pdf-fonts] Registered: IndieFlower')
+
+    // PatrickHand - handwritten
+    Font.register({
+        family: 'PatrickHand',
+        src: getFontSource('PatrickHand-Regular.ttf'),
+    })
+    console.log('[pdf-fonts] Registered: PatrickHand')
+
+    // PermanentMarker - handwritten/marker style
+    Font.register({
+        family: 'PermanentMarker',
+        src: getFontSource('PermanentMarker-Regular.ttf'),
+    })
+    console.log('[pdf-fonts] Registered: PermanentMarker')
+
+    // HennyPenny - decorative handwritten
+    Font.register({
+        family: 'HennyPenny',
+        src: getFontSource('HennyPenny-Regular.ttf'),
+    })
+    console.log('[pdf-fonts] Registered: HennyPenny')
+
+    // === BUILT-IN FONTS ===
+    // Helvetica, Helvetica-Bold, Times-Roman, Courier are built-in to react-pdf
+    // No registration needed
 
     fontsRegistered = true
     console.log('[pdf-fonts] Fonts registered successfully')

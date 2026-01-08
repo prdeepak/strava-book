@@ -25,40 +25,44 @@ interface BookConfig {
 }
 
 // Preset themes users can choose from
+// NOTE: Only using fonts that are verified as valid TTF files
+// Valid fonts: Anton, ArchivoBlack, Bangers, BarlowCondensed, BebasNeue,
+//              CrimsonText, IndieFlower, PatrickHand, PermanentMarker, HennyPenny,
+//              Helvetica, Helvetica-Bold (built-in)
 const PRESET_THEMES: Record<string, BookTheme> = {
     classic: {
         primaryColor: '#1e3a5f',
         accentColor: '#e67e22',
         backgroundColor: '#ffffff',
-        fontPairing: { heading: 'Montserrat', body: 'OpenSans' },
+        fontPairing: { heading: 'BebasNeue', body: 'BarlowCondensed' },
         backgroundStyle: 'solid',
     },
     bold: {
         primaryColor: '#1a1a1a',
         accentColor: '#ff6b35',
         backgroundColor: '#ffffff',
-        fontPairing: { heading: 'Oswald', body: 'Roboto' },
+        fontPairing: { heading: 'Anton', body: 'CrimsonText' },
         backgroundStyle: 'solid',
     },
     minimal: {
         primaryColor: '#2c3e50',
         accentColor: '#95a5a6',
         backgroundColor: '#fafafa',
-        fontPairing: { heading: 'Inter', body: 'Inter' },
+        fontPairing: { heading: 'Helvetica-Bold', body: 'Helvetica' },
         backgroundStyle: 'solid',
     },
     marathon: {
         primaryColor: '#0D2240',
         accentColor: '#FFD200',
         backgroundColor: '#ffffff',
-        fontPairing: { heading: 'BebasNeue', body: 'Roboto' },
+        fontPairing: { heading: 'BebasNeue', body: 'BarlowCondensed' },
         backgroundStyle: 'solid',
     },
     trail: {
         primaryColor: '#2d5016',
         accentColor: '#8b4513',
         backgroundColor: '#faf8f5',
-        fontPairing: { heading: 'Anton', body: 'Merriweather' },
+        fontPairing: { heading: 'Anton', body: 'CrimsonText' },
         backgroundStyle: 'solid',
     },
 }
@@ -261,13 +265,28 @@ export default function BookGenerationModal({
             setProgressMessage('Finalizing PDF...')
 
             // Get the PDF blob
+            console.log('[BookGenModal] Response OK, getting blob...')
             const pdfBlob = await response.blob()
+            console.log('[BookGenModal] Got blob, size:', pdfBlob.size)
             const url = URL.createObjectURL(pdfBlob)
+            console.log('[BookGenModal] Created blob URL:', url)
             setPdfUrl(url)
 
             setProgress(100)
             setProgressMessage('Book generated successfully!')
+
+            // Auto-download the PDF immediately
+            console.log('[BookGenModal] Starting auto-download...')
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${config.title.replace(/\s+/g, '-').toLowerCase()}.pdf`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            console.log('[BookGenModal] Download triggered')
+
             setStep('complete')
+            console.log('[BookGenModal] Set step to complete')
         } catch (error) {
             console.error('Book generation error:', error)
             setErrorMessage(error instanceof Error ? error.message : 'Failed to generate book')

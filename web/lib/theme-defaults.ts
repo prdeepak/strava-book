@@ -2,6 +2,11 @@ import { BookTheme } from './book-types'
 
 /**
  * Default themes for different sport types
+ *
+ * NOTE: Only using fonts that are verified as valid TTF files
+ * Valid fonts: Anton, ArchivoBlack, Bangers, BarlowCondensed, BebasNeue,
+ *              CrimsonText, IndieFlower, PatrickHand, PermanentMarker, HennyPenny,
+ *              Helvetica, Helvetica-Bold (built-in)
  */
 
 export const RUNNING_THEME: BookTheme = {
@@ -9,8 +14,8 @@ export const RUNNING_THEME: BookTheme = {
   accentColor: '#FFD700',        // Gold
   backgroundColor: '#FFFFFF',
   fontPairing: {
-    heading: 'Oswald',
-    body: 'Source Sans Pro',
+    heading: 'BebasNeue',
+    body: 'BarlowCondensed',
   },
   motif: 'running-classic',
   backgroundStyle: 'solid',
@@ -21,8 +26,8 @@ export const CYCLING_THEME: BookTheme = {
   accentColor: '#00B140',        // Bright green
   backgroundColor: '#FFFFFF',
   fontPairing: {
-    heading: 'Montserrat',
-    body: 'Open Sans',
+    heading: 'Anton',
+    body: 'BarlowCondensed',
   },
   motif: 'cycling-modern',
   backgroundStyle: 'solid',
@@ -33,8 +38,8 @@ export const TRIATHLON_THEME: BookTheme = {
   accentColor: '#0055A4',        // Blue
   backgroundColor: '#FFFFFF',
   fontPairing: {
-    heading: 'Bebas Neue',
-    body: 'Roboto',
+    heading: 'BebasNeue',
+    body: 'CrimsonText',
   },
   motif: 'triathlon-bold',
   backgroundStyle: 'gradient',
@@ -45,8 +50,8 @@ export const TRAIL_RUNNING_THEME: BookTheme = {
   accentColor: '#D4AF37',        // Earth gold
   backgroundColor: '#FEFEFE',
   fontPairing: {
-    heading: 'Playfair Display',
-    body: 'Merriweather',
+    heading: 'ArchivoBlack',
+    body: 'CrimsonText',
   },
   motif: 'trail-natural',
   backgroundStyle: 'photo-fade',
@@ -57,8 +62,8 @@ export const MINIMAL_THEME: BookTheme = {
   accentColor: '#666666',        // Medium gray
   backgroundColor: '#FFFFFF',
   fontPairing: {
-    heading: 'Archivo Black',
-    body: 'Lato',
+    heading: 'Helvetica-Bold',
+    body: 'Helvetica',
   },
   motif: 'minimal-mono',
   backgroundStyle: 'solid',
@@ -70,7 +75,7 @@ export const BOLD_THEME: BookTheme = {
   backgroundColor: '#FFFFFF',
   fontPairing: {
     heading: 'Anton',
-    body: 'PT Sans',
+    body: 'BarlowCondensed',
   },
   motif: 'bold-energetic',
   backgroundStyle: 'gradient',
@@ -115,27 +120,25 @@ export function getAllDefaultThemes(): Record<string, BookTheme> {
 }
 
 /**
- * Available fonts for headings
+ * Available fonts for headings (verified valid TTF files)
  */
 export const HEADING_FONTS = [
-  'Oswald',
-  'Playfair Display',
-  'Montserrat',
-  'Bebas Neue',
   'Anton',
-  'Archivo Black',
+  'ArchivoBlack',
+  'Bangers',
+  'BebasNeue',
+  'Helvetica-Bold',
 ] as const
 
 /**
- * Available fonts for body text
+ * Available fonts for body text (verified valid TTF files)
  */
 export const BODY_FONTS = [
-  'Source Sans Pro',
-  'Open Sans',
-  'Roboto',
-  'Lato',
-  'Merriweather',
-  'PT Sans',
+  'BarlowCondensed',
+  'CrimsonText',
+  'PatrickHand',
+  'IndieFlower',
+  'Helvetica',
 ] as const
 
 /**

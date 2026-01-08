@@ -120,6 +120,10 @@ test-book-generation:
 	@echo "📖 Running book generation tests..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/book-generation-tests.ts --verbose
 
+test-api:
+	@echo "🔌 Running API-level tests (matches browser environment)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/api-tests.ts --verbose
+
 
 # --- Start the day ---
 start-work:

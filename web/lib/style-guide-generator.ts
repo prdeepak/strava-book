@@ -72,25 +72,26 @@ const KNOWN_RACE_COLORS: Record<string, RaceColorScheme> = {
 }
 
 // Available fonts categorized by style
+// NOTE: Only fonts verified as valid TTF files are included
+// Many fonts were corrupted (contain HTML instead of font data)
 const AVAILABLE_FONTS = {
   display: [
-    'Oswald', 'BebasNeue', 'Anton', 'Righteous', 'ArchivoBlack', 'Bangers'
+    'BebasNeue', 'Anton', 'ArchivoBlack', 'Bangers'
   ],
   sansSerif: [
-    'Roboto', 'OpenSans', 'Montserrat', 'Inter'
+    'Helvetica', 'BarlowCondensed'
   ],
   serif: [
-    'Merriweather', 'PlayfairDisplay', 'Lora', 'CrimsonText'
+    'CrimsonText'
   ],
   handwritten: [
-    'Caveat', 'PermanentMarker', 'ShadowsIntoLight', 'DancingScript',
-    'IndieFlower', 'PatrickHand', 'HennyPenny'
+    'PermanentMarker', 'IndieFlower', 'PatrickHand', 'HennyPenny'
   ],
   mono: [
-    'RobotoMono', 'SourceCodePro'
+    'Helvetica'  // Use built-in as fallback
   ],
   condensed: [
-    'RobotoCondensed', 'BarlowCondensed'
+    'BarlowCondensed'
   ]
 }
 
@@ -451,16 +452,16 @@ function generateMockStyleGuide(
     accentColor = '#e67e22'
   }
 
-  // Font selection based on energy
+  // Font selection based on energy (using verified valid fonts)
   if (energy === 'high') {
-    headingFont = 'Oswald'
-    bodyFont = 'Roboto'
+    headingFont = 'Anton'
+    bodyFont = 'BarlowCondensed'
   } else if (energy === 'calm') {
-    headingFont = 'PlayfairDisplay'
-    bodyFont = 'Lora'
+    headingFont = 'ArchivoBlack'
+    bodyFont = 'CrimsonText'
   } else {
-    headingFont = 'Montserrat'
-    bodyFont = 'OpenSans'
+    headingFont = 'BebasNeue'
+    bodyFont = 'BarlowCondensed'
   }
 
   const theme: BookTheme = {
@@ -474,20 +475,20 @@ function generateMockStyleGuide(
     backgroundStyle: 'solid'
   }
 
-  // Generate alternates
+  // Generate alternates (using verified valid fonts)
   const alternates: BookTheme[] = [
     {
       primaryColor: '#2c3e50',
       accentColor: '#e74c3c',
       backgroundColor: '#ffffff',
-      fontPairing: { heading: 'BebasNeue', body: 'Inter' },
+      fontPairing: { heading: 'BebasNeue', body: 'CrimsonText' },
       backgroundStyle: 'solid'
     },
     {
       primaryColor: '#1a1a1a',
       accentColor: '#3498db',
       backgroundColor: '#fafafa',
-      fontPairing: { heading: 'Anton', body: 'Roboto' },
+      fontPairing: { heading: 'Anton', body: 'BarlowCondensed' },
       backgroundStyle: 'gradient'
     }
   ]
