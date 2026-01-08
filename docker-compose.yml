@@ -20,3 +20,47 @@ services:
       - ./web/.env.local
     command: tail -f /dev/null
 
+  # Playwright test runner - requires web server to be running
+  # Usage: make test-e2e (after make web-dev)
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    working_dir: /app/web
+    network_mode: host
+    volumes:
+      - .:/app
+      - /app/web/node_modules  # Anonymous volume for container-specific node_modules
+    environment:
+      - CI=true
+    command: npx playwright test --reporter=line
+
+  # E2E test environment - fully self-contained (no host dependencies)
+  # Usage: docker-compose run --rm e2e
+  # Uses port 3001 internally to avoid conflicts with local dev servers
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    working_dir: /app/web
+    volumes:
+      - .:/app
+      - /app/web/node_modules  # Anonymous volume for container-specific node_modules
+    environment:
+      - CI=true
+      - NEXTAUTH_URL=http://localhost:3001
+      - NEXTAUTH_SECRET=test-secret-for-e2e-testing
+      - NEXT_PUBLIC_MOCK_AUTH=true
+      - NODE_ENV=production
+      - PORT=3001
+      - PLAYWRIGHT_BASE_URL=http://localhost:3001
+    command: >
+      sh -c "
+        echo '🔧 Installing dependencies...' &&
+        npm install --legacy-peer-deps &&
+        echo '🔨 Building Next.js app...' &&
+        npm run build &&
+        echo '🚀 Starting server on port 3001...' &&
+        npm start -- --port 3001 &
+        echo '⏳ Waiting for server to be ready...' &&
+        npx wait-on http://localhost:3001 --timeout 120000 &&
+        echo '🎭 Running Playwright tests...' &&
+        npx playwright test --reporter=line
+      "
+

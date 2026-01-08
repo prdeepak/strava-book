@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e
 
 help:
 	@echo "Available commands:"
@@ -14,6 +14,9 @@ help:
 	@echo "  make test-visual      - Run all visual template tests"
 	@echo "  make test-template    - Test specific template (template=X fixture=Y)"
 	@echo "  make test-integration - Run full book integration tests"
+	@echo "  make test-ai          - Run AI output validation tests"
+	@echo "  make test-e2e         - Run Playwright e2e tests (requires web-dev)"
+	@echo "  make test-e2e-ci      - Self-contained e2e tests (fully isolated)"
 	@echo "  make test-list        - List available templates and fixtures"
 
 
@@ -123,6 +126,25 @@ test-book-generation:
 test-api:
 	@echo "🔌 Running API-level tests (matches browser environment)..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/api-tests.ts --verbose
+
+test-ai:
+	@echo "🤖 Running AI output validation tests..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/ai-output-tests.ts
+
+test-e2e:
+	@echo "🎭 Running Playwright e2e tests (requires web dev server)"
+	@echo "Note: Start server with 'make web-dev' first"
+	docker-compose run --rm playwright npx playwright test --reporter=line
+
+test-e2e-local:
+	@echo "🎭 Running Playwright e2e tests locally..."
+	@echo "Note: Requires local npm install and web dev server running"
+	cd web && npm run e2e
+
+test-e2e-ci:
+	@echo "🎭 Running self-contained e2e tests in Docker..."
+	@echo "This builds, starts server, and runs tests - fully isolated"
+	docker-compose run --rm e2e
 
 
 # --- Start the day ---

@@ -18,7 +18,7 @@ import { generateSmartDraft } from '../curator'
 import { yearFixtures, YearFixture } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME } from '../book-types'
 import { pdfToImages, TestResult, generateRunId, getRunOutputDir } from './test-harness'
-import { judgePageVisual, JudgeContext } from './visual-judge'
+import { judgePageVisual, JudgeContext, judgeBook, BookJudgment, BookContext } from './visual-judge'
 // Register fonts for PDF generation (must be imported before rendering)
 import '../pdf-fonts'
 
@@ -41,12 +41,14 @@ export interface IntegrationTestResult {
     pass: boolean
     summary: string
   }>
+  bookJudgment?: BookJudgment  // Book-level coherence evaluation
 }
 
 export interface IntegrationTestConfig {
   outputDir?: string
   runId?: string           // Subfolder name for this run (auto-generated if not provided)
   skipVisualJudge?: boolean
+  runBookJudge?: boolean    // Run book-level coherence evaluation (default: true)
   maxPagesToJudge?: number  // Limit visual judge to first N pages
   verbose?: boolean
 }
@@ -68,6 +70,7 @@ export async function testBookGeneration(
     outputDir: baseOutputDir = path.join(__dirname, '../../..', 'test-output'),
     runId,
     skipVisualJudge = false,
+    runBookJudge = true,
     maxPagesToJudge = 3,
     verbose = false
   } = config
@@ -170,7 +173,7 @@ export async function testBookGeneration(
     // Step 4: Run visual judge on sample pages (optional)
     if (!skipVisualJudge && imagePaths.length > 0 && imagePaths[0].endsWith('.png')) {
       if (verbose) {
-        console.log('\n[4/4] Running visual judge on sample pages...')
+        console.log('\n[4/5] Running visual judge on sample pages...')
       }
 
       result.visualJudgments = []
@@ -206,8 +209,45 @@ export async function testBookGeneration(
           }
         }
       }
+
+      // Step 5: Run book-level judgment (optional)
+      if (runBookJudge && imagePaths.length >= 3) {
+        if (verbose) {
+          console.log('\n[5/5] Running book-level evaluation...')
+        }
+
+        try {
+          const bookContext: BookContext = {
+            bookTitle: `${fixture.year} Year in Review`,
+            year: fixture.year,
+            pageCount: result.pageCount || imagePaths.length,
+            theme: {
+              primaryColor: theme.primaryColor,
+              accentColor: theme.accentColor,
+              backgroundColor: theme.backgroundColor
+            }
+          }
+
+          result.bookJudgment = await judgeBook(imagePaths, bookContext, { verbose: false })
+
+          if (verbose) {
+            const status = result.bookJudgment.pass ? 'PASS' : 'FAIL'
+            console.log(`  Book: ${status} (score: ${result.bookJudgment.overallScore})`)
+            console.log(`  Coherence: ${result.bookJudgment.coherence.score}`)
+            console.log(`  Flow: ${result.bookJudgment.flow.score}`)
+            console.log(`  Coverage: ${result.bookJudgment.coverage.score}`)
+          }
+        } catch (error) {
+          if (verbose) {
+            console.log(`  Book-level evaluation: ERROR - ${error}`)
+          }
+        }
+      } else if (verbose) {
+        console.log('\n[5/5] Skipping book-level judge (not enough pages or disabled)')
+      }
     } else if (verbose) {
-      console.log('\n[4/4] Skipping visual judge')
+      console.log('\n[4/5] Skipping visual judge')
+      console.log('\n[5/5] Skipping book-level judge')
     }
 
     // Mark as successful if we got here without throwing
@@ -326,6 +366,40 @@ export function generateIntegrationReport(results: IntegrationTestResult[]): str
       for (const judgment of result.visualJudgments) {
         const status = judgment.pass ? 'PASS' : 'FAIL'
         lines.push(`- Page ${judgment.pageNumber}: ${status} (score: ${judgment.score}) - ${judgment.summary}`)
+      }
+    }
+
+    if (result.bookJudgment) {
+      lines.push('')
+      lines.push('**Book-Level Evaluation:**')
+      const bookStatus = result.bookJudgment.pass ? 'PASS' : 'FAIL'
+      lines.push(`- **Overall:** ${bookStatus} (score: ${result.bookJudgment.overallScore})`)
+      lines.push(`- **Coherence:** ${result.bookJudgment.coherence.score}/100`)
+      if (result.bookJudgment.coherence.issues.length > 0) {
+        result.bookJudgment.coherence.issues.forEach(issue => {
+          lines.push(`  - ${issue}`)
+        })
+      }
+      lines.push(`- **Flow:** ${result.bookJudgment.flow.score}/100`)
+      if (result.bookJudgment.flow.issues.length > 0) {
+        result.bookJudgment.flow.issues.forEach(issue => {
+          lines.push(`  - ${issue}`)
+        })
+      }
+      lines.push(`- **Coverage:** ${result.bookJudgment.coverage.score}/100`)
+      if (result.bookJudgment.coverage.issues.length > 0) {
+        result.bookJudgment.coverage.issues.forEach(issue => {
+          lines.push(`  - ${issue}`)
+        })
+      }
+      lines.push('')
+      lines.push(`**Summary:** ${result.bookJudgment.summary}`)
+      if (result.bookJudgment.suggestions.length > 0) {
+        lines.push('')
+        lines.push('**Suggestions:**')
+        result.bookJudgment.suggestions.forEach(s => {
+          lines.push(`- ${s}`)
+        })
       }
     }
 

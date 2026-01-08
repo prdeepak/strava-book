@@ -523,6 +523,248 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<{ resul
 }
 
 // ============================================================================
+// Book-Level Testing
+// ============================================================================
+
+import { judgeBook, BookJudgment, BookContext } from './visual-judge'
+
+export interface BookTestResult {
+    bookName: string
+    pdfPath: string
+    imagePaths: string[]
+    pageCount: number
+    bookJudgment?: BookJudgment
+    pageJudgments: VisualJudgment[]
+    overallPass: boolean
+    overallScore: number
+    duration: number
+    error?: string
+}
+
+export interface BookTestConfig extends TestConfig {
+    bookTitle?: string
+    year?: number
+    theme?: {
+        primaryColor: string
+        accentColor: string
+        backgroundColor: string
+    }
+    runBookJudge?: boolean  // Run book-level coherence evaluation
+    maxPagesToJudge?: number  // Limit individual page judging
+}
+
+/**
+ * Test a complete book PDF (not just individual templates)
+ * This evaluates both individual pages and book-level coherence
+ */
+export async function testBook(
+    pdfPath: string,
+    config: BookTestConfig = {}
+): Promise<BookTestResult> {
+    const startTime = Date.now()
+    const {
+        outputDir: baseOutputDir = path.join(__dirname, '../../..', 'test-output'),
+        runId = generateRunId(),
+        keepArtifacts = true,
+        verbose = false,
+        skipJudge = false,
+        bookTitle = 'Test Book',
+        year = new Date().getFullYear(),
+        theme,
+        runBookJudge = true,
+        maxPagesToJudge = 5
+    } = config
+
+    const outputDir = getRunOutputDir(baseOutputDir, runId)
+    fs.mkdirSync(outputDir, { recursive: true })
+
+    const bookName = path.basename(pdfPath, '.pdf')
+
+    const result: BookTestResult = {
+        bookName,
+        pdfPath,
+        imagePaths: [],
+        pageCount: 0,
+        pageJudgments: [],
+        overallPass: false,
+        overallScore: 0,
+        duration: 0
+    }
+
+    try {
+        if (verbose) {
+            console.log(`[Book Test] Testing book: ${pdfPath}`)
+        }
+
+        // Convert PDF to images
+        const imagePaths = pdfToImages(pdfPath, outputDir, verbose)
+        result.imagePaths = imagePaths
+        result.pageCount = imagePaths.filter(p => p.endsWith('.png')).length
+
+        if (result.pageCount === 0) {
+            throw new Error('No page images generated from PDF')
+        }
+
+        if (verbose) {
+            console.log(`[Book Test] Generated ${result.pageCount} page images`)
+        }
+
+        if (!skipJudge && imagePaths.length > 0 && imagePaths[0].endsWith('.png')) {
+            // Run book-level judgment if enabled
+            if (runBookJudge) {
+                if (verbose) {
+                    console.log('[Book Test] Running book-level evaluation...')
+                }
+
+                const bookContext: BookContext = {
+                    bookTitle,
+                    year,
+                    pageCount: result.pageCount,
+                    theme
+                }
+
+                result.bookJudgment = await judgeBook(imagePaths, bookContext, { verbose })
+
+                if (verbose) {
+                    console.log(`[Book Test] Book score: ${result.bookJudgment.overallScore}`)
+                }
+            }
+
+            // Run individual page judgments on sample pages
+            const pagesToJudge = imagePaths.slice(0, maxPagesToJudge)
+
+            if (verbose) {
+                console.log(`[Book Test] Judging ${pagesToJudge.length} sample pages...`)
+            }
+
+            for (let i = 0; i < pagesToJudge.length; i++) {
+                const context: JudgeContext = {
+                    templateName: bookName,
+                    pageType: i === 0 ? 'Cover' : i === pagesToJudge.length - 1 ? 'BackCover' : 'Content',
+                    pageNumber: i + 1
+                }
+
+                const judgment = await judgePageVisual(pagesToJudge[i], context, { verbose: false })
+                result.pageJudgments.push(judgment)
+            }
+        }
+
+        // Calculate overall results
+        const scores: number[] = []
+
+        if (result.bookJudgment) {
+            scores.push(result.bookJudgment.overallScore)
+        }
+
+        if (result.pageJudgments.length > 0) {
+            const avgPageScore = result.pageJudgments.reduce((sum, j) => sum + j.overallScore, 0) / result.pageJudgments.length
+            scores.push(avgPageScore)
+        }
+
+        result.overallScore = scores.length > 0
+            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            : 0
+
+        result.overallPass = result.overallScore >= 70 &&
+            (!result.bookJudgment || result.bookJudgment.pass) &&
+            result.pageJudgments.every(j => j.pass || j.overallScore >= 50)
+
+        // Cleanup if not keeping artifacts
+        if (!keepArtifacts) {
+            imagePaths.forEach(p => {
+                if (fs.existsSync(p)) fs.unlinkSync(p)
+            })
+        }
+
+    } catch (error) {
+        result.error = String(error)
+        if (verbose) {
+            console.error(`[Book Test] Error:`, error)
+        }
+    }
+
+    result.duration = Date.now() - startTime
+    return result
+}
+
+/**
+ * Generate a report for book test results
+ */
+export function generateBookReport(result: BookTestResult): string {
+    const lines: string[] = [
+        '# Book Test Report',
+        '',
+        `Generated: ${new Date().toISOString()}`,
+        '',
+        '## Summary',
+        '',
+        `- **Book:** ${result.bookName}`,
+        `- **Status:** ${result.overallPass ? 'PASS' : 'FAIL'}`,
+        `- **Overall Score:** ${result.overallScore}/100`,
+        `- **Page Count:** ${result.pageCount}`,
+        `- **Duration:** ${result.duration}ms`,
+        ''
+    ]
+
+    if (result.error) {
+        lines.push(`**Error:** ${result.error}`)
+        lines.push('')
+    }
+
+    if (result.bookJudgment) {
+        lines.push('## Book-Level Evaluation')
+        lines.push('')
+        lines.push(`- **Coherence:** ${result.bookJudgment.coherence.score}/100`)
+        if (result.bookJudgment.coherence.issues.length > 0) {
+            result.bookJudgment.coherence.issues.forEach(issue => {
+                lines.push(`  - ${issue}`)
+            })
+        }
+        lines.push(`- **Flow:** ${result.bookJudgment.flow.score}/100`)
+        if (result.bookJudgment.flow.issues.length > 0) {
+            result.bookJudgment.flow.issues.forEach(issue => {
+                lines.push(`  - ${issue}`)
+            })
+        }
+        lines.push(`- **Coverage:** ${result.bookJudgment.coverage.score}/100`)
+        if (result.bookJudgment.coverage.issues.length > 0) {
+            result.bookJudgment.coverage.issues.forEach(issue => {
+                lines.push(`  - ${issue}`)
+            })
+        }
+        lines.push('')
+        lines.push(`**Summary:** ${result.bookJudgment.summary}`)
+        lines.push('')
+        if (result.bookJudgment.suggestions.length > 0) {
+            lines.push('**Suggestions:**')
+            result.bookJudgment.suggestions.forEach(s => {
+                lines.push(`- ${s}`)
+            })
+            lines.push('')
+        }
+    }
+
+    if (result.pageJudgments.length > 0) {
+        lines.push('## Page-Level Evaluation (Sample)')
+        lines.push('')
+        result.pageJudgments.forEach((j, i) => {
+            const status = j.pass ? 'PASS' : 'FAIL'
+            lines.push(`### Page ${i + 1}: ${status} (${j.overallScore}/100)`)
+            lines.push(j.summary)
+            if (j.suggestions.length > 0) {
+                lines.push('')
+                j.suggestions.slice(0, 2).forEach(s => {
+                    lines.push(`- ${s}`)
+                })
+            }
+            lines.push('')
+        })
+    }
+
+    return lines.join('\n')
+}
+
+// ============================================================================
 // Report Generation
 // ============================================================================
 

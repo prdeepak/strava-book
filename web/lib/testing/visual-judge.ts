@@ -444,6 +444,436 @@ export async function judgeMultiplePages(
 }
 
 // ============================================================================
+// Book-Level Visual Judgment
+// ============================================================================
+
+export interface BookJudgment {
+    coherence: CriterionScore    // Consistent theme across pages
+    flow: CriterionScore         // Logical page ordering
+    coverage: CriterionScore     // All sections present & balanced
+    overallScore: number
+    suggestions: string[]
+    pass: boolean
+    summary: string
+    rawResponse?: string
+}
+
+export interface BookContext {
+    bookTitle: string
+    year: number
+    pageCount: number
+    theme?: {
+        primaryColor: string
+        accentColor: string
+        backgroundColor: string
+    }
+}
+
+const BOOK_JUDGE_PROMPT = `You are evaluating a complete coffee-table book PDF. You will see multiple pages from the book to assess overall quality and coherence.
+
+Book Title: {bookTitle}
+Year: {year}
+Page Count: {pageCount}
+{themeInfo}
+
+You are looking at pages from the beginning, middle, and end of the book. Evaluate the BOOK AS A WHOLE on these criteria (score 0-100 each):
+
+1. COHERENCE (33%)
+- Is there a consistent visual theme across all pages?
+- Are colors, fonts, and spacing consistent throughout?
+- Does it feel like one unified publication, not a collection of random pages?
+- Are design elements (headers, stats boxes, photo treatments) consistent?
+
+2. FLOW (33%)
+- Does the book have a logical progression (cover → intro → content → conclusion)?
+- Are pages in sensible order (chronological, by event importance, etc.)?
+- Are there smooth transitions between sections?
+- Does the pacing feel right (not too rushed, not too slow)?
+
+3. COVERAGE (33%)
+- Is there good variety in content types (races, stats, monthly summaries, photos)?
+- Are all major sections present (cover, year stats, monthly dividers, activities, back cover)?
+- Is the content balanced (not too heavy on any one section)?
+- Are key activities and achievements properly highlighted?
+
+IMPORTANT: This feedback will be used by an AI agent to iterate and improve the book design. Be specific about what works and what needs improvement.
+
+Return ONLY valid JSON (no markdown, no explanation outside JSON):
+{
+  "coherence": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "flow": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "coverage": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "overallScore": <0-100>,
+  "pass": <true if overall >= 70 and no criterion below 50>,
+  "summary": "Brief 2-3 sentence assessment of the book as a whole",
+  "suggestions": ["Specific improvement 1", "Specific improvement 2", "Specific improvement 3"]
+}`
+
+function buildBookPrompt(context: BookContext): string {
+    let themeInfo = ''
+    if (context.theme) {
+        themeInfo = `Theme: Primary=${context.theme.primaryColor}, Accent=${context.theme.accentColor}, Background=${context.theme.backgroundColor}`
+    }
+
+    return BOOK_JUDGE_PROMPT
+        .replace('{bookTitle}', context.bookTitle)
+        .replace('{year}', String(context.year))
+        .replace('{pageCount}', String(context.pageCount))
+        .replace('{themeInfo}', themeInfo)
+}
+
+/**
+ * Judge a complete book by evaluating multiple sample pages
+ *
+ * @param imagePaths Array of paths to page images (should include cover, middle pages, back cover)
+ * @param context Book metadata for evaluation
+ * @param options Judge options
+ */
+export async function judgeBook(
+    imagePaths: string[],
+    context: BookContext,
+    options: JudgeOptions = {}
+): Promise<BookJudgment> {
+    const { provider = 'auto', verbose = false } = options
+
+    if (imagePaths.length === 0) {
+        return {
+            coherence: { score: 0, issues: ['No pages provided for evaluation'] },
+            flow: { score: 0, issues: ['No pages provided for evaluation'] },
+            coverage: { score: 0, issues: ['No pages provided for evaluation'] },
+            overallScore: 0,
+            pass: false,
+            summary: 'Cannot evaluate book: no pages provided',
+            suggestions: ['Provide page images for evaluation']
+        }
+    }
+
+    // Select representative pages: first, some from middle, and last
+    const selectedPages = selectRepresentativePages(imagePaths)
+
+    if (verbose) {
+        console.log(`[Visual Judge] Evaluating book with ${selectedPages.length} sample pages`)
+    }
+
+    // Read all selected images and convert to base64
+    const imageData: Array<{ base64: string; pageNum: number }> = []
+    for (const { path: imgPath, pageNum } of selectedPages) {
+        const imageBuffer = fs.readFileSync(imgPath)
+        imageData.push({
+            base64: imageBuffer.toString('base64'),
+            pageNum
+        })
+    }
+
+    const prompt = buildBookPrompt(context)
+
+    let responseText: string = ''
+    let usedProvider: string = ''
+
+    // Build available providers list
+    const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
+    if (provider === 'auto') {
+        if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
+            availableProviders.push('bedrock')
+        }
+        if (process.env.GEMINI_API_KEY) {
+            availableProviders.push('gemini')
+        }
+        if (process.env.ANTHROPIC_API_KEY) {
+            availableProviders.push('anthropic')
+        }
+        if (availableProviders.length === 0) {
+            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS credentials.')
+        }
+    } else {
+        availableProviders.push(provider)
+    }
+
+    for (const p of availableProviders) {
+        try {
+            responseText = await judgeBookWithProvider(p, imageData, prompt, verbose)
+            usedProvider = p
+            break
+        } catch (error) {
+            if (verbose) {
+                console.log(`[Visual Judge] ${p} failed for book judgment, trying next...`)
+            }
+            if (p === availableProviders[availableProviders.length - 1]) {
+                throw new Error(`All providers failed. Last error: ${error}`)
+            }
+        }
+    }
+
+    if (verbose) {
+        console.log(`[Visual Judge] Used provider: ${usedProvider}`)
+    }
+
+    // Parse JSON response
+    try {
+        let cleanJson = responseText.trim()
+        if (cleanJson.startsWith('```json')) {
+            cleanJson = cleanJson.slice(7)
+        }
+        if (cleanJson.startsWith('```')) {
+            cleanJson = cleanJson.slice(3)
+        }
+        if (cleanJson.endsWith('```')) {
+            cleanJson = cleanJson.slice(0, -3)
+        }
+        cleanJson = cleanJson.trim()
+
+        const parsed = JSON.parse(cleanJson)
+
+        return {
+            coherence: parsed.coherence,
+            flow: parsed.flow,
+            coverage: parsed.coverage,
+            overallScore: parsed.overallScore,
+            pass: parsed.pass,
+            summary: parsed.summary,
+            suggestions: parsed.suggestions || [],
+            rawResponse: verbose ? responseText : undefined
+        }
+    } catch (parseError) {
+        return {
+            coherence: { score: 0, issues: ['Failed to parse LLM response'] },
+            flow: { score: 0, issues: ['Failed to parse LLM response'] },
+            coverage: { score: 0, issues: ['Failed to parse LLM response'] },
+            overallScore: 0,
+            pass: false,
+            summary: `Failed to parse judge response: ${parseError}`,
+            suggestions: ['Check LLM output format'],
+            rawResponse: responseText
+        }
+    }
+}
+
+/**
+ * Select representative pages from a book for evaluation
+ * Returns pages from beginning, middle, and end
+ */
+function selectRepresentativePages(
+    imagePaths: string[],
+    maxPages: number = 5
+): Array<{ path: string; pageNum: number }> {
+    const total = imagePaths.length
+    const selected: Array<{ path: string; pageNum: number }> = []
+
+    if (total <= maxPages) {
+        // Return all pages if we have fewer than max
+        return imagePaths.map((p, i) => ({ path: p, pageNum: i + 1 }))
+    }
+
+    // Always include first page (cover)
+    selected.push({ path: imagePaths[0], pageNum: 1 })
+
+    // Always include last page (back cover)
+    selected.push({ path: imagePaths[total - 1], pageNum: total })
+
+    // Add evenly distributed pages from the middle
+    const middleCount = maxPages - 2
+    for (let i = 1; i <= middleCount; i++) {
+        const idx = Math.floor((i * total) / (middleCount + 1))
+        if (idx > 0 && idx < total - 1) {
+            selected.push({ path: imagePaths[idx], pageNum: idx + 1 })
+        }
+    }
+
+    // Sort by page number
+    selected.sort((a, b) => a.pageNum - b.pageNum)
+
+    return selected
+}
+
+/**
+ * Call LLM provider with multiple images for book evaluation
+ */
+async function judgeBookWithProvider(
+    provider: 'bedrock' | 'gemini' | 'anthropic',
+    imageData: Array<{ base64: string; pageNum: number }>,
+    prompt: string,
+    verbose: boolean
+): Promise<string> {
+    if (provider === 'bedrock') {
+        return await judgeBookWithBedrock(imageData, prompt, verbose)
+    } else if (provider === 'gemini') {
+        return await judgeBookWithGemini(imageData, prompt, verbose)
+    } else {
+        return await judgeBookWithAnthropic(imageData, prompt, verbose)
+    }
+}
+
+async function judgeBookWithBedrock(
+    imageData: Array<{ base64: string; pageNum: number }>,
+    prompt: string,
+    verbose: boolean
+): Promise<string> {
+    const apiKey = process.env.AWS_BEARER_TOKEN_BEDROCK
+    if (!apiKey) {
+        throw new Error('AWS_BEARER_TOKEN_BEDROCK not set')
+    }
+
+    const region = process.env.AWS_REGION || 'us-east-1'
+    const modelId = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
+    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/converse`
+
+    // Build content array with all images and the prompt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any[] = imageData.map(img => ({
+        image: {
+            format: "png",
+            source: {
+                bytes: img.base64
+            }
+        }
+    }))
+    content.push({ text: prompt })
+
+    const payload = {
+        messages: [
+            {
+                role: "user",
+                content
+            }
+        ],
+        inferenceConfig: {
+            maxTokens: 2000,
+            temperature: 0.1
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Bedrock API error: ${response.status} ${error}`)
+    }
+
+    const data = await response.json()
+
+    if (verbose) {
+        console.log('[Visual Judge] Bedrock book response received')
+    }
+
+    return data.output.message.content[0].text
+}
+
+async function judgeBookWithGemini(
+    imageData: Array<{ base64: string; pageNum: number }>,
+    prompt: string,
+    verbose: boolean
+): Promise<string> {
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY not set')
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+
+    // Build parts array with all images and the prompt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parts: any[] = imageData.map(img => ({
+        inline_data: {
+            mime_type: "image/png",
+            data: img.base64
+        }
+    }))
+    parts.push({ text: prompt })
+
+    const payload = {
+        contents: [{
+            parts
+        }],
+        generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 2000
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Gemini API error: ${response.status} ${error}`)
+    }
+
+    const data = await response.json()
+
+    if (verbose) {
+        console.log('[Visual Judge] Gemini book response received')
+    }
+
+    return data.candidates[0].content.parts[0].text
+}
+
+async function judgeBookWithAnthropic(
+    imageData: Array<{ base64: string; pageNum: number }>,
+    prompt: string,
+    verbose: boolean
+): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+        throw new Error('ANTHROPIC_API_KEY not set')
+    }
+
+    // Build content array with all images and the prompt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any[] = imageData.map(img => ({
+        type: 'image',
+        source: {
+            type: 'base64',
+            media_type: 'image/png',
+            data: img.base64
+        }
+    }))
+    content.push({
+        type: 'text',
+        text: prompt
+    })
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2000,
+            messages: [{
+                role: 'user',
+                content
+            }]
+        })
+    })
+
+    if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Anthropic API error: ${response.status} ${error}`)
+    }
+
+    const data = await response.json()
+
+    if (verbose) {
+        console.log('[Visual Judge] Anthropic book response received')
+    }
+
+    return data.content[0].text
+}
+
+// ============================================================================
 // CLI Interface (for testing)
 // ============================================================================
 

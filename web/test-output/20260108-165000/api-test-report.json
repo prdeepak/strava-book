@@ -1,0 +1,58 @@
+{
+  "runId": "20260108-165000",
+  "timestamp": "2026-01-08T16:50:02.795Z",
+  "cwd": "/app/web",
+  "results": [
+    {
+      "testName": "Font Registration",
+      "success": true,
+      "duration": 0,
+      "details": {
+        "fontsDir": "/app/web/public/fonts",
+        "cwd": "/app/web",
+        "checkedFonts": 4
+      }
+    },
+    {
+      "testName": "Direct PDF Generation (Same as API)",
+      "success": true,
+      "duration": 375,
+      "details": {
+        "activities": 9,
+        "pdfSize": 34639,
+        "pdfPath": "/app/web/test-output/20260108-165000/api-test-direct.pdf"
+      }
+    },
+    {
+      "testName": "PDF with Custom Theme Fonts",
+      "success": true,
+      "duration": 764,
+      "details": {
+        "themes": {
+          "display": "44678 bytes",
+          "bold": "51320 bytes",
+          "playful": "43483 bytes",
+          "elegant": "50253 bytes"
+        }
+      }
+    },
+    {
+      "testName": "UI Preset Themes (BookGenerationModal defaults)",
+      "success": true,
+      "duration": 726,
+      "details": {
+        "themes": {
+          "classic": "42057 bytes",
+          "bold": "48322 bytes",
+          "minimal": "20446 bytes",
+          "marathon": "41914 bytes",
+          "trail": "48654 bytes"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0
+  }
+}

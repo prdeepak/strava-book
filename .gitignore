@@ -12,3 +12,8 @@ venv/
 # Generated outputs
 /output/
 /test-output/
+
+# Playwright
+/web/playwright-report/
+/web/test-results/
+/web/playwright/.cache/

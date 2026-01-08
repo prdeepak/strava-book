@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { StravaActivity } from '@/lib/strava'
 import { BookTheme, FORMATS, BookFormat } from '@/lib/book-types'
 import { estimatePageCount } from '@/components/templates/BookDocument'
+import AIBookDesignerModal from '@/components/AIBookDesignerModal'
 
 interface BookGenerationModalProps {
     activities: StravaActivity[]
@@ -102,6 +103,7 @@ export default function BookGenerationModal({
     const [pdfUrl, setPdfUrl] = useState<string | null>(null)
     const [generatingTheme, setGeneratingTheme] = useState(false)
     const [aiThemeReasoning, setAiThemeReasoning] = useState<string | null>(null)
+    const [aiDesignerOpen, setAiDesignerOpen] = useState(false)
 
     const [config, setConfig] = useState<BookConfig>({
         title: getDefaultTitle(),
@@ -505,14 +507,39 @@ export default function BookGenerationModal({
                                 )}
                             </div>
 
-                            {/* Generate Button */}
-                            <button
-                                onClick={generateBook}
-                                disabled={activities.length === 0}
-                                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                            >
-                                Generate Book ({pageEstimate.total} pages)
-                            </button>
+                            {/* Generate Buttons */}
+                            <div className="space-y-3">
+                                <button
+                                    onClick={generateBook}
+                                    disabled={activities.length === 0}
+                                    className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                >
+                                    Generate Book ({pageEstimate.total} pages)
+                                </button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-stone-200" />
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-2 bg-white text-stone-500">or</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setAiDesignerOpen(true)}
+                                    disabled={activities.length === 0}
+                                    className="w-full px-6 py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold rounded-lg hover:from-violet-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                    AI Design Book
+                                </button>
+                                <p className="text-xs text-center text-stone-500">
+                                    Let AI create a cohesive theme and chapter organization
+                                </p>
+                            </div>
                         </div>
                     )}
 
@@ -604,6 +631,19 @@ export default function BookGenerationModal({
                     )}
                 </div>
             </div>
+
+            {/* AI Book Designer Modal */}
+            <AIBookDesignerModal
+                activities={activities}
+                isOpen={aiDesignerOpen}
+                onClose={() => setAiDesignerOpen(false)}
+                initialConfig={{
+                    title: config.title,
+                    athleteName: config.athleteName,
+                    year: config.year,
+                    format: config.format,
+                }}
+            />
         </div>
     )
 }
