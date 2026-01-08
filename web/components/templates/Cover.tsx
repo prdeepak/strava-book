@@ -102,7 +102,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
 })
 
-export const Cover = ({
+// Page-only version for use in BookDocument (no Document wrapper)
+export const CoverPage = ({
   title,
   subtitle,
   year,
@@ -117,35 +118,40 @@ export const Cover = ({
   const bgImage = resolveImageUrl(backgroundImage)
 
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-        {/* Background layer */}
-        {bgImage ? (
-          <>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={bgImage} style={styles.backgroundImage} />
-            <View style={styles.gradientOverlay} />
-          </>
-        ) : (
-          // Fallback solid color when no image provided (react-pdf doesn't support gradients)
-          <View style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: theme.primaryColor,
-          }} />
-        )}
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Background layer */}
+      {bgImage ? (
+        <>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={bgImage} style={styles.backgroundImage} />
+          <View style={styles.gradientOverlay} />
+        </>
+      ) : (
+        // Fallback solid color when no image provided (react-pdf doesn't support gradients)
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: theme.primaryColor,
+        }} />
+      )}
 
-        {/* Content layer */}
-        <View style={styles.contentContainer}>
-          <Text style={styles.yearText}>{year}</Text>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-          <Text style={styles.athleteName}>{athleteName}</Text>
-        </View>
-      </Page>
-    </Document>
+      {/* Content layer */}
+      <View style={styles.contentContainer}>
+        <Text style={styles.yearText}>{year}</Text>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Text style={styles.athleteName}>{athleteName}</Text>
+      </View>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const Cover = (props: CoverProps) => (
+  <Document>
+    <CoverPage {...props} />
+  </Document>
+)

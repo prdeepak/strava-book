@@ -101,7 +101,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
 })
 
-export const MonthlyDivider = ({
+// Page-only version for use in BookDocument
+export const MonthlyDividerPage = ({
   month,
   year,
   stats,
@@ -116,50 +117,55 @@ export const MonthlyDivider = ({
   const resolvedHeroImage = resolveImageUrl(heroImage)
 
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-        {/* Hero image background (if provided) */}
-        {resolvedHeroImage && (
-          <View style={styles.heroImageContainer}>
-            <Image
-              src={resolvedHeroImage}
-              style={styles.heroImage}
-            />
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Hero image background (if provided) */}
+      {resolvedHeroImage && (
+        <View style={styles.heroImageContainer}>
+          <Image
+            src={resolvedHeroImage}
+            style={styles.heroImage}
+          />
+        </View>
+      )}
+
+      {/* Main content */}
+      <View style={styles.content}>
+        <Text style={styles.monthName}>{monthName.toUpperCase()}</Text>
+        <Text style={styles.year}>{year}</Text>
+
+        <View style={styles.divider} />
+
+        {/* Month statistics */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{stats.activityCount}</Text>
+            <Text style={styles.statLabel}>
+              {stats.activityCount === 1 ? 'Activity' : 'Activities'}
+            </Text>
           </View>
-        )}
 
-        {/* Main content */}
-        <View style={styles.content}>
-          <Text style={styles.monthName}>{monthName.toUpperCase()}</Text>
-          <Text style={styles.year}>{year}</Text>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>
+              {formatDistance(stats.totalDistance, units)}
+            </Text>
+            <Text style={styles.statLabel}>Distance</Text>
+          </View>
 
-          <View style={styles.divider} />
-
-          {/* Month statistics */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{stats.activityCount}</Text>
-              <Text style={styles.statLabel}>
-                {stats.activityCount === 1 ? 'Activity' : 'Activities'}
-              </Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>
-                {formatDistance(stats.totalDistance, units)}
-              </Text>
-              <Text style={styles.statLabel}>Distance</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>
-                {formatTime(stats.totalTime)}
-              </Text>
-              <Text style={styles.statLabel}>Time</Text>
-            </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>
+              {formatTime(stats.totalTime)}
+            </Text>
+            <Text style={styles.statLabel}>Time</Text>
           </View>
         </View>
-      </Page>
-    </Document>
+      </View>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const MonthlyDivider = (props: MonthlyDividerProps) => (
+  <Document>
+    <MonthlyDividerPage {...props} />
+  </Document>
+)

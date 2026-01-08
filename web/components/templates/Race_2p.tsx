@@ -63,10 +63,18 @@ export interface Race_2pSpreadProps {
     highlightLabel?: string
 }
 
-export const Race_2pSpread = ({ activity, mapboxToken, highlightLabel }: Race_2pSpreadProps) => (
-    <Document>
+// Pages-only version for use in BookDocument (returns fragment of pages)
+export const Race_2pSpreadPages = ({ activity, mapboxToken, highlightLabel }: Race_2pSpreadProps) => (
+    <>
         <Race_2pLeft activity={activity} highlightLabel={highlightLabel} />
         <Race_2pRight activity={activity} mapboxToken={mapboxToken} />
+    </>
+)
+
+// Standalone version with Document wrapper (for testing)
+export const Race_2pSpread = ({ activity, mapboxToken, highlightLabel }: Race_2pSpreadProps) => (
+    <Document>
+        <Race_2pSpreadPages activity={activity} mapboxToken={mapboxToken} highlightLabel={highlightLabel} />
     </Document>
 )
 

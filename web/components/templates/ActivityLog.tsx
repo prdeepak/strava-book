@@ -120,7 +120,8 @@ function createMiniMapPath(summaryPolyline: string | undefined): string | null {
   }
 }
 
-export const ActivityLog = ({
+// Page-only version for use in BookDocument
+export const ActivityLogPage = ({
   activities,
   startIndex = 0,
   activitiesPerPage = 20,
@@ -136,8 +137,7 @@ export const ActivityLog = ({
   const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
 
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
@@ -225,6 +225,12 @@ export const ActivityLog = ({
         )
       })}
       </Page>
-    </Document>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const ActivityLog = (props: ActivityLogProps) => (
+  <Document>
+    <ActivityLogPage {...props} />
+  </Document>
+)

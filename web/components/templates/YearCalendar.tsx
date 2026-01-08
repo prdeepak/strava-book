@@ -165,7 +165,8 @@ const getColor = (intensity: number, accentColor: string): string => {
   return shades[intensity]
 }
 
-export const YearCalendar = ({
+// Page-only version for use in BookDocument
+export const YearCalendarPage = ({
   year,
   activities,
   colorBy,
@@ -188,8 +189,7 @@ export const YearCalendar = ({
   const cellGap = 1
 
   return (
-    <Document>
-      <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
         <Text style={styles.title}>{year} Activity Heatmap</Text>
         <Text style={styles.subtitle}>
           {activities.length} activities • Color by {colorBy}
@@ -286,6 +286,12 @@ export const YearCalendar = ({
           </View>
         </View>
       </Page>
-    </Document>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const YearCalendar = (props: YearCalendarProps) => (
+  <Document>
+    <YearCalendarPage {...props} />
+  </Document>
+)

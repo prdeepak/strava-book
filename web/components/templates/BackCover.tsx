@@ -93,7 +93,8 @@ const formatElevation = (meters: number): string => {
   return `${meters.toFixed(0)} m`
 }
 
-export const BackCover = ({
+// Page-only version for use in BookDocument
+export const BackCoverPage = ({
   yearSummary,
   format,
   theme = DEFAULT_THEME,
@@ -101,44 +102,49 @@ export const BackCover = ({
   const styles = createStyles(format, theme)
 
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-        <View style={styles.topSection}>
-          <Text style={styles.yearText}>{yearSummary.year}</Text>
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      <View style={styles.topSection}>
+        <Text style={styles.yearText}>{yearSummary.year}</Text>
 
-          <View style={styles.statsGrid}>
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
-              <Text style={styles.statLabel}>traveled</Text>
-            </View>
+        <View style={styles.statsGrid}>
+          <View style={styles.statRow}>
+            <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
+            <Text style={styles.statLabel}>traveled</Text>
+          </View>
 
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
-              <Text style={styles.statLabel}>in motion</Text>
-            </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
+            <Text style={styles.statLabel}>in motion</Text>
+          </View>
 
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
-              <Text style={styles.statLabel}>climbed</Text>
-            </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
+            <Text style={styles.statLabel}>climbed</Text>
+          </View>
 
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
-              <Text style={styles.statLabel}>activities</Text>
-            </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
+            <Text style={styles.statLabel}>activities</Text>
+          </View>
 
-            <View style={styles.statRow}>
-              <Text style={styles.statValue}>{yearSummary.activeDays.size}</Text>
-              <Text style={styles.statLabel}>active days</Text>
-            </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statValue}>{yearSummary.activeDays.size}</Text>
+            <Text style={styles.statLabel}>active days</Text>
           </View>
         </View>
+      </View>
 
-        <View style={styles.bottomSection}>
-          <Text style={styles.brandingText}>Created with</Text>
-          <Text style={styles.brandingName}>Strava Book</Text>
-        </View>
-      </Page>
-    </Document>
+      <View style={styles.bottomSection}>
+        <Text style={styles.brandingText}>Created with</Text>
+        <Text style={styles.brandingName}>Strava Book</Text>
+      </View>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const BackCover = (props: BackCoverProps) => (
+  <Document>
+    <BackCoverPage {...props} />
+  </Document>
+)
