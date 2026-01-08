@@ -7,12 +7,34 @@
 
 import { Font } from '@react-pdf/renderer'
 import path from 'path'
+import fs from 'fs'
 
 // Determine font path based on environment
 const getFontPath = (filename: string): string => {
-    // In Next.js API routes, we need to use the file system path
-    // process.cwd() gives us the project root
-    return path.join(process.cwd(), 'public', 'fonts', filename)
+    // Try multiple possible locations for fonts
+    const possiblePaths = [
+        // Docker: /app/web/public/fonts
+        path.join(process.cwd(), 'public', 'fonts', filename),
+        // Local dev from web directory
+        path.join(process.cwd(), 'web', 'public', 'fonts', filename),
+        // Relative to this file
+        path.join(__dirname, '..', '..', 'public', 'fonts', filename),
+    ]
+
+    for (const fontPath of possiblePaths) {
+        if (fs.existsSync(fontPath)) {
+            return fontPath
+        }
+    }
+
+    // Log which paths were tried if none found
+    console.error(`[pdf-fonts] Font not found: ${filename}`)
+    console.error(`[pdf-fonts] Tried paths:`, possiblePaths)
+    console.error(`[pdf-fonts] process.cwd():`, process.cwd())
+    console.error(`[pdf-fonts] __dirname:`, __dirname)
+
+    // Return first path as fallback (will fail with clear error)
+    return possiblePaths[0]
 }
 
 // Track if fonts have been registered to avoid duplicate registration
