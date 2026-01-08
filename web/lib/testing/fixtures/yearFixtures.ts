@@ -66,7 +66,9 @@ function buildYearSummary(activities: StravaActivity[], year: number): YearSumma
 
   // Find longest and fastest activities
   const sortedByDistance = [...activities].sort((a, b) => (b.distance || 0) - (a.distance || 0))
-  const sortedBySpeed = [...activities].sort((a, b) => (b.average_speed || 0) - (a.average_speed || 0))
+  // Calculate speed from distance/time since average_speed isn't on StravaActivity
+  const getSpeed = (a: StravaActivity) => a.moving_time > 0 ? (a.distance || 0) / a.moving_time : 0
+  const sortedBySpeed = [...activities].sort((a, b) => getSpeed(b) - getSpeed(a))
 
   return {
     year,

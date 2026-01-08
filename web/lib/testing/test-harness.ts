@@ -172,7 +172,8 @@ function buildMockYearSummary(activity: StravaActivity): YearSummary {
 /**
  * Build props appropriate for the template category
  */
-function buildTemplateProps(templateName: string, fixture: StravaActivity): Record<string, unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildTemplateProps(templateName: string, fixture: any): Record<string, unknown> {
     const category = templateCategories[templateName] || 'race'
     const format = FORMATS['10x10']
     const theme = DEFAULT_THEME

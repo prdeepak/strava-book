@@ -299,8 +299,8 @@ export async function judgePageVisual(
         console.log(`[Visual Judge] Template: ${context.templateName}, Page: ${context.pageType}`)
     }
 
-    let responseText: string
-    let usedProvider: string
+    let responseText: string = ''
+    let usedProvider: string = ''
 
     // Try providers in order: Bedrock → Gemini → Anthropic
     // Skip providers that aren't configured

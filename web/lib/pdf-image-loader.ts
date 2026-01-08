@@ -13,10 +13,25 @@
  *
  * This module provides utilities to convert image references to a format
  * that @react-pdf/renderer can handle during server-side rendering.
+ *
+ * NOTE: This module is environment-safe. On the client side, file operations
+ * are skipped and URLs are returned as-is.
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
+// Environment detection
+const isServer = typeof window === 'undefined'
+
+// Conditionally import Node.js modules (only available server-side)
+let fs: typeof import('fs') | null = null
+let path: typeof import('path') | null = null
+
+if (isServer) {
+  // Dynamic require for server-side only
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  fs = require('fs')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  path = require('path')
+}
 
 // Cache for fetched images to avoid re-fetching
 const imageCache = new Map<string, string>()
@@ -25,6 +40,8 @@ const imageCache = new Map<string, string>()
  * Fetch an image URL and return it as a base64 data URL
  */
 async function fetchImageAsBase64(url: string): Promise<string | null> {
+  if (!isServer) return url // Client-side: just return URL
+
   // Check cache first
   if (imageCache.has(url)) {
     return imageCache.get(url)!
@@ -63,6 +80,8 @@ async function fetchImageAsBase64(url: string): Promise<string | null> {
  * Read a local file and return it as a base64 data URL
  */
 function readLocalImageAsBase64(filePath: string): string | null {
+  if (!isServer || !fs || !path) return null
+
   try {
     if (!fs.existsSync(filePath)) {
       console.error(`[pdf-image-loader] File not found: ${filePath}`)
@@ -129,6 +148,12 @@ export function resolveImageForPdf(
     return null
   }
 
+  // Client-side: can't do file operations, return null for local paths
+  if (!isServer || !fs || !path) {
+    console.warn(`[pdf-image-loader] Client-side: cannot resolve local path: ${url}`)
+    return null
+  }
+
   // Absolute file path (Unix or Windows)
   if (url.startsWith('/') || /^[A-Za-z]:[\\/]/.test(url)) {
     if (fs.existsSync(url)) {
@@ -185,7 +210,7 @@ export async function prepareImageForPdf(
     if (resolved.startsWith('http')) {
       return fetchImageAsBase64(resolved)
     }
-    if (fs.existsSync(resolved)) {
+    if (isServer && fs && fs.existsSync(resolved)) {
       return readLocalImageAsBase64(resolved)
     }
   }
