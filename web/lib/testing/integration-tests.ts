@@ -19,6 +19,8 @@ import { yearFixtures, YearFixture } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME } from '../book-types'
 import { pdfToImages, TestResult, generateRunId, getRunOutputDir } from './test-harness'
 import { judgePageVisual, JudgeContext } from './visual-judge'
+// Register fonts for PDF generation (must be imported before rendering)
+import '../pdf-fonts'
 
 // ============================================================================
 // Types

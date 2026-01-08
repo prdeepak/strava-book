@@ -5,6 +5,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { FullBookDocument } from '@/components/templates/BookDocument'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
+// Register fonts for PDF generation
+import '@/lib/pdf-fonts'
 
 interface BookGenerationRequest {
     activities: StravaActivity[]

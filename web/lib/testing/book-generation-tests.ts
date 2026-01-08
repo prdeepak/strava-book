@@ -16,6 +16,8 @@ import { yearFixtures } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME, BookFormat, BookTheme } from '../book-types'
 import { StravaActivity } from '../strava'
 import { generateRunId, getRunOutputDir } from './test-harness'
+// Register fonts for PDF generation (must be imported before rendering)
+import '../pdf-fonts'
 
 // ============================================================================
 // Types
