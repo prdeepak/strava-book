@@ -34,9 +34,29 @@ export interface TestResult {
 
 export interface TestConfig {
     outputDir?: string
+    runId?: string       // Subfolder name for this run (auto-generated if not provided)
     keepArtifacts?: boolean
     verbose?: boolean
     skipJudge?: boolean  // Just generate PDF, don't evaluate
+}
+
+/**
+ * Generate a run ID for organizing test artifacts
+ * Format: YYYYMMDD-HHMMSS (e.g., 20250108-143052)
+ */
+export function generateRunId(): string {
+    const now = new Date()
+    const date = now.toISOString().slice(0, 10).replace(/-/g, '')
+    const time = now.toTimeString().slice(0, 8).replace(/:/g, '')
+    return `${date}-${time}`
+}
+
+/**
+ * Get the output directory for a test run
+ * Creates a subfolder within test-output for each run
+ */
+export function getRunOutputDir(baseDir: string, runId: string): string {
+    return path.join(baseDir, runId)
 }
 
 // ============================================================================
@@ -313,14 +333,20 @@ export async function testTemplate(
 ): Promise<TestResult> {
     const startTime = Date.now()
     const {
-        outputDir = path.join(__dirname, '../../..', 'test-output'),
+        outputDir: baseOutputDir = path.join(__dirname, '../../..', 'test-output'),
+        runId = generateRunId(),
         keepArtifacts = true,
         verbose = false,
         skipJudge = false
     } = config
 
-    // Ensure output directory exists
+    // Create run-specific output directory
+    const outputDir = getRunOutputDir(baseOutputDir, runId)
     fs.mkdirSync(outputDir, { recursive: true })
+
+    if (verbose) {
+        console.log(`[Test Harness] Output directory: ${outputDir}`)
+    }
 
     const result: TestResult = {
         templateName,
@@ -433,13 +459,24 @@ export interface BatchTestConfig extends TestConfig {
     fixtures?: string[]   // Default: all applicable
 }
 
-export async function runAllTests(config: BatchTestConfig = {}): Promise<TestResult[]> {
+export async function runAllTests(config: BatchTestConfig = {}): Promise<{ results: TestResult[], runId: string, outputDir: string }> {
     const {
         templates = getAvailableTemplates(),
         fixtures = getAvailableFixtures(),
         verbose = false,
         ...testConfig
     } = config
+
+    // Generate a single runId for the entire batch
+    const runId = testConfig.runId || generateRunId()
+    const baseOutputDir = testConfig.outputDir || path.join(__dirname, '../../..', 'test-output')
+    const outputDir = getRunOutputDir(baseOutputDir, runId)
+    fs.mkdirSync(outputDir, { recursive: true })
+
+    if (verbose) {
+        console.log(`[Test Harness] Run ID: ${runId}`)
+        console.log(`[Test Harness] Output directory: ${outputDir}`)
+    }
 
     const results: TestResult[] = []
 
@@ -463,7 +500,13 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
                 console.log(`\n=== Testing ${template} with ${fixture} ===`)
             }
 
-            const result = await testTemplate(template, fixture, { verbose, ...testConfig })
+            // Pass the same runId so all artifacts go to the same folder
+            const result = await testTemplate(template, fixture, {
+                verbose,
+                ...testConfig,
+                runId,
+                outputDir: baseOutputDir
+            })
             results.push(result)
 
             if (verbose) {
@@ -475,7 +518,7 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
         }
     }
 
-    return results
+    return { results, runId, outputDir }
 }
 
 // ============================================================================
@@ -573,13 +616,14 @@ Examples:
 
     if (args.includes('--all')) {
         runAllTests({ verbose, skipJudge })
-            .then(results => {
+            .then(({ results, runId, outputDir }) => {
                 const report = generateReport(results)
                 console.log('\n' + report)
 
-                // Save report
-                const reportPath = path.join(__dirname, '../../..', 'test-output', 'report.md')
+                // Save report to run-specific directory
+                const reportPath = path.join(outputDir, 'report.md')
                 fs.writeFileSync(reportPath, report)
+                console.log(`\nRun ID: ${runId}`)
                 console.log(`Report saved to: ${reportPath}`)
 
                 const allPassed = results.every(r => r.overallPass || r.error)

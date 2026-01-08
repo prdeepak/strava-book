@@ -17,7 +17,7 @@ import { BookDocument } from '../../components/templates/BookDocument'
 import { generateSmartDraft } from '../curator'
 import { yearFixtures, YearFixture } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME } from '../book-types'
-import { pdfToImages, TestResult } from './test-harness'
+import { pdfToImages, TestResult, generateRunId, getRunOutputDir } from './test-harness'
 import { judgePageVisual, JudgeContext } from './visual-judge'
 
 // ============================================================================
@@ -43,6 +43,7 @@ export interface IntegrationTestResult {
 
 export interface IntegrationTestConfig {
   outputDir?: string
+  runId?: string           // Subfolder name for this run (auto-generated if not provided)
   skipVisualJudge?: boolean
   maxPagesToJudge?: number  // Limit visual judge to first N pages
   verbose?: boolean
@@ -62,11 +63,15 @@ export async function testBookGeneration(
 ): Promise<IntegrationTestResult> {
   const startTime = Date.now()
   const {
-    outputDir = path.join(__dirname, '../../..', 'test-output'),
+    outputDir: baseOutputDir = path.join(__dirname, '../../..', 'test-output'),
+    runId,
     skipVisualJudge = false,
     maxPagesToJudge = 3,
     verbose = false
   } = config
+
+  // Use run-specific output directory
+  const outputDir = runId ? getRunOutputDir(baseOutputDir, runId) : baseOutputDir
 
   const result: IntegrationTestResult = {
     fixtureName,
@@ -221,9 +226,20 @@ export async function testBookGeneration(
  */
 export async function runAllIntegrationTests(
   config: IntegrationTestConfig = {}
-): Promise<IntegrationTestResult[]> {
+): Promise<{ results: IntegrationTestResult[], runId: string, outputDir: string }> {
   const results: IntegrationTestResult[] = []
   const { verbose = false } = config
+
+  // Generate a single runId for the entire batch
+  const runId = config.runId || generateRunId()
+  const baseOutputDir = config.outputDir || path.join(__dirname, '../../..', 'test-output')
+  const outputDir = getRunOutputDir(baseOutputDir, runId)
+  fs.mkdirSync(outputDir, { recursive: true })
+
+  if (verbose) {
+    console.log(`[Integration Tests] Run ID: ${runId}`)
+    console.log(`[Integration Tests] Output directory: ${outputDir}`)
+  }
 
   const fixtures: Array<[string, YearFixture]> = [
     ['activeYear', yearFixtures.activeYear],
@@ -237,11 +253,16 @@ export async function runAllIntegrationTests(
       console.log(`\n${'='.repeat(60)}`)
     }
 
-    const result = await testBookGeneration(name, fixture, config)
+    // Pass the same runId so all artifacts go to the same folder
+    const result = await testBookGeneration(name, fixture, {
+      ...config,
+      runId,
+      outputDir: baseOutputDir
+    })
     results.push(result)
   }
 
-  return results
+  return { results, runId, outputDir }
 }
 
 // ============================================================================
@@ -355,15 +376,16 @@ Examples:
     console.log('Running all integration tests...')
 
     runAllIntegrationTests(config)
-      .then(results => {
+      .then(({ results, runId, outputDir }) => {
         const report = generateIntegrationReport(results)
         console.log('\n' + report)
 
-        // Save report
-        const reportPath = path.join(__dirname, '../../..', 'test-output', 'integration-report.md')
-        fs.mkdirSync(path.dirname(reportPath), { recursive: true })
+        // Save report to run-specific directory
+        const reportPath = path.join(outputDir, 'integration-report.md')
         fs.writeFileSync(reportPath, report)
-        console.log(`\nReport saved to: ${reportPath}`)
+        console.log(`\nRun ID: ${runId}`)
+        console.log(`Report saved to: ${reportPath}`)
+        console.log(`All artifacts in: ${outputDir}`)
 
         const allPassed = results.every(r => r.success)
         console.log(`\n${allPassed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}`)
