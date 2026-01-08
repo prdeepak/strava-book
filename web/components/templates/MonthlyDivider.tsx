@@ -1,14 +1,7 @@
 import { Page, View, Text, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-log-utils'
-
-// Helper to resolve image URLs - use local paths directly, proxy external URLs
-function resolveImageUrl(url: string | undefined): string | null {
-  if (!url) return null
-  if (url.startsWith('/') && !url.startsWith('/api/')) return url
-  if (url.startsWith('http')) return `/api/proxy-image?url=${encodeURIComponent(url)}`
-  return url
-}
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 interface MonthlyDividerProps {
   month: number  // 0-11
@@ -114,13 +107,14 @@ export const MonthlyDividerPage = ({
   const styles = createStyles(format, theme)
   const monthName = getMonthName(month)
 
-  const resolvedHeroImage = resolveImageUrl(heroImage)
+  const resolvedHeroImage = resolveImageForPdf(heroImage)
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
       {/* Hero image background (if provided) */}
       {resolvedHeroImage && (
         <View style={styles.heroImageContainer}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image
             src={resolvedHeroImage}
             style={styles.heroImage}

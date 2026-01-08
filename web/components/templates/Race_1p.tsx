@@ -6,6 +6,7 @@ import { StatsGrid } from '@/components/pdf/StatsGrid'
 import { Header } from '@/components/pdf/Header'
 import { CommentsSection } from '@/components/pdf/CommentsSection'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -128,31 +129,16 @@ interface Race_1pProps {
     mapboxToken?: string
 }
 
-// Helper to resolve image URLs - use local paths directly, proxy external URLs
-function resolveImageUrl(url: string | undefined): string | null {
-    if (!url) return null
-    // Local file paths (absolute paths from fixtures)
-    if (url.startsWith('/') && !url.startsWith('/api/')) {
-        return url
-    }
-    // HTTP URLs need to be proxied
-    if (url.startsWith('http')) {
-        return `/api/proxy-image?url=${encodeURIComponent(url)}`
-    }
-    // Relative paths - assume local
-    return url
-}
-
 export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
-    // Get Strava photo if available
-    const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
+    // Get Strava photo if available - use resolveImageForPdf for server-side rendering
+    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
 
     // Get satellite map if token available
-    let satelliteMap = null
+    let satelliteMap: string | null = null
     if (mapboxToken && activity.map.summary_polyline) {
         const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
         const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/800x400?access_token=${mapboxToken}&logo=false&attrib=false`
-        satelliteMap = resolveImageUrl(rawUrl)
+        satelliteMap = resolveImageForPdf(rawUrl)
     }
 
     // Determine what to show

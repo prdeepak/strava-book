@@ -1,20 +1,6 @@
 import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
-
-// Helper to resolve image URLs - use local paths directly, proxy external URLs
-function resolveImageUrl(url: string | undefined): string | null {
-  if (!url) return null
-  // Local file paths (absolute paths from fixtures)
-  if (url.startsWith('/') && !url.startsWith('/api/')) {
-    return url
-  }
-  // HTTP URLs need to be proxied
-  if (url.startsWith('http')) {
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`
-  }
-  // Relative paths - assume local
-  return url
-}
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 export interface CoverProps {
   title: string
@@ -114,8 +100,8 @@ export const CoverPage = ({
 }: CoverProps) => {
   const styles = createStyles(format, theme)
 
-  // Resolve background image path (local or proxied)
-  const bgImage = resolveImageUrl(backgroundImage)
+  // Resolve background image path for PDF rendering
+  const bgImage = resolveImageForPdf(backgroundImage)
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>

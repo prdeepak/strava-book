@@ -2,6 +2,7 @@ import { Page, Text, View, StyleSheet, Svg, Polyline, Image } from '@react-pdf/r
 import { StravaActivity } from '@/lib/strava'
 import mapboxPolyline from '@mapbox/polyline'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 const styles = StyleSheet.create({
     page: {
@@ -143,10 +144,8 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
 
     // Map Rendering Logic
     // If we have a Mapbox Token, use the Static Images API for satellite view
-    // Use prop token
-    // const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN // Moved to parent
     console.log("[Race_2pRight] Mapbox Token Prop:", !!mapboxToken)
-    let satelliteUrl = null
+    let satelliteUrl: string | null = null
     if (mapboxToken && activity.map.summary_polyline) {
         // Construct detailed Mapbox Static URL
         // Style: Satellite V9
@@ -154,10 +153,9 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
         const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
         const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/600x400?access_token=${mapboxToken}&logo=false&attrib=false`
 
-        // Use local proxy to ensure PDF renderer can fetch it without CORS/Browser issues
-        satelliteUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`
-        console.log("[Race_2pRight] Generated Satellite URL:", satelliteUrl)
-        console.log("[Race_2pRight] Raw Mapbox URL:", rawUrl)
+        // Use resolveImageForPdf for server-side PDF rendering (returns the URL directly)
+        satelliteUrl = resolveImageForPdf(rawUrl)
+        console.log("[Race_2pRight] Resolved Satellite URL:", satelliteUrl ? 'OK' : 'null')
     }
 
     return (
