@@ -14,6 +14,15 @@ import { StravaActivity, StravaPhoto } from './strava'
 import { generateStyleGuide, StyleGuideRequest } from './style-guide-generator'
 import { validateAll, DesignSpec } from './ai-validation'
 import { findARace, generateSmartDraft, BookEntry } from './curator'
+import {
+  getTemplateSpec,
+  suggestTemplate,
+  validateOutputSpec,
+  TemplateInputSpec,
+  TemplateOutputSpec,
+  PhotoData,
+  StatBlock,
+} from './template-specs'
 
 // ============================================================================
 // Types
@@ -120,6 +129,9 @@ export interface PageDesign {
   layout: PageLayout
   elements: PageElement[]
   score?: number
+  // New: Template spec integration
+  templateInput?: TemplateInputSpec
+  templateOutput?: TemplateOutputSpec
 }
 
 export interface PageLayout {
@@ -607,7 +619,9 @@ export async function designerAgent(
 function bookEntriesToPageDesigns(
   entries: BookEntry[],
   theme: BookTheme,
-  highlights: ActivityHighlight[]
+  highlights: ActivityHighlight[],
+  activitiesMap: Map<number, StravaActivity> = new Map(),
+  photosMap: Map<number, StravaPhoto[]> = new Map()
 ): PageDesign[] {
   const pages: PageDesign[] = []
 
@@ -616,16 +630,30 @@ function bookEntriesToPageDesigns(
       ? highlights.find(h => h.activityId === entry.activityId)
       : undefined
 
+    // Get activity and photos for this entry
+    const activity = entry.activityId ? activitiesMap.get(entry.activityId) : undefined
+    const photos = entry.activityId ? (photosMap.get(entry.activityId) || []) : []
+
+    // Build template input spec
+    const templateInput = buildTemplateInputSpec(entry, activity, photos)
+
+    // Generate template output spec using AI-like decision making
+    const templateOutput = generateTemplateOutputSpec(templateInput, theme, highlight)
+
+    // Use legacy layout function for backward compatibility
     const layout = getLayoutForPageType(entry.type, highlight?.suggestedEmphasis)
 
     pages.push({
       pageNumber: index + 1,
       pageType: entry.type,
-      template: getTemplateForPageType(entry.type),
+      template: templateOutput.templateId,
       activityId: entry.activityId,
       layout,
       elements: generatePageElements(entry, layout, theme),
-      score: undefined
+      score: undefined,
+      // New: Include template specs
+      templateInput,
+      templateOutput,
     })
   })
 
@@ -705,21 +733,218 @@ function getLayoutForPageType(
 
 function getTemplateForPageType(pageType: BookPageType): string {
   const templateMap: Record<BookPageType, string> = {
-    'COVER': 'Cover',
-    'TABLE_OF_CONTENTS': 'TableOfContents',
-    'FOREWORD': 'Foreword',
-    'YEAR_AT_A_GLANCE': 'YearAtAGlance',
-    'YEAR_STATS': 'YearStats',
-    'MONTHLY_DIVIDER': 'MonthlyDivider',
-    'RACE_PAGE': 'Race_2p',
-    'ACTIVITY_LOG': 'ActivityLog',
-    'BEST_EFFORTS': 'BestEfforts',
-    'ROUTE_HEATMAP': 'RouteHeatmap',
-    'STATS_SUMMARY': 'StatsSummary',
-    'BACK_COVER': 'BackCover'
+    'COVER': 'cover',
+    'TABLE_OF_CONTENTS': 'table_of_contents',
+    'FOREWORD': 'foreword',
+    'YEAR_AT_A_GLANCE': 'year_at_a_glance',
+    'YEAR_STATS': 'year_stats',
+    'MONTHLY_DIVIDER': 'monthly_divider',
+    'RACE_PAGE': 'race_1p',
+    'ACTIVITY_LOG': 'activity_log',
+    'BEST_EFFORTS': 'best_efforts',
+    'ROUTE_HEATMAP': 'route_heatmap',
+    'STATS_SUMMARY': 'stats_summary',
+    'BACK_COVER': 'back_cover'
   }
 
-  return templateMap[pageType] || 'Default'
+  return templateMap[pageType] || 'race_1p'
+}
+
+// ============================================================================
+// Template Spec Integration
+// ============================================================================
+
+/**
+ * Build TemplateInputSpec for a page from activity data
+ */
+function buildTemplateInputSpec(
+  entry: BookEntry,
+  activity: StravaActivity | undefined,
+  photos: StravaPhoto[]
+): TemplateInputSpec {
+  const templateId = getTemplateForPageType(entry.type)
+
+  // Convert photos to PhotoData format
+  const photoData: PhotoData[] = photos.map((photo, index) => {
+    const url = photo.urls?.['600'] || photo.urls?.['100'] || ''
+    return {
+      id: photo.unique_id,
+      url,
+      width: 600,
+      height: 400, // Approximate - would need actual dimensions
+      aspectRatio: 'landscape' as const,
+      isPrimary: index === 0,
+    }
+  })
+
+  // Build stats from activity
+  const stats: StatBlock[] = []
+  if (activity) {
+    stats.push({
+      label: 'distance',
+      value: `${(activity.distance / 1000).toFixed(1)}`,
+      unit: 'km',
+    })
+    stats.push({
+      label: 'moving_time',
+      value: formatDuration(activity.moving_time),
+      unit: '',
+    })
+    stats.push({
+      label: 'pace',
+      value: formatPace(activity.distance, activity.moving_time),
+      unit: '/km',
+    })
+    if (activity.total_elevation_gain) {
+      stats.push({
+        label: 'total_elevation_gain',
+        value: `${Math.round(activity.total_elevation_gain)}`,
+        unit: 'm',
+      })
+    }
+  }
+
+  return {
+    templateId,
+    pageType: entry.type,
+    availableInputs: {
+      activity,
+      photos: photoData,
+      prebuiltGraphics: {
+        // These would be pre-generated before calling the designer
+        splitsChart: undefined,
+        elevationProfile: undefined,
+        routeMap: undefined,
+      },
+      stats,
+      textContent: {
+        title: entry.title || activity?.name || '',
+        subtitle: undefined,
+        description: activity?.description,
+      },
+    },
+  }
+}
+
+/**
+ * Generate TemplateOutputSpec based on input and theme
+ */
+function generateTemplateOutputSpec(
+  inputSpec: TemplateInputSpec,
+  theme: BookTheme,
+  highlight?: ActivityHighlight
+): TemplateOutputSpec {
+  const spec = getTemplateSpec(inputSpec.templateId)
+  if (!spec) {
+    // Fallback to default output
+    return createDefaultOutputSpec(inputSpec, theme)
+  }
+
+  // Choose layout variant based on available content
+  const hasPhotos = inputSpec.availableInputs.photos.length > 0
+  const hasGoodPhoto = inputSpec.availableInputs.photos.some(p => p.isPrimary)
+  const isHighlight = highlight?.suggestedEmphasis === 'hero'
+
+  let layoutVariant = spec.outputOptions.variants[0] // Default to first variant
+
+  // Select variant based on guidelines
+  if (hasGoodPhoto && spec.outputOptions.variants.includes('photo-hero')) {
+    layoutVariant = 'photo-hero'
+  } else if (!hasPhotos && spec.outputOptions.variants.includes('stats-focus')) {
+    layoutVariant = 'stats-focus'
+  } else if (isHighlight && spec.outputOptions.variants.includes('hero-left-map-right')) {
+    layoutVariant = 'hero-left-map-right'
+  }
+
+  // Determine photo treatment
+  let photoTreatment: 'full-bleed' | 'inset' | 'grid' | 'collage' | 'hero' = 'inset'
+  if (isHighlight) {
+    photoTreatment = 'hero'
+  } else if (inputSpec.availableInputs.photos.length > 2) {
+    photoTreatment = 'grid'
+  }
+
+  // Create output spec
+  const outputSpec: TemplateOutputSpec = {
+    templateId: inputSpec.templateId,
+    layoutVariant,
+    options: {
+      titlePosition: 'top',
+      alignment: 'left',
+      photoTreatment,
+      showMap: !!inputSpec.availableInputs.prebuiltGraphics.routeMap,
+      showChart: !!inputSpec.availableInputs.prebuiltGraphics.splitsChart,
+      emphasisStats: ['distance', 'moving_time', 'pace'],
+    },
+    background: {
+      type: 'solid',
+      color: theme.backgroundColor,
+    },
+    selectedPhotos: inputSpec.availableInputs.photos.length > 0 ? [0] : [],
+    selectedStats: inputSpec.availableInputs.stats.map(s => s.label),
+  }
+
+  // Validate the output spec
+  const validation = validateOutputSpec(inputSpec.templateId, {
+    layoutVariant: outputSpec.layoutVariant,
+    options: {
+      titlePosition: outputSpec.options.titlePosition,
+      alignment: outputSpec.options.alignment,
+      photoTreatment: outputSpec.options.photoTreatment,
+    },
+    background: {
+      type: outputSpec.background.type,
+    },
+  })
+
+  if (!validation.valid) {
+    console.warn('[Designer] Output spec validation warnings:', validation.errors)
+  }
+
+  return outputSpec
+}
+
+function createDefaultOutputSpec(
+  inputSpec: TemplateInputSpec,
+  theme: BookTheme
+): TemplateOutputSpec {
+  return {
+    templateId: inputSpec.templateId,
+    layoutVariant: 'default',
+    options: {
+      titlePosition: 'top',
+      alignment: 'left',
+      photoTreatment: 'inset',
+      showMap: false,
+      showChart: false,
+      emphasisStats: [],
+    },
+    background: {
+      type: 'solid',
+      color: theme.backgroundColor,
+    },
+    selectedPhotos: [],
+    selectedStats: [],
+  }
+}
+
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+function formatPace(distanceMeters: number, seconds: number): string {
+  if (distanceMeters === 0) return '--:--'
+  const paceSeconds = (seconds / distanceMeters) * 1000
+  const minutes = Math.floor(paceSeconds / 60)
+  const secs = Math.round(paceSeconds % 60)
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
 function generatePageElements(

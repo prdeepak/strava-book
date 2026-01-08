@@ -208,4 +208,5 @@ export type BookPageType =
   | 'ACTIVITY_LOG'
   | 'BEST_EFFORTS'
   | 'ROUTE_HEATMAP'
+  | 'STATS_SUMMARY'
   | 'BACK_COVER'
