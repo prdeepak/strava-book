@@ -68,10 +68,13 @@ export default function BookGenerationModal({
     isOpen,
     onClose,
 }: BookGenerationModalProps) {
-    // Determine default year from activities
-    const defaultYear = activities.length > 0
-        ? new Date(activities[0].start_date_local || activities[0].start_date).getFullYear()
-        : new Date().getFullYear()
+    // Get available years from activities
+    const availableYears = Array.from(new Set(
+        activities.map(a => new Date(a.start_date_local || a.start_date).getFullYear())
+    )).sort((a, b) => b - a)
+
+    // Default year is the most recent year with activities, or current year
+    const defaultYear = availableYears[0] || new Date().getFullYear()
 
     const [step, setStep] = useState<GenerationStep>('configure')
     const [progress, setProgress] = useState(0)
@@ -90,6 +93,18 @@ export default function BookGenerationModal({
         theme: PRESET_THEMES.classic,
         stylePreference: 'classic',
     })
+
+    // Update config year when activities change and current year has no activities
+    useEffect(() => {
+        if (availableYears.length > 0 && !availableYears.includes(config.year)) {
+            const newYear = availableYears[0]
+            setConfig(prev => ({
+                ...prev,
+                year: newYear,
+                title: `${newYear} Year in Review`,
+            }))
+        }
+    }, [availableYears, config.year])
 
     // Filter activities by selected year
     const filteredActivities = activities.filter(activity => {
@@ -337,11 +352,13 @@ export default function BookGenerationModal({
                                         }}
                                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
-                                        {Array.from(new Set(activities.map(a =>
-                                            new Date(a.start_date_local || a.start_date).getFullYear()
-                                        ))).sort((a, b) => b - a).map(year => (
-                                            <option key={year} value={year}>{year}</option>
-                                        ))}
+                                        {availableYears.length > 0 ? (
+                                            availableYears.map(year => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))
+                                        ) : (
+                                            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+                                        )}
                                     </select>
                                 </div>
                             </div>
@@ -472,6 +489,16 @@ export default function BookGenerationModal({
                                         <span className="font-bold text-blue-900">{pageEstimate.breakdown.racePages / 2}</span>
                                     </div>
                                 </div>
+                                {activities.length > 0 && filteredActivities.length === 0 && (
+                                    <p className="mt-2 text-xs text-amber-600">
+                                        No activities found for {config.year}. You have {activities.length} activities from years: {availableYears.join(', ')}
+                                    </p>
+                                )}
+                                {activities.length === 0 && (
+                                    <p className="mt-2 text-xs text-amber-600">
+                                        No activities loaded. Please ensure you have activities in your Strava account.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Generate Button */}
