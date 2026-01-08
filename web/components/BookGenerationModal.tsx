@@ -68,13 +68,28 @@ export default function BookGenerationModal({
     isOpen,
     onClose,
 }: BookGenerationModalProps) {
-    // Get available years from activities
-    const availableYears = Array.from(new Set(
-        activities.map(a => new Date(a.start_date_local || a.start_date).getFullYear())
-    )).sort((a, b) => b - a)
+    // Derive year from activities (most common year, or current year if empty)
+    const getYearFromActivities = () => {
+        if (activities.length === 0) return new Date().getFullYear()
+        // Use the year from the most recent activity
+        const sorted = [...activities].sort((a, b) =>
+            new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+        )
+        return new Date(sorted[0].start_date_local || sorted[0].start_date).getFullYear()
+    }
 
-    // Default year is the most recent year with activities, or current year
-    const defaultYear = availableYears[0] || new Date().getFullYear()
+    const derivedYear = getYearFromActivities()
+
+    // Generate a title based on date range
+    const getDefaultTitle = () => {
+        if (activities.length === 0) return 'My Running Book'
+        const dates = activities.map(a => new Date(a.start_date_local || a.start_date))
+        const years = new Set(dates.map(d => d.getFullYear()))
+        if (years.size === 1) {
+            return `${derivedYear} Year in Review`
+        }
+        return 'My Running Journey'
+    }
 
     const [step, setStep] = useState<GenerationStep>('configure')
     const [progress, setProgress] = useState(0)
@@ -85,35 +100,30 @@ export default function BookGenerationModal({
     const [aiThemeReasoning, setAiThemeReasoning] = useState<string | null>(null)
 
     const [config, setConfig] = useState<BookConfig>({
-        title: `${defaultYear} Year in Review`,
+        title: getDefaultTitle(),
         athleteName: 'Athlete',
-        year: defaultYear,
+        year: derivedYear,
         forewordText: '',
         format: FORMATS['10x10'],
         theme: PRESET_THEMES.classic,
         stylePreference: 'classic',
     })
 
-    // Update config year when activities change and current year has no activities
+    // Update config when activities change
     useEffect(() => {
-        if (availableYears.length > 0 && !availableYears.includes(config.year)) {
-            const newYear = availableYears[0]
+        const newYear = getYearFromActivities()
+        if (newYear !== config.year || activities.length > 0) {
             setConfig(prev => ({
                 ...prev,
                 year: newYear,
-                title: `${newYear} Year in Review`,
+                title: prev.title === getDefaultTitle() ? getDefaultTitle() : prev.title,
             }))
         }
-    }, [availableYears, config.year])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activities.length])
 
-    // Filter activities by selected year
-    const filteredActivities = activities.filter(activity => {
-        const activityYear = new Date(activity.start_date_local || activity.start_date).getFullYear()
-        return activityYear === config.year
-    })
-
-    // Estimate page count for filtered activities
-    const pageEstimate = estimatePageCount(filteredActivities, config.format)
+    // Use all activities passed in (already filtered by /builder date range)
+    const pageEstimate = estimatePageCount(activities, config.format)
 
     // Cleanup PDF URL on unmount
     useEffect(() => {
@@ -163,7 +173,7 @@ export default function BookGenerationModal({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    activities: filteredActivities,
+                    activities: activities,
                     preference: config.stylePreference !== 'ai' ? config.stylePreference : 'classic',
                 }),
             })
@@ -191,7 +201,7 @@ export default function BookGenerationModal({
         } finally {
             setGeneratingTheme(false)
         }
-    }, [filteredActivities, config.stylePreference])
+    }, [activities, config.stylePreference])
 
     const handleFormatChange = (formatKey: string) => {
         const format = FORMATS[formatKey]
@@ -208,7 +218,7 @@ export default function BookGenerationModal({
         try {
             // Step 1: Prepare data (10%)
             setProgress(10)
-            setProgressMessage(`Building ${pageEstimate.total} pages for ${filteredActivities.length} activities...`)
+            setProgressMessage(`Building ${pageEstimate.total} pages for ${activities.length} activities...`)
 
             await new Promise(resolve => setTimeout(resolve, 500)) // Brief pause for UI feedback
 
@@ -220,7 +230,7 @@ export default function BookGenerationModal({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    activities: filteredActivities,
+                    activities: activities,
                     config: {
                         title: config.title,
                         athleteName: config.athleteName,
@@ -263,7 +273,7 @@ export default function BookGenerationModal({
             setErrorMessage(error instanceof Error ? error.message : 'Failed to generate book')
             setStep('error')
         }
-    }, [filteredActivities, config, pageEstimate.total])
+    }, [activities, config, pageEstimate.total])
 
     const downloadPdf = useCallback(() => {
         if (pdfUrl) {
@@ -340,29 +350,6 @@ export default function BookGenerationModal({
                                             placeholder="Your Name"
                                         />
                                     </div>
-                                </div>
-                                <div className="mt-4">
-                                    <label className="block text-xs text-stone-500 mb-1">Year</label>
-                                    <select
-                                        value={config.year}
-                                        onChange={(e) => {
-                                            const newYear = parseInt(e.target.value)
-                                            setConfig(prev => ({
-                                                ...prev,
-                                                year: newYear,
-                                                title: `${newYear} Year in Review`,
-                                            }))
-                                        }}
-                                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        {availableYears.length > 0 ? (
-                                            availableYears.map(year => (
-                                                <option key={year} value={year}>{year}</option>
-                                            ))
-                                        ) : (
-                                            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
-                                        )}
-                                    </select>
                                 </div>
                             </div>
 
@@ -481,7 +468,7 @@ export default function BookGenerationModal({
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     <div>
                                         <span className="block text-xs text-blue-600">Activities</span>
-                                        <span className="font-bold text-blue-900">{filteredActivities.length}</span>
+                                        <span className="font-bold text-blue-900">{activities.length}</span>
                                     </div>
                                     <div>
                                         <span className="block text-xs text-blue-600">Estimated Pages</span>
@@ -492,14 +479,9 @@ export default function BookGenerationModal({
                                         <span className="font-bold text-blue-900">{pageEstimate.breakdown.racePages / 2}</span>
                                     </div>
                                 </div>
-                                {activities.length > 0 && filteredActivities.length === 0 && (
-                                    <p className="mt-2 text-xs text-amber-600">
-                                        No activities found for {config.year}. You have {activities.length} activities from years: {availableYears.join(', ')}
-                                    </p>
-                                )}
                                 {activities.length === 0 && (
                                     <p className="mt-2 text-xs text-amber-600">
-                                        No activities loaded. Please ensure you have activities in your Strava account.
+                                        No activities loaded. Use the date filter above to load activities.
                                     </p>
                                 )}
                             </div>
@@ -507,7 +489,7 @@ export default function BookGenerationModal({
                             {/* Generate Button */}
                             <button
                                 onClick={generateBook}
-                                disabled={filteredActivities.length === 0}
+                                disabled={activities.length === 0}
                                 className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 Generate Book ({pageEstimate.total} pages)
