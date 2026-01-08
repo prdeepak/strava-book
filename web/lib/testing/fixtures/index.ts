@@ -2,6 +2,10 @@
 // Generated: 2026-01-07T23:01:57.607251
 
 import { StravaActivity } from '@/lib/strava'
+import * as path from 'path'
+
+// Base path for fixture photos (resolved at runtime)
+const FIXTURES_DIR = path.dirname(__filename || __dirname)
 
 // Individual fixtures
 import race_ultramarathonJson from './race_ultramarathon.json'
@@ -85,4 +89,28 @@ export const edgeCaseFixtures = {
   veryLong: fixtures.edge_very_long,
   veryShort: fixtures.edge_very_short,
   highElevation: fixtures.edge_high_elevation,
+}
+
+/**
+ * Resolve a relative photo path to an absolute file path
+ * Use this when passing photos to React-PDF Image components
+ */
+export function resolvePhotoPath(relativePath: string): string {
+  if (relativePath.startsWith('http')) {
+    return relativePath // Already a URL
+  }
+  return path.join(FIXTURES_DIR, relativePath)
+}
+
+/**
+ * Process a fixture to resolve all photo paths to absolute paths
+ * Returns a new object with resolved paths (doesn't mutate original)
+ */
+export function resolveFixturePhotos<T>(fixture: T): T {
+  const json = JSON.stringify(fixture)
+  const resolved = json.replace(/"(photos\/[^"]+)"/g, (match, relativePath) => {
+    const absolutePath = path.join(FIXTURES_DIR, relativePath)
+    return `"${absolutePath}"`
+  })
+  return JSON.parse(resolved)
 }

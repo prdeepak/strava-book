@@ -63,7 +63,7 @@
   "total_photo_count": 8,
   "has_kudoed": false,
   "suffer_score": 16,
-  "description": "My favourite city in the world, and easy to remember why \u2026 but oh how many tourists!!  I gather it\u2019s Republic Day here, plus the Jubillee year and a new Pope \u2014 so half the tourists or more are apparently Italian.",
+  "description": "My favourite city in the world, and easy to remember why … but oh how many tourists!!  I gather it’s Republic Day here, plus the Jubillee year and a new Pope — so half the tourists or more are apparently Italian.",
   "calories": 886,
   "perceived_exertion": null,
   "prefer_perceived_exertion": false,
@@ -544,8 +544,8 @@
     "primary": {
       "unique_id": "401D6154-B6D5-4D82-BF94-E5809B81FCFB",
       "urls": {
-        "100": "https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-96x128.jpg",
-        "600": "https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg"
+        "100": "photos/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg",
+        "600": "photos/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg"
       },
       "source": 1,
       "media_type": 1

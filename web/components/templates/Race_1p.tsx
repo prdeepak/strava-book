@@ -128,18 +128,31 @@ interface Race_1pProps {
     mapboxToken?: string
 }
 
+// Helper to resolve image URLs - use local paths directly, proxy external URLs
+function resolveImageUrl(url: string | undefined): string | null {
+    if (!url) return null
+    // Local file paths (absolute paths from fixtures)
+    if (url.startsWith('/') && !url.startsWith('/api/')) {
+        return url
+    }
+    // HTTP URLs need to be proxied
+    if (url.startsWith('http')) {
+        return `/api/proxy-image?url=${encodeURIComponent(url)}`
+    }
+    // Relative paths - assume local
+    return url
+}
+
 export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
     // Get Strava photo if available
-    const stravaPhoto = activity.photos?.primary?.urls?.['600']
-        ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
-        : null
+    const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
 
     // Get satellite map if token available
     let satelliteMap = null
     if (mapboxToken && activity.map.summary_polyline) {
         const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
         const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/800x400?access_token=${mapboxToken}&logo=false&attrib=false`
-        satelliteMap = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`
+        satelliteMap = resolveImageUrl(rawUrl)
     }
 
     // Determine what to show

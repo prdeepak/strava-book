@@ -145,12 +145,22 @@ export function getAvailableTemplates(): string[] {
 
 export function loadFixture(fixtureName: string): unknown {
     const fixturePath = path.join(__dirname, 'fixtures', `${fixtureName}.json`)
+    const fixturesDir = path.join(__dirname, 'fixtures')
 
     if (!fs.existsSync(fixturePath)) {
         throw new Error(`Fixture not found: ${fixturePath}`)
     }
 
-    return JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
+
+    // Resolve relative photo paths to absolute paths
+    const json = JSON.stringify(fixture)
+    const resolved = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
+        const absolutePath = path.join(fixturesDir, relativePath)
+        return `"${absolutePath}"`
+    })
+
+    return JSON.parse(resolved)
 }
 
 export function getAvailableFixtures(): string[] {

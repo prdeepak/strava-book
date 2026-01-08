@@ -70,7 +70,7 @@
   "total_photo_count": 2,
   "has_kudoed": false,
   "suffer_score": 75,
-  "description": "Another gorgeous day by the lake! I\u2019ll be using my Coros watch for this month, I think, to see how it does; and because my Apple Watch can\u2019t handle Comrades.\n\n137 Training Load\n-- from COROS",
+  "description": "Another gorgeous day by the lake! I’ll be using my Coros watch for this month, I think, to see how it does; and because my Apple Watch can’t handle Comrades.\n\n137 Training Load\n-- from COROS",
   "calories": 607,
   "perceived_exertion": null,
   "prefer_perceived_exertion": false,
@@ -2098,8 +2098,8 @@
     "primary": {
       "unique_id": "C486E6F7-EEA5-4960-ACB8-742677CD6194",
       "urls": {
-        "100": "https://dgtzuqphqg23d.cloudfront.net/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-128x96.jpg",
-        "600": "https://dgtzuqphqg23d.cloudfront.net/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-768x576.jpg"
+        "100": "photos/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-768x576.jpg",
+        "600": "photos/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-768x576.jpg"
       },
       "source": 1,
       "media_type": 1

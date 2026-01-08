@@ -220,8 +220,8 @@
     "primary": {
       "unique_id": "AE4BB2BF-8DCD-408E-B6BD-40A0C0B08EDA",
       "urls": {
-        "100": "https://dgtzuqphqg23d.cloudfront.net/onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-96x128.jpg",
-        "600": "https://dgtzuqphqg23d.cloudfront.net/onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-576x768.jpg"
+        "100": "photos/onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-576x768.jpg",
+        "600": "photos/onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-576x768.jpg"
       },
       "source": 1,
       "media_type": 1

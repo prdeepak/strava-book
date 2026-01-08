@@ -68,7 +68,7 @@
   "total_photo_count": 3,
   "has_kudoed": false,
   "suffer_score": 10,
-  "description": "I \u2764\ufe0f Roma.  Gorgeous sunny day\n\n(Edit:  added a carb-loading photo)",
+  "description": "I ❤️ Roma.  Gorgeous sunny day\n\n(Edit:  added a carb-loading photo)",
   "calories": 293,
   "perceived_exertion": null,
   "prefer_perceived_exertion": false,
@@ -762,8 +762,8 @@
     "primary": {
       "unique_id": "2B63ACD0-C9E5-4316-8AAE-E12DA02916DF",
       "urls": {
-        "100": "https://dgtzuqphqg23d.cloudfront.net/SgavsCEdms63bIZwetCJoCgX2T1r4yFBQG8mfP2Di7M-96x128.jpg",
-        "600": "https://dgtzuqphqg23d.cloudfront.net/SgavsCEdms63bIZwetCJoCgX2T1r4yFBQG8mfP2Di7M-576x768.jpg"
+        "100": "photos/SgavsCEdms63bIZwetCJoCgX2T1r4yFBQG8mfP2Di7M-576x768.jpg",
+        "600": "photos/SgavsCEdms63bIZwetCJoCgX2T1r4yFBQG8mfP2Di7M-576x768.jpg"
       },
       "source": 1,
       "media_type": 1
@@ -939,7 +939,7 @@
         "activity_id": 14691739877,
         "post_id": null,
         "resource_state": 2,
-        "text": "Ha! Added a photo Maya Steckly!  \ud83d\ude42",
+        "text": "Ha! Added a photo Maya Steckly!  🙂",
         "mentions_metadata": null,
         "created_at": "2025-06-04T13:26:33Z",
         "cursor": null,
@@ -956,7 +956,7 @@
         "activity_id": 14691739877,
         "post_id": null,
         "resource_state": 2,
-        "text": "So cool!!! Isn\u2019t it BEAUTIFUL running there?!!!!",
+        "text": "So cool!!! Isn’t it BEAUTIFUL running there?!!!!",
         "mentions_metadata": null,
         "created_at": "2025-06-04T13:32:52Z",
         "cursor": null,
@@ -973,7 +973,7 @@
         "activity_id": 14691739877,
         "post_id": null,
         "resource_state": 2,
-        "text": "Amy de Domenico \u2014 yes I love Rome!  And I\u2019m getting some last-minute heat training in too\u2026 spent each afternoon walking in the 30C sun, avoiding shade.  \u2600\ufe0f\u2600\ufe0f\ud83e\udd75",
+        "text": "Amy de Domenico — yes I love Rome!  And I’m getting some last-minute heat training in too… spent each afternoon walking in the 30C sun, avoiding shade.  ☀️☀️🥵",
         "mentions_metadata": null,
         "created_at": "2025-06-04T15:46:47Z",
         "cursor": null,

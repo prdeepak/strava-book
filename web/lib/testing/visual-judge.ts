@@ -110,63 +110,65 @@ async function judgeWithBedrock(
     prompt: string,
     verbose: boolean
 ): Promise<string> {
-    // AWS Bedrock via fetch with SigV4 signing
-    // For simplicity, we'll use the @aws-sdk/client-bedrock-runtime if available
-    // Otherwise fall back to Gemini
+    // AWS Bedrock using API key (bearer token) authentication
+    // See: https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html
 
-    try {
-        // Dynamic import to avoid requiring the SDK if not installed
-        const { BedrockRuntimeClient, InvokeModelCommand } = await import('@aws-sdk/client-bedrock-runtime')
-
-        const client = new BedrockRuntimeClient({
-            region: process.env.AWS_REGION || 'us-east-1'
-        })
-
-        const payload = {
-            anthropic_version: "bedrock-2023-05-31",
-            max_tokens: 2000,
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image",
-                            source: {
-                                type: "base64",
-                                media_type: "image/png",
-                                data: imageBase64
-                            }
-                        },
-                        {
-                            type: "text",
-                            text: prompt
-                        }
-                    ]
-                }
-            ]
-        }
-
-        const command = new InvokeModelCommand({
-            modelId: "anthropic.claude-sonnet-4-20250514",
-            contentType: "application/json",
-            accept: "application/json",
-            body: JSON.stringify(payload)
-        })
-
-        const response = await client.send(command)
-        const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-
-        if (verbose) {
-            console.log('[Visual Judge] Bedrock response received')
-        }
-
-        return responseBody.content[0].text
-    } catch (error) {
-        if (verbose) {
-            console.log('[Visual Judge] Bedrock failed:', error)
-        }
-        throw error
+    const apiKey = process.env.AWS_BEARER_TOKEN_BEDROCK
+    if (!apiKey) {
+        throw new Error('AWS_BEARER_TOKEN_BEDROCK not set')
     }
+
+    const region = process.env.AWS_REGION || 'us-east-1'
+    const modelId = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
+    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/converse`
+
+    const payload = {
+        messages: [
+            {
+                role: "user",
+                content: [
+                    {
+                        image: {
+                            format: "png",
+                            source: {
+                                bytes: imageBase64
+                            }
+                        }
+                    },
+                    {
+                        text: prompt
+                    }
+                ]
+            }
+        ],
+        inferenceConfig: {
+            maxTokens: 2000,
+            temperature: 0.1
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Bedrock API error: ${response.status} ${error}`)
+    }
+
+    const data = await response.json()
+
+    if (verbose) {
+        console.log('[Visual Judge] Bedrock response received')
+    }
+
+    // Converse API returns different structure
+    return data.output.message.content[0].text
 }
 
 async function judgeWithGemini(
@@ -304,8 +306,8 @@ export async function judgePageVisual(
     // Skip providers that aren't configured
     const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
     if (provider === 'auto') {
-        // Only include Bedrock if AWS credentials are configured
-        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+        // Only include Bedrock if API key is configured
+        if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
             availableProviders.push('bedrock')
         }
         if (process.env.GEMINI_API_KEY) {
