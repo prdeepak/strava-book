@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { StravaActivity } from '@/lib/strava'
 import PDFGenerationModal from '@/components/PDFGenerationModal'
+import BookGenerationModal from '@/components/BookGenerationModal'
 
 interface BuilderClientProps {
     initialActivities: StravaActivity[]
@@ -41,6 +41,7 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
     const [hasMore, setHasMore] = useState(initialActivities.length >= 200)
     const [modalOpen, setModalOpen] = useState(false)
     const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
+    const [bookModalOpen, setBookModalOpen] = useState(false)
 
     const handleFilter = async () => {
         if (!fromDate && !toDate) {
@@ -118,12 +119,12 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                         <h1 className="text-3xl font-bold text-stone-800">Your Activities</h1>
                         <p className="text-stone-500">Select activities to include in your book</p>
                     </div>
-                    <Link
-                        href="/preview/book"
-                        className="px-6 py-3 bg-orange-600 text-white font-bold rounded shadow hover:bg-orange-700 transition"
+                    <button
+                        onClick={() => setBookModalOpen(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded shadow hover:from-blue-700 hover:to-indigo-800 transition"
                     >
-                        Generate Smart Book
-                    </Link>
+                        Generate Year Book
+                    </button>
                 </div>
 
                 {/* Date Range Filter */}
@@ -265,6 +266,13 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                     }}
                 />
             )}
+
+            {/* Book Generation Modal */}
+            <BookGenerationModal
+                activities={activities}
+                isOpen={bookModalOpen}
+                onClose={() => setBookModalOpen(false)}
+            />
         </main>
     )
 }
