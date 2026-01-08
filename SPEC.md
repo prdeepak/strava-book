@@ -1,8 +1,8 @@
 # Strava Book Technical Specification
 
-**Version:** 1.1
+**Version:** 1.2
 **Status:** In Development
-**Updated:** 2025-01-07
+**Updated:** 2025-01-08
 **Goal:** Define project well enough for parallel autonomous agent development
 
 ---
@@ -388,15 +388,17 @@ Visual judge uses auto-fallback: tries configured providers in order until one s
 │   Stream A      │    Stream B     │        Stream C             │
 │   Templates     │    Testing      │        Data/AI              │
 ├─────────────────┼─────────────────┼─────────────────────────────┤
-│ A1: Cover       │ B1: Test infra ✅│ C1: Fixture library ✅      │
-│ A2: YearStats   │ B2: LLM judge ✅ │ C2: Mock server (Phase 2)   │
-│ A3: YearCalendar│ B3: Visual tests✅│ C3: Style guide generation  │
-│ A4: Race_1p     │ B4: Integration │ C4: Book assembly logic     │
-│ A5: Race_2p     │     tests       │                             │
-│ A6: ActivityLog │                 │                             │
-│ A7: Dividers    │                 │                             │
-│ A8: BackCover   │                 │                             │
+│ A1: Cover ⚡     │ B1: Test infra ✅│ C1: Fixture library ✅      │
+│ A2: YearStats ⚡ │ B2: LLM judge ✅ │ C2: Mock server (Phase 2)   │
+│ A3: YearCalendar⚡│ B3: Visual tests✅│ C3: Style guide generation  │
+│ A4: Race_1p ⚡   │ B4: Integration │ C4: Book assembly logic     │
+│ A5: Race_2p ⚡   │     tests       │                             │
+│ A6: ActivityLog⚡│                 │                             │
+│ A7: Dividers ⚡  │                 │                             │
+│ A8: BackCover ⚡ │                 │                             │
 └─────────────────┴─────────────────┴─────────────────────────────┘
+
+Legend: ✅ = Complete, ⚡ = Functional placeholder (needs visual polish)
 ```
 
 ### Completed Foundation
@@ -405,22 +407,25 @@ Visual judge uses auto-fallback: tries configured providers in order until one s
 - ✅ **B2: LLM Judge** — `visual-judge.ts` with Gemini (Bedrock/Anthropic fallback)
 - ✅ **B3: Visual Tests** — Full pipeline: PDF → PNG → LLM evaluation → structured feedback
 - ✅ **C1: Fixture Library** — 16 fixtures from real Strava data
+- ⚡ **A1-A8: All Templates** — Functional placeholders, pass tests (scores 70-83), need visual polish
 
-### Ready for Parallel Work
+### Current Priority: End-to-End Pipeline
 
-All Stream A templates can now be developed in parallel. Each template agent should:
-1. Read the template spec in Section 3
-2. Review TrainingSparkle design patterns in Section 1
-3. Iterate using `make test-template template=<Name> fixture=<fixture>`
-4. Target score >= 70, no criterion below 50
+Before polishing templates, complete the book assembly pipeline:
+
+1. **C4: Book Assembly Logic** — Wire `BookDocument.tsx` to route all page types
+2. **C3: Style Guide Generation** — AI picks theme from user context
+3. **B4: Integration Tests** — Test full book generation with year fixtures
+
+Then agents can iterate on visual quality of individual templates.
 
 ### Remaining Work
 
 **Phase 1 (MVP):**
-- A1-A8: Template redesign/implementation
-- B4: Integration tests for full book generation
-- C3: Style guide generation (AI theming)
-- C4: Book assembly logic (BookDocument.tsx routing)
+- C4: Book assembly logic (BookDocument.tsx routing) ← **NEXT**
+- C3: Style guide generation (AI theming) ← **NEXT**
+- B4: Integration tests for full book generation ← **NEXT**
+- A1-A8: Template visual polish (after pipeline complete)
 
 **Phase 2:**
 - C2: Mock Strava server for offline development
@@ -488,9 +493,9 @@ Each task should include:
    - Feature "moment of the month" photo
    - Decision: Explore during MonthlyDivider template development
 
-3. **Photo loading in tests:** Fixture photos use Strava proxy URLs that don't work offline
-   - Current: Tests show placeholder/broken images
-   - Future: Download and cache fixture photos locally
+3. ~~**Photo loading in tests:**~~ ✅ RESOLVED
+   - Fixture photos downloaded locally to `web/lib/testing/fixtures/photos/`
+   - Templates use `resolveImageUrl()` helper to handle local vs proxy URLs
 
 
 ---

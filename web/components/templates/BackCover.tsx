@@ -1,4 +1,4 @@
-import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary } from '@/lib/book-types'
 
 export interface BackCoverProps {
@@ -101,42 +101,44 @@ export const BackCover = ({
   const styles = createStyles(format, theme)
 
   return (
-    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      <View style={styles.topSection}>
-        <Text style={styles.yearText}>{yearSummary.year}</Text>
+    <Document>
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <View style={styles.topSection}>
+          <Text style={styles.yearText}>{yearSummary.year}</Text>
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
-            <Text style={styles.statLabel}>traveled</Text>
-          </View>
+          <View style={styles.statsGrid}>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
+              <Text style={styles.statLabel}>traveled</Text>
+            </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
-            <Text style={styles.statLabel}>in motion</Text>
-          </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
+              <Text style={styles.statLabel}>in motion</Text>
+            </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
-            <Text style={styles.statLabel}>climbed</Text>
-          </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
+              <Text style={styles.statLabel}>climbed</Text>
+            </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
-            <Text style={styles.statLabel}>activities</Text>
-          </View>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
+              <Text style={styles.statLabel}>activities</Text>
+            </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statValue}>{yearSummary.activeDays.size}</Text>
-            <Text style={styles.statLabel}>active days</Text>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{yearSummary.activeDays.size}</Text>
+              <Text style={styles.statLabel}>active days</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.bottomSection}>
-        <Text style={styles.brandingText}>Created with</Text>
-        <Text style={styles.brandingName}>Strava Book</Text>
-      </View>
-    </Page>
+        <View style={styles.bottomSection}>
+          <Text style={styles.brandingText}>Created with</Text>
+          <Text style={styles.brandingName}>Strava Book</Text>
+        </View>
+      </Page>
+    </Document>
   )
 }

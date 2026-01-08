@@ -1,5 +1,20 @@
-import { Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
+
+// Helper to resolve image URLs - use local paths directly, proxy external URLs
+function resolveImageUrl(url: string | undefined): string | null {
+  if (!url) return null
+  // Local file paths (absolute paths from fixtures)
+  if (url.startsWith('/') && !url.startsWith('/api/')) {
+    return url
+  }
+  // HTTP URLs need to be proxied
+  if (url.startsWith('http')) {
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`
+  }
+  // Relative paths - assume local
+  return url
+}
 
 export interface CoverProps {
   title: string
@@ -98,39 +113,39 @@ export const Cover = ({
 }: CoverProps) => {
   const styles = createStyles(format, theme)
 
-  // Use proxy for background image if provided
-  const bgImage = backgroundImage
-    ? `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`
-    : null
+  // Resolve background image path (local or proxied)
+  const bgImage = resolveImageUrl(backgroundImage)
 
   return (
-    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Background layer */}
-      {bgImage ? (
-        <>
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image src={bgImage} style={styles.backgroundImage} />
-          <View style={styles.gradientOverlay} />
-        </>
-      ) : (
-        // Fallback solid color when no image provided (react-pdf doesn't support gradients)
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: theme.primaryColor,
-        }} />
-      )}
+    <Document>
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        {/* Background layer */}
+        {bgImage ? (
+          <>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={bgImage} style={styles.backgroundImage} />
+            <View style={styles.gradientOverlay} />
+          </>
+        ) : (
+          // Fallback solid color when no image provided (react-pdf doesn't support gradients)
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: theme.primaryColor,
+          }} />
+        )}
 
-      {/* Content layer */}
-      <View style={styles.contentContainer}>
-        <Text style={styles.yearText}>{year}</Text>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-        <Text style={styles.athleteName}>{athleteName}</Text>
-      </View>
-    </Page>
+        {/* Content layer */}
+        <View style={styles.contentContainer}>
+          <Text style={styles.yearText}>{year}</Text>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <Text style={styles.athleteName}>{athleteName}</Text>
+        </View>
+      </Page>
+    </Document>
   )
 }

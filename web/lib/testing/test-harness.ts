@@ -92,10 +92,137 @@ export function pdfToImages(pdfPath: string, outputDir: string, verbose = false)
 }
 
 // ============================================================================
-// Template Registry
+// Template Registry & Props Building
 // ============================================================================
 
-type TemplateComponent = React.ComponentType<{ activity: unknown; format?: unknown; theme?: unknown }>
+import { FORMATS, DEFAULT_THEME, YearSummary, MonthlyStats } from '../../lib/book-types'
+import { StravaActivity } from '../../lib/strava'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TemplateComponent = React.ComponentType<any>
+
+// Template categories determine what props they need
+type TemplateCategory = 'race' | 'cover' | 'yearStats' | 'yearCalendar' | 'monthlyDivider' | 'activityLog' | 'backCover'
+
+const templateCategories: Record<string, TemplateCategory> = {
+    'Race_1p': 'race',
+    'Race_2p': 'race',
+    'Cover': 'cover',
+    'YearStats': 'yearStats',
+    'YearCalendar': 'yearCalendar',
+    'MonthlyDivider': 'monthlyDivider',
+    'ActivityLog': 'activityLog',
+    'BackCover': 'backCover',
+}
+
+/**
+ * Build mock YearSummary from a single activity fixture (for testing)
+ */
+function buildMockYearSummary(activity: StravaActivity): YearSummary {
+    const activityDate = new Date(activity.start_date)
+    const month = activityDate.getMonth()
+    const year = activityDate.getFullYear()
+
+    const monthlyStats: MonthlyStats = {
+        month,
+        year,
+        activityCount: 1,
+        totalDistance: activity.distance || 0,
+        totalTime: activity.moving_time || 0,
+        totalElevation: activity.total_elevation_gain || 0,
+        activeDays: 1,
+        activities: [activity],
+    }
+
+    return {
+        year,
+        totalDistance: activity.distance || 0,
+        totalTime: activity.moving_time || 0,
+        totalElevation: activity.total_elevation_gain || 0,
+        activityCount: 1,
+        longestActivity: activity,
+        fastestActivity: activity,
+        activeDays: new Set([activity.start_date.split('T')[0]]),
+        monthlyStats: [monthlyStats],
+        races: activity.workout_type === 1 ? [activity] : [],
+        aRace: activity.workout_type === 1 ? activity : undefined,
+    }
+}
+
+/**
+ * Build props appropriate for the template category
+ */
+function buildTemplateProps(templateName: string, fixture: StravaActivity): Record<string, unknown> {
+    const category = templateCategories[templateName] || 'race'
+    const format = FORMATS['10x10']
+    const theme = DEFAULT_THEME
+
+    switch (category) {
+        case 'race':
+            return { activity: fixture, format, theme }
+
+        case 'cover': {
+            const year = new Date(fixture.start_date).getFullYear()
+            return {
+                title: `${year} Running`,
+                subtitle: 'A Year in Motion',
+                year,
+                athleteName: fixture.athlete?.firstname || 'Athlete',
+                backgroundImage: fixture.photos?.primary?.urls?.['600'],
+                format,
+                theme,
+            }
+        }
+
+        case 'yearStats':
+            return {
+                yearSummary: buildMockYearSummary(fixture),
+                format,
+                theme,
+            }
+
+        case 'yearCalendar':
+            return {
+                yearSummary: buildMockYearSummary(fixture),
+                format,
+                theme,
+            }
+
+        case 'monthlyDivider': {
+            const date = new Date(fixture.start_date)
+            return {
+                month: date.getMonth(),
+                year: date.getFullYear(),
+                stats: {
+                    activityCount: 1,
+                    totalDistance: fixture.distance || 0,
+                    totalTime: fixture.moving_time || 0,
+                    totalElevation: fixture.total_elevation_gain || 0,
+                },
+                heroImage: fixture.photos?.primary?.urls?.['600'],
+                format,
+                theme,
+            }
+        }
+
+        case 'activityLog':
+            return {
+                activities: [fixture],
+                format,
+                theme,
+            }
+
+        case 'backCover':
+            return {
+                yearSummary: buildMockYearSummary(fixture),
+                format,
+                theme,
+            }
+
+        default:
+            return { activity: fixture, format, theme }
+    }
+}
 
 const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     // Race templates
@@ -224,7 +351,10 @@ export async function testTemplate(
             console.log(`[Test Harness] Loading fixture: ${fixtureName}`)
         }
 
-        const fixture = loadFixture(fixtureName)
+        const fixture = loadFixture(fixtureName) as StravaActivity
+
+        // Build appropriate props for this template type
+        const props = buildTemplateProps(templateName, fixture)
 
         // Render PDF
         if (verbose) {
@@ -232,7 +362,7 @@ export async function testTemplate(
         }
 
         const pdfBuffer = await renderToBuffer(
-            React.createElement(Template, { activity: fixture })
+            React.createElement(Template, props)
         )
 
         // Save PDF

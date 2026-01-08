@@ -1,4 +1,4 @@
-import { Page, View, Text, Svg, Path, StyleSheet } from '@react-pdf/renderer'
+import { Page, View, Text, Svg, Path, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatDistance, formatTime, formatPace } from '@/lib/activity-log-utils'
@@ -136,11 +136,12 @@ export const ActivityLog = ({
   const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
 
   return (
-    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-      </View>
+    <Document>
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
       {/* Table Header */}
       <View style={styles.tableHeader}>
@@ -223,6 +224,7 @@ export const ActivityLog = ({
           </View>
         )
       })}
-    </Page>
+      </Page>
+    </Document>
   )
 }

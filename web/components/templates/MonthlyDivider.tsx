@@ -1,6 +1,14 @@
-import { Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
+import { Page, View, Text, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-log-utils'
+
+// Helper to resolve image URLs - use local paths directly, proxy external URLs
+function resolveImageUrl(url: string | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith('/') && !url.startsWith('/api/')) return url
+  if (url.startsWith('http')) return `/api/proxy-image?url=${encodeURIComponent(url)}`
+  return url
+}
 
 interface MonthlyDividerProps {
   month: number  // 0-11
@@ -105,49 +113,53 @@ export const MonthlyDivider = ({
   const styles = createStyles(format, theme)
   const monthName = getMonthName(month)
 
+  const resolvedHeroImage = resolveImageUrl(heroImage)
+
   return (
-    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Hero image background (if provided) */}
-      {heroImage && (
-        <View style={styles.heroImageContainer}>
-          <Image
-            src={`/api/proxy-image?url=${encodeURIComponent(heroImage)}`}
-            style={styles.heroImage}
-          />
+    <Document>
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        {/* Hero image background (if provided) */}
+        {resolvedHeroImage && (
+          <View style={styles.heroImageContainer}>
+            <Image
+              src={resolvedHeroImage}
+              style={styles.heroImage}
+            />
+          </View>
+        )}
+
+        {/* Main content */}
+        <View style={styles.content}>
+          <Text style={styles.monthName}>{monthName.toUpperCase()}</Text>
+          <Text style={styles.year}>{year}</Text>
+
+          <View style={styles.divider} />
+
+          {/* Month statistics */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{stats.activityCount}</Text>
+              <Text style={styles.statLabel}>
+                {stats.activityCount === 1 ? 'Activity' : 'Activities'}
+              </Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>
+                {formatDistance(stats.totalDistance, units)}
+              </Text>
+              <Text style={styles.statLabel}>Distance</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>
+                {formatTime(stats.totalTime)}
+              </Text>
+              <Text style={styles.statLabel}>Time</Text>
+            </View>
+          </View>
         </View>
-      )}
-
-      {/* Main content */}
-      <View style={styles.content}>
-        <Text style={styles.monthName}>{monthName.toUpperCase()}</Text>
-        <Text style={styles.year}>{year}</Text>
-
-        <View style={styles.divider} />
-
-        {/* Month statistics */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{stats.activityCount}</Text>
-            <Text style={styles.statLabel}>
-              {stats.activityCount === 1 ? 'Activity' : 'Activities'}
-            </Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>
-              {formatDistance(stats.totalDistance, units)}
-            </Text>
-            <Text style={styles.statLabel}>Distance</Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>
-              {formatTime(stats.totalTime)}
-            </Text>
-            <Text style={styles.statLabel}>Time</Text>
-          </View>
-        </View>
-      </View>
-    </Page>
+      </Page>
+    </Document>
   )
 }
