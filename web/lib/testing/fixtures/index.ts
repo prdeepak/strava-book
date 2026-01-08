@@ -76,7 +76,6 @@ export const raceFixtures = {
   ultramarathon: fixtures.race_ultramarathon,
   marathon: fixtures.race_marathon,
   halfMarathon: fixtures.race_half_marathon,
-  thirtyK: fixtures.race_other,
 }
 
 export const trainingFixtures = {
@@ -114,3 +113,7 @@ export function resolveFixturePhotos<T>(fixture: T): T {
   })
   return JSON.parse(resolved)
 }
+
+// Re-export year fixtures
+export { yearFixtures, buildYearSummary } from './yearFixtures'
+export type { YearFixture, ComprehensiveActivity } from './yearFixtures'

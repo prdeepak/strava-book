@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick
 
 help:
 	@echo "Available commands:"
@@ -9,6 +9,12 @@ help:
 	@echo "  make test    - Run the test suite (pytest)"
 	@echo "  make sync    - Commit & Push to GitHub (usage: make sync msg=\"Your message\")"
 	@echo "  make web-dev - Start the Next.js dev server"
+	@echo ""
+	@echo "Testing commands:"
+	@echo "  make test-visual      - Run all visual template tests"
+	@echo "  make test-template    - Test specific template (template=X fixture=Y)"
+	@echo "  make test-integration - Run full book integration tests"
+	@echo "  make test-list        - List available templates and fixtures"
 
 
 # --- The Smart Check ---
@@ -101,6 +107,14 @@ test-list:
 test-pdf:
 	@echo "📄 Generating PDF only (no visual judge)..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+
+test-integration:
+	@echo "📚 Running integration tests (full book generation)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --verbose
+
+test-integration-quick:
+	@echo "📚 Running integration tests (no visual judge)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
 
 
 # --- Start the day ---
