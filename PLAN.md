@@ -36,6 +36,111 @@
 
 ## Next Steps (Phase 4)
 
+### 4.0 Template Specification System (NEW)
+
+Create a structured specification for each template that the AI Designer can use.
+
+#### Input Specification (what material is available)
+Each template declares its available inputs:
+```typescript
+interface TemplateInputSpec {
+  templateId: string  // e.g., 'race_1p', 'year_stats', 'monthly_divider'
+
+  // Available data sources
+  availableInputs: {
+    activity?: StravaActivity           // Core activity data
+    photos: PhotoData[]                 // User's activity photos
+    prebuiltGraphics: {                 // Pre-generated visualizations
+      splitsChart?: string              // SVG or image URL
+      elevationProfile?: string
+      routeMap?: string
+      paceHeatmap?: string
+    }
+    stats: StatBlock[]                  // Key metrics to display
+    textContent: {                      // Text options
+      title: string
+      subtitle?: string
+      description?: string
+      narrative?: string                // AI-generated story
+      pullQuotes?: string[]             // Highlight phrases
+    }
+  }
+}
+```
+
+#### Output Specification (layout choices)
+AI chooses from predefined layout variants (3-5 per template):
+```typescript
+interface TemplateOutputSpec {
+  layoutVariant: string   // e.g., 'title-top', 'title-bottom', 'hero-left'
+
+  // Layout options within the variant
+  options: {
+    titlePosition: 'top' | 'bottom' | 'overlay'
+    alignment: 'left' | 'center' | 'right'
+    photoTreatment: 'full-bleed' | 'inset' | 'grid' | 'collage'
+  }
+
+  // Background selection
+  background: {
+    type: 'solid' | 'gradient' | 'photo-fade' | 'ai-generated'
+    color?: string
+    photoIndex?: number         // Which user photo to use as background
+    opacity?: number            // For photo backgrounds
+  }
+
+  // Optional AI-generated content
+  generatedContent?: {
+    narrative?: string          // AI-written text
+    graphics?: GeneratedGraphic[] // SVG patterns, decorations
+    images?: GeneratedImage[]    // AI image generation (future)
+  }
+}
+
+interface GeneratedGraphic {
+  type: 'pattern' | 'decoration' | 'chart-enhancement'
+  svg: string                   // SVG markup
+  position: 'background' | 'accent' | 'border'
+}
+```
+
+#### Layout Guidelines (rules for AI)
+Each template includes guidelines for the AI Designer:
+```typescript
+interface TemplateGuidelines {
+  templateId: string
+
+  // When to choose this template
+  selectionCriteria: string[]   // e.g., ["Race with 5+ photos", "High kudos count"]
+
+  // Layout variant guidance
+  variantGuidelines: {
+    [variantName: string]: {
+      bestFor: string           // "Activities with dramatic hero photo"
+      avoid: string             // "Low-quality or indoor photos"
+      photoRequirements: string // "Needs at least 1 landscape photo"
+    }
+  }
+
+  // Content priorities
+  contentPriority: string[]     // Ordered list: ["hero-photo", "stats", "splits-chart"]
+
+  // Style constraints
+  constraints: {
+    maxPhotos: number
+    requiresMap: boolean
+    minTextLength?: number
+  }
+}
+```
+
+#### Implementation Tasks
+- [ ] Create `web/lib/template-specs/` directory
+- [ ] Define specs for existing templates: Race_1p, Race_2p, Cover, YearStats, etc.
+- [ ] Create `TemplateRegistry` that maps templateId → spec + component
+- [ ] Update Designer Agent to read specs and make informed layout choices
+- [ ] Pre-generate graphics (charts, maps) before passing to AI
+
 ### 4.1 Wire to Builder UI
 - [ ] Add "AI Design Book" button to BookGenerationModal
 - [ ] Import and render AIBookDesignerModal in BuilderClient
@@ -69,7 +174,7 @@
 
 ## Architecture Reference
 
-### Agent Hierarchy
+### Agent Hierarchy with Template Specs
 ```
 ┌─────────────────────────────────────────────┐
 │ Art Director Agent (Global)                  │
@@ -86,10 +191,28 @@
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
+│ Pre-Generation Step (NEW)                    │
+│ - Generate splits charts, maps, heatmaps    │
+│ - Prepare photo options with metadata       │
+│ - Build TemplateInputSpec for each page     │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
 │ Designer Agent (Page Level)                  │
-│ - Selects template variant per page          │
-│ - Customizes within constraints              │
+│ INPUT: TemplateInputSpec + Guidelines        │
+│ - Reads available inputs and layout variants │
+│ - Chooses layout variant (e.g., 'hero-left')│
+│ - Selects photos, background, alignment     │
+│ - Optionally generates narrative/graphics   │
+│ OUTPUT: TemplateOutputSpec                   │
 │ - Self-corrects via visual-judge feedback    │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│ Renderer                                     │
+│ - Maps TemplateOutputSpec → React component │
+│ - Applies layout variant + options          │
+│ - Generates final PDF page                  │
 └─────────────────────────────────────────────┘
 ```
 
@@ -116,6 +239,8 @@ async function designPageWithFeedback(
 ### Key Files
 | File | Purpose |
 |------|---------|
+| `web/lib/template-specs/` | Template input/output specs + guidelines (NEW) |
+| `web/lib/template-specs/registry.ts` | Maps templateId → spec + component (NEW) |
 | `web/lib/ai-book-designer.ts` | Core agent logic |
 | `web/app/api/ai-book-designer/` | API routes |
 | `web/components/AIBookDesignerModal.tsx` | UI component |
@@ -127,6 +252,9 @@ async function designPageWithFeedback(
 ## Verification Checklist
 
 - [ ] `make test-e2e-ci` passes (28 tests)
+- [ ] Template specs defined for all major templates (Race_1p, Race_2p, Cover, YearStats, etc.)
+- [ ] Designer Agent reads TemplateInputSpec and outputs valid TemplateOutputSpec
+- [ ] Pre-generation step creates charts/maps before AI design phase
 - [ ] AI Book Designer generates valid book specs
 - [ ] Self-correction loop improves scores over iterations
 - [ ] Full book PDF generates without errors
