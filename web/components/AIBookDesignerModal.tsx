@@ -23,15 +23,27 @@ interface ArtDirectorOutput {
     moodKeywords: string[]
 }
 
-interface ChapterGroup {
-    name: string
-    activities: number[]  // activity IDs
-    narrative: string
+interface Chapter {
+    id: string
+    title: string
+    subtitle?: string
+    month?: number
+    year: number
+    activities: unknown[]  // Full activity objects
+    summary: string
+    featuredActivityId?: number
+    pageCount: number
 }
 
 interface NarratorOutput {
-    chapters: ChapterGroup[]
-    overallNarrative: string
+    chapters: Chapter[]
+    highlights: unknown[]
+    yearSummary: {
+        title: string
+        openingParagraph: string
+        keyMilestones: string[]
+        closingStatement: string
+    }
 }
 
 interface DesignerProgress {
@@ -43,12 +55,31 @@ interface DesignerProgress {
 
 interface DesignSession {
     sessionId: string
-    status: 'pending' | 'art-director' | 'narrator' | 'designer' | 'complete' | 'error'
-    artDirectorOutput?: ArtDirectorOutput
-    narratorOutput?: NarratorOutput
-    designerProgress?: DesignerProgress
-    pdfUrl?: string
-    error?: string
+    // API uses underscores: 'art_director', 'completed'
+    status: 'pending' | 'art_director' | 'narrator' | 'designer' | 'completed' | 'error'
+    progress?: {
+        currentStage: string
+        percentComplete: number
+        message: string
+    }
+    output?: {
+        artDirector?: ArtDirectorOutput
+        narrator?: NarratorOutput
+        designer?: {
+            pages: unknown[]
+            finalScore: number
+        }
+        finalBook?: unknown
+    }
+    partialOutput?: {
+        hasArtDirector: boolean
+        hasNarrator: boolean
+        hasDesigner: boolean
+        artDirectorTheme?: BookTheme
+        chapterCount: number
+        highlightCount: number
+    }
+    errors?: string[]
 }
 
 type DesignStep = 'configure' | 'art-director' | 'narrator' | 'designer' | 'complete' | 'error'
@@ -112,6 +143,36 @@ export default function AIBookDesignerModal({
         }
     }, [isOpen, pdfUrl])
 
+    // Generate PDF from design session output
+    const generatePdfFromDesign = useCallback(async (designSession: DesignSession) => {
+        if (!designSession.output?.finalBook) return
+
+        try {
+            const response = await fetch('/api/generate-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    activities: activities,
+                    config: {
+                        title,
+                        athleteName,
+                        year: new Date(activities[0]?.start_date || Date.now()).getFullYear(),
+                        format,
+                        theme: designSession.output?.artDirector?.theme,
+                    },
+                }),
+            })
+
+            if (response.ok) {
+                const pdfBlob = await response.blob()
+                const url = URL.createObjectURL(pdfBlob)
+                setPdfUrl(url)
+            }
+        } catch (error) {
+            console.error('Failed to generate PDF from design:', error)
+        }
+    }, [activities, title, athleteName, format])
+
     // Poll for status updates
     const pollStatus = useCallback(async (sessionId: string) => {
         try {
@@ -123,18 +184,17 @@ export default function AIBookDesignerModal({
             const data: DesignSession = await response.json()
             setSession(data)
 
-            // Update current step based on status
-            if (data.status === 'art-director') {
+            // Update current step based on status (API uses underscores)
+            if (data.status === 'art_director') {
                 setCurrentStep('art-director')
             } else if (data.status === 'narrator') {
                 setCurrentStep('narrator')
             } else if (data.status === 'designer') {
                 setCurrentStep('designer')
-            } else if (data.status === 'complete') {
+            } else if (data.status === 'completed') {
                 setCurrentStep('complete')
-                if (data.pdfUrl) {
-                    setPdfUrl(data.pdfUrl)
-                }
+                // Generate PDF from the design output
+                await generatePdfFromDesign(data)
                 // Stop polling on complete
                 if (pollingRef.current) {
                     clearInterval(pollingRef.current)
@@ -142,7 +202,7 @@ export default function AIBookDesignerModal({
                 }
             } else if (data.status === 'error') {
                 setCurrentStep('error')
-                setErrorMessage(data.error || 'An error occurred during design generation')
+                setErrorMessage(data.errors?.[0] || 'An error occurred during design generation')
                 // Stop polling on error
                 if (pollingRef.current) {
                     clearInterval(pollingRef.current)
@@ -153,7 +213,7 @@ export default function AIBookDesignerModal({
             console.error('Failed to poll status:', error)
             // Don't stop polling on transient errors
         }
-    }, [])
+    }, [generatePdfFromDesign])
 
     // Start the design process
     const startDesign = useCallback(async () => {
@@ -195,7 +255,7 @@ export default function AIBookDesignerModal({
             const sessionId = data.sessionId
 
             sessionIdRef.current = sessionId
-            setSession({ sessionId, status: 'art-director' })
+            setSession({ sessionId, status: 'art_director' })
 
             // Start polling for updates
             pollingRef.current = setInterval(() => {
@@ -438,50 +498,45 @@ export default function AIBookDesignerModal({
                                 <p className="text-stone-600">Analyzing your activities and creating a visual theme...</p>
                             </div>
 
-                            {session?.artDirectorOutput && (
+                            {(session?.output?.artDirector || session?.partialOutput?.artDirectorTheme) && (
                                 <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 space-y-4">
                                     <h4 className="font-semibold text-violet-800">Theme Preview</h4>
 
                                     {/* Color Preview */}
-                                    <div className="flex gap-2">
-                                        <div className="flex-1">
-                                            <div
-                                                className="h-12 rounded border border-stone-200"
-                                                style={{ backgroundColor: session.artDirectorOutput.theme.primaryColor }}
-                                            />
-                                            <div className="text-xs text-stone-600 text-center mt-1">Primary</div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div
-                                                className="h-12 rounded border border-stone-200"
-                                                style={{ backgroundColor: session.artDirectorOutput.theme.accentColor }}
-                                            />
-                                            <div className="text-xs text-stone-600 text-center mt-1">Accent</div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div
-                                                className="h-12 rounded border border-stone-200"
-                                                style={{ backgroundColor: session.artDirectorOutput.theme.backgroundColor }}
-                                            />
-                                            <div className="text-xs text-stone-600 text-center mt-1">Background</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Mood Keywords */}
-                                    {session.artDirectorOutput.moodKeywords && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {session.artDirectorOutput.moodKeywords.map((keyword, idx) => (
-                                                <span key={idx} className="px-2 py-1 bg-violet-200 text-violet-800 text-xs rounded-full">
-                                                    {keyword}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const theme = session.output?.artDirector?.theme || session.partialOutput?.artDirectorTheme
+                                        if (!theme) return null
+                                        return (
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <div
+                                                        className="h-12 rounded border border-stone-200"
+                                                        style={{ backgroundColor: theme.primaryColor }}
+                                                    />
+                                                    <div className="text-xs text-stone-600 text-center mt-1">Primary</div>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div
+                                                        className="h-12 rounded border border-stone-200"
+                                                        style={{ backgroundColor: theme.accentColor }}
+                                                    />
+                                                    <div className="text-xs text-stone-600 text-center mt-1">Accent</div>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div
+                                                        className="h-12 rounded border border-stone-200"
+                                                        style={{ backgroundColor: theme.backgroundColor }}
+                                                    />
+                                                    <div className="text-xs text-stone-600 text-center mt-1">Background</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })()}
 
                                     {/* Reasoning */}
-                                    {session.artDirectorOutput.reasoning && (
+                                    {session.output?.artDirector?.reasoning && (
                                         <p className="text-sm text-violet-700 italic">
-                                            &quot;{session.artDirectorOutput.reasoning}&quot;
+                                            &quot;{session.output.artDirector.reasoning}&quot;
                                         </p>
                                     )}
                                 </div>
@@ -511,31 +566,40 @@ export default function AIBookDesignerModal({
                                 <p className="text-stone-600">Organizing your year into meaningful chapters...</p>
                             </div>
 
-                            {session?.narratorOutput && (
+                            {(session?.output?.narrator || session?.partialOutput?.chapterCount) && (
                                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-4">
                                     <h4 className="font-semibold text-emerald-800">Chapter Preview</h4>
 
                                     {/* Chapter List */}
-                                    <div className="space-y-2">
-                                        {session.narratorOutput.chapters.map((chapter, idx) => (
-                                            <div key={idx} className="bg-white rounded-lg p-3 border border-emerald-200">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="font-semibold text-stone-800">{chapter.name}</span>
-                                                    <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded">
-                                                        {chapter.activities.length} activities
-                                                    </span>
+                                    {session.output?.narrator?.chapters && (
+                                        <div className="space-y-2">
+                                            {session.output.narrator.chapters.map((chapter, idx) => (
+                                                <div key={idx} className="bg-white rounded-lg p-3 border border-emerald-200">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="font-semibold text-stone-800">{chapter.title}</span>
+                                                        <span className="text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded">
+                                                            {chapter.activities?.length || 0} activities
+                                                        </span>
+                                                    </div>
+                                                    {chapter.summary && (
+                                                        <p className="text-sm text-stone-600 mt-1 italic">{chapter.summary}</p>
+                                                    )}
                                                 </div>
-                                                {chapter.narrative && (
-                                                    <p className="text-sm text-stone-600 mt-1 italic">{chapter.narrative}</p>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                    {/* Overall Narrative */}
-                                    {session.narratorOutput.overallNarrative && (
+                                    {/* Show partial progress */}
+                                    {!session.output?.narrator && (session.partialOutput?.chapterCount ?? 0) > 0 && (
+                                        <p className="text-sm text-emerald-600">
+                                            {session.partialOutput?.chapterCount} chapters identified...
+                                        </p>
+                                    )}
+
+                                    {/* Year Summary */}
+                                    {session.output?.narrator?.yearSummary?.openingParagraph && (
                                         <p className="text-sm text-emerald-700 italic border-t border-emerald-200 pt-3">
-                                            &quot;{session.narratorOutput.overallNarrative}&quot;
+                                            &quot;{session.output.narrator.yearSummary.openingParagraph}&quot;
                                         </p>
                                     )}
                                 </div>
@@ -565,41 +629,39 @@ export default function AIBookDesignerModal({
                                 <p className="text-stone-600">Creating beautiful page layouts...</p>
                             </div>
 
-                            {session?.designerProgress && (
+                            {(session?.progress || session?.partialOutput?.hasDesigner) && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-4">
                                     <h4 className="font-semibold text-blue-800">Design Progress</h4>
 
                                     {/* Progress Bar */}
-                                    <div>
-                                        <div className="flex justify-between text-sm text-blue-700 mb-1">
-                                            <span>Pages completed</span>
-                                            <span>{session.designerProgress.completed} / {session.designerProgress.total}</span>
-                                        </div>
-                                        <div className="w-full bg-blue-200 rounded-full h-3">
-                                            <div
-                                                className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${(session.designerProgress.completed / session.designerProgress.total) * 100}%`
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Current Score */}
-                                    {session.designerProgress.currentScore > 0 && (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-sm text-blue-700">Design Quality Score:</span>
-                                            <span className="font-bold text-blue-900">
-                                                {session.designerProgress.currentScore.toFixed(1)}/10
-                                            </span>
+                                    {session.progress && (
+                                        <div>
+                                            <div className="flex justify-between text-sm text-blue-700 mb-1">
+                                                <span>{session.progress.currentStage}</span>
+                                                <span>{session.progress.percentComplete}%</span>
+                                            </div>
+                                            <div className="w-full bg-blue-200 rounded-full h-3">
+                                                <div
+                                                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                                                    style={{
+                                                        width: `${session.progress.percentComplete}%`
+                                                    }}
+                                                />
+                                            </div>
+                                            <p className="text-sm text-blue-600 text-center mt-2">
+                                                {session.progress.message}
+                                            </p>
                                         </div>
                                     )}
 
-                                    {/* Current Page */}
-                                    {session.designerProgress.currentPage && (
-                                        <p className="text-sm text-blue-600 text-center">
-                                            Currently designing: {session.designerProgress.currentPage}
-                                        </p>
+                                    {/* Design Score (if available) */}
+                                    {session.output?.designer?.finalScore && session.output.designer.finalScore > 0 && (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="text-sm text-blue-700">Design Quality Score:</span>
+                                            <span className="font-bold text-blue-900">
+                                                {session.output.designer.finalScore}/100
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -629,45 +691,62 @@ export default function AIBookDesignerModal({
                             </p>
 
                             {/* Theme Summary */}
-                            {session?.artDirectorOutput && (
+                            {session?.output?.artDirector?.theme && (
                                 <div className="bg-stone-50 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
                                     <h4 className="font-semibold text-stone-800 mb-2">Theme Applied</h4>
                                     <div className="flex gap-2 mb-2">
                                         <div
                                             className="w-8 h-8 rounded border"
-                                            style={{ backgroundColor: session.artDirectorOutput.theme.primaryColor }}
+                                            style={{ backgroundColor: session.output.artDirector.theme.primaryColor }}
                                             title="Primary Color"
                                         />
                                         <div
                                             className="w-8 h-8 rounded border"
-                                            style={{ backgroundColor: session.artDirectorOutput.theme.accentColor }}
+                                            style={{ backgroundColor: session.output.artDirector.theme.accentColor }}
                                             title="Accent Color"
                                         />
                                     </div>
-                                    {session.artDirectorOutput.reasoning && (
+                                    {session.output.artDirector.reasoning && (
                                         <p className="text-xs text-stone-600 italic">
-                                            {session.artDirectorOutput.reasoning}
+                                            {session.output.artDirector.reasoning}
                                         </p>
                                     )}
                                 </div>
                             )}
 
                             {/* Chapter Summary */}
-                            {session?.narratorOutput && (
+                            {session?.output?.narrator?.chapters && (
                                 <div className="bg-stone-50 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
                                     <h4 className="font-semibold text-stone-800 mb-2">
-                                        {session.narratorOutput.chapters.length} Chapters Created
+                                        {session.output.narrator.chapters.length} Chapters Created
                                     </h4>
                                     <ul className="text-sm text-stone-600 space-y-1">
-                                        {session.narratorOutput.chapters.slice(0, 4).map((chapter, idx) => (
-                                            <li key={idx}>- {chapter.name}</li>
+                                        {session.output.narrator.chapters.slice(0, 4).map((chapter, idx) => (
+                                            <li key={idx}>- {chapter.title}</li>
                                         ))}
-                                        {session.narratorOutput.chapters.length > 4 && (
+                                        {session.output.narrator.chapters.length > 4 && (
                                             <li className="text-stone-400">
-                                                ...and {session.narratorOutput.chapters.length - 4} more
+                                                ...and {session.output.narrator.chapters.length - 4} more
                                             </li>
                                         )}
                                     </ul>
+                                </div>
+                            )}
+
+                            {/* Design Score */}
+                            {session?.output?.designer && (
+                                <div className="bg-stone-50 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
+                                    <h4 className="font-semibold text-stone-800 mb-2">Design Summary</h4>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <span className="block text-xs text-stone-500">Pages</span>
+                                            <span className="font-bold">{session.output.designer.pages?.length || 0}</span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-xs text-stone-500">Quality Score</span>
+                                            <span className="font-bold">{session.output.designer.finalScore}/100</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
