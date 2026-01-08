@@ -1,6 +1,7 @@
 import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { resolveActivityLocation } from '@/lib/activity-utils'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -79,10 +80,8 @@ export interface Race_2pLeftProps {
 export const Race_2pLeft = ({ activity, highlightLabel }: Race_2pLeftProps) => {
     // Check for high-res photo, typically Strava doesn't give full res via API without more scope/logic
     // but we added type support. For now, if no photo, we keep the dark background.
-    // Use proxy to avoid CORS
-    const bgImage = activity.photos?.primary?.urls?.['600']
-        ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
-        : null
+    // Use resolveImageForPdf for server-side PDF rendering
+    const bgImage = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
 
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)

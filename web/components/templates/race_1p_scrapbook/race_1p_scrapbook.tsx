@@ -12,6 +12,7 @@ import {
 import { StravaActivity } from '@/lib/strava';
 import { resolveActivityLocation } from '@/lib/activity-utils';
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
+import { resolveImageForPdf } from '@/lib/pdf-image-loader';
 
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
@@ -465,17 +466,15 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
   // Transform StravaActivity to ScrapbookPageProps
   const location = resolveActivityLocation(activity);
 
-  // Get Strava photo if available
-  const stravaPhoto = activity.photos?.primary?.urls?.['600']
-    ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
-    : '/assets/placeholder-photo.jpg';
+  // Get Strava photo if available - use resolveImageForPdf for server-side rendering
+  const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600']) || '/assets/placeholder-photo.jpg';
 
   // Get satellite map if token available
   let satelliteMap = '/assets/placeholder-map.jpg';
   if (mapboxToken && activity.map.summary_polyline) {
     const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`;
     const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/800x400?access_token=${mapboxToken}&logo=false&attrib=false`;
-    satelliteMap = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+    satelliteMap = resolveImageForPdf(rawUrl) || '/assets/placeholder-map.jpg';
   }
 
   // Calculate stats
@@ -532,9 +531,10 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
     .map(photo => {
       // Use 600px size if available, otherwise fall back to 5000px
       const photoUrl = photo.urls['600'] || photo.urls['5000'] || Object.values(photo.urls)[0]
-      return photoUrl ? `/api/proxy-image?url=${encodeURIComponent(photoUrl)}` : ''
+      // Use resolveImageForPdf for server-side PDF rendering
+      return photoUrl ? resolveImageForPdf(photoUrl) : null
     })
-    .filter(url => url) // Remove any empty URLs
+    .filter((url): url is string => url !== null) // Remove any null URLs
 
   // Get comments
   const comments = (activity.comments || []).slice(0, 3);

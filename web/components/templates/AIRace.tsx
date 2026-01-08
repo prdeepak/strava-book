@@ -1,5 +1,6 @@
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -118,13 +119,13 @@ export const AIRace = ({ designSpec, comprehensiveData }: AIRaceProps) => {
         ? background.gradientStart || colorScheme.background
         : background?.color || colorScheme.background
 
-    // Prepare photo URLs with absolute paths
-    const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    // Prepare photo URLs for server-side PDF rendering
     const photoUrls: string[] = photos.slice(0, 3).map((photo: PhotoData) => {
         const photoUrlsObj = photo.urls || {}
         const rawUrl = photoUrlsObj['5000'] || photoUrlsObj['600'] || photoUrlsObj['100'] || Object.values(photoUrlsObj)[0]
         if (!rawUrl) return null
-        return `${BASE_URL}/api/proxy-image?url=${encodeURIComponent(rawUrl as string)}`
+        // Use resolveImageForPdf to get a URL that react-pdf can fetch directly
+        return resolveImageForPdf(rawUrl as string)
     }).filter((url): url is string => url !== null)
 
     // Calculate key stats for stat elements
