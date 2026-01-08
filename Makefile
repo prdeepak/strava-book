@@ -116,6 +116,10 @@ test-integration-quick:
 	@echo "📚 Running integration tests (no visual judge)..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
 
+test-book-generation:
+	@echo "📖 Running book generation tests..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/book-generation-tests.ts --verbose
+
 
 # --- Start the day ---
 start-work:

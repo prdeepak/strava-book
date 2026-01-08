@@ -239,8 +239,11 @@ export default function BookGenerationModal({
 
             if (!response.ok) {
                 clearInterval(progressInterval)
-                const error = await response.json()
-                throw new Error(error.error || 'Failed to generate book')
+                const errorData = await response.json()
+                const errorMsg = errorData.details
+                    ? `${errorData.error}: ${errorData.details}`
+                    : errorData.error || 'Failed to generate book'
+                throw new Error(errorMsg)
             }
 
             clearInterval(progressInterval)
