@@ -1,6 +1,6 @@
 # Strava Book Technical Specification
 
-**Version:** 1.2
+**Version:** 1.3
 **Status:** In Development
 **Updated:** 2025-01-08
 **Goal:** Define project well enough for parallel autonomous agent development
@@ -390,9 +390,9 @@ Visual judge uses auto-fallback: tries configured providers in order until one s
 ├─────────────────┼─────────────────┼─────────────────────────────┤
 │ A1: Cover ⚡     │ B1: Test infra ✅│ C1: Fixture library ✅      │
 │ A2: YearStats ⚡ │ B2: LLM judge ✅ │ C2: Mock server (Phase 2)   │
-│ A3: YearCalendar⚡│ B3: Visual tests✅│ C3: Style guide generation  │
-│ A4: Race_1p ⚡   │ B4: Integration │ C4: Book assembly logic     │
-│ A5: Race_2p ⚡   │     tests       │                             │
+│ A3: YearCalendar⚡│ B3: Visual tests✅│ C3: Style guide gen ✅      │
+│ A4: Race_1p ⚡   │ B4: Integration✅│ C4: Book assembly ✅        │
+│ A5: Race_2p ⚡   │                 │                             │
 │ A6: ActivityLog⚡│                 │                             │
 │ A7: Dividers ⚡  │                 │                             │
 │ A8: BackCover ⚡ │                 │                             │
@@ -406,26 +406,35 @@ Legend: ✅ = Complete, ⚡ = Functional placeholder (needs visual polish)
 - ✅ **B1: Test Infrastructure** — `make test-template`, `make test-visual`, `make test-list`
 - ✅ **B2: LLM Judge** — `visual-judge.ts` with Gemini (Bedrock/Anthropic fallback)
 - ✅ **B3: Visual Tests** — Full pipeline: PDF → PNG → LLM evaluation → structured feedback
-- ✅ **C1: Fixture Library** — 16 fixtures from real Strava data
+- ✅ **B4: Integration Tests** — `make test-integration`, year fixtures (activeYear, casualYear, etc.)
+- ✅ **C1: Fixture Library** — 16 activity fixtures + 4 year fixtures from real Strava data
+- ✅ **C3: Style Guide Generator** — AI theming with race detection (Boston, NYC, Comrades, etc.)
+- ✅ **C4: Book Assembly Logic** — `BookDocument.tsx` routes all page types, `generateBookEntries()`
 - ⚡ **A1-A8: All Templates** — Functional placeholders, pass tests (scores 70-83), need visual polish
 
-### Current Priority: End-to-End Pipeline
+### End-to-End Pipeline Complete ✅
 
-Before polishing templates, complete the book assembly pipeline:
+Full book generation now works:
+```bash
+make test-integration-quick   # Generates 4 complete book PDFs
+```
 
-1. **C4: Book Assembly Logic** — Wire `BookDocument.tsx` to route all page types
-2. **C3: Style Guide Generation** — AI picks theme from user context
-3. **B4: Integration Tests** — Test full book generation with year fixtures
+Generated books (in `test-output/`):
+- `integration-activeYear.pdf` — 37 pages, 322 KB
+- `integration-casualYear.pdf` — 14 pages, 35 KB
+- `integration-marathonFocus.pdf` — 12 pages, 25 KB
+- `integration-ultraFocus.pdf` — 16 pages, 67 KB
 
-Then agents can iterate on visual quality of individual templates.
+### Current Priority: Template Visual Polish
+
+Now that the pipeline works end-to-end, focus on improving template visual quality.
 
 ### Remaining Work
 
 **Phase 1 (MVP):**
-- C4: Book assembly logic (BookDocument.tsx routing) ← **NEXT**
-- C3: Style guide generation (AI theming) ← **NEXT**
-- B4: Integration tests for full book generation ← **NEXT**
-- A1-A8: Template visual polish (after pipeline complete)
+- A1-A8: Template visual polish ← **NEXT**
+- UI: Wire style guide generator to builder UI
+- UI: Wire book generation to builder UI
 
 **Phase 2:**
 - C2: Mock Strava server for offline development
