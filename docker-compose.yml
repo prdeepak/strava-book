@@ -9,9 +9,10 @@ services:
 
   web:
     build: ./web
-    working_dir: /app
+    working_dir: /app/web
     volumes:
       - .:/app
+      - /app/web/node_modules  # Anonymous volume for container-specific node_modules
       - ${HOME}/.gcp:/app/.gcp:ro
       - ${HOME}/.aws:/root/.aws:ro
     ports:
