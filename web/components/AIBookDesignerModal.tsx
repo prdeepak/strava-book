@@ -167,6 +167,14 @@ export default function AIBookDesignerModal({
                 const pdfBlob = await response.blob()
                 const url = URL.createObjectURL(pdfBlob)
                 setPdfUrl(url)
+
+                // Auto-download the PDF
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `${title.replace(/\s+/g, '-').toLowerCase()}-ai-designed.pdf`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
             }
         } catch (error) {
             console.error('Failed to generate PDF from design:', error)
