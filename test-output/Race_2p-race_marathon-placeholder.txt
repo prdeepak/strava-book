@@ -1,0 +1,4 @@
+PDF conversion requires pdftoppm.
+Install with: brew install poppler
+
+PDF file: /home/user/strava-book/test-output/Race_2p-race_marathon.pdf
