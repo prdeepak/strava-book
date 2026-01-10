@@ -13,7 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { FullBookDocument } from '@/components/templates/BookDocument'
-import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
+import type { BookTheme } from '@/lib/book-types'
+import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 // Register fonts for PDF generation
 import '@/lib/pdf-fonts'
 
