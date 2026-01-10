@@ -330,6 +330,57 @@ function getRegisteredFontStyles(): Map<string, Set<string>> {
 }
 
 // ============================================================================
+// Theme Body Font Validation
+// ============================================================================
+
+function getThemeBodyFonts(): string[] {
+    const themeDefaultsPath = path.join(LIB_DIR, 'theme-defaults.ts')
+    const styleGuidePath = path.join(LIB_DIR, 'style-guide-generator.ts')
+    const bodyFonts = new Set<string>()
+
+    // Check theme-defaults.ts
+    if (fs.existsSync(themeDefaultsPath)) {
+        const content = fs.readFileSync(themeDefaultsPath, 'utf-8')
+        const bodyMatches = content.matchAll(/body:\s*['"]([^'"]+)['"]/g)
+        for (const match of bodyMatches) {
+            bodyFonts.add(match[1])
+        }
+    }
+
+    // Check style-guide-generator.ts
+    if (fs.existsSync(styleGuidePath)) {
+        const content = fs.readFileSync(styleGuidePath, 'utf-8')
+        const bodyMatches = content.matchAll(/body:\s*['"]([^'"]+)['"]/g)
+        for (const match of bodyMatches) {
+            bodyFonts.add(match[1])
+        }
+        // Also check bodyFont assignments
+        const assignMatches = content.matchAll(/bodyFont\s*=\s*['"]([^'"]+)['"]/g)
+        for (const match of assignMatches) {
+            bodyFonts.add(match[1])
+        }
+    }
+
+    return Array.from(bodyFonts)
+}
+
+function validateBodyFontsHaveItalic(bodyFonts: string[], registeredStyles: Map<string, Set<string>>): string[] {
+    const missing: string[] = []
+
+    for (const font of bodyFonts) {
+        // Skip built-in fonts
+        if (BUILTIN_FONTS.includes(font)) continue
+
+        const styles = registeredStyles.get(font)
+        if (!styles || !styles.has('italic')) {
+            missing.push(font)
+        }
+    }
+
+    return missing
+}
+
+// ============================================================================
 // Main Test Runner
 // ============================================================================
 
@@ -381,15 +432,29 @@ async function runFontValidation(): Promise<void> {
         console.log(`   Checked ${styleUsages.length} style usages - all variants available.`)
     }
 
-    // Test 3: Report unregistered fonts
+    // Test 3: Check body fonts have italic (for theme.fontPairing.body)
+    console.log('\n3. Checking theme body fonts have italic variants...')
+    const bodyFonts = getThemeBodyFonts()
+    const bodyFontsMissingItalic = validateBodyFontsHaveItalic(bodyFonts, registeredStyles)
+
+    if (bodyFontsMissingItalic.length > 0) {
+        console.log('\n   ERRORS - Body fonts missing italic variant:')
+        bodyFontsMissingItalic.forEach(font => {
+            console.log(`   - "${font}" is used as body font but has no italic registered`)
+        })
+    } else {
+        console.log(`   Checked ${bodyFonts.length} body fonts - all have italic variants.`)
+    }
+
+    // Test 4: Report unregistered fonts
     if (result.unregisteredButAvailable.length > 0) {
-        console.log('\n3. Info - Available fonts not registered:')
+        console.log('\n4. Info - Available fonts not registered:')
         result.unregisteredButAvailable.forEach(f => console.log(`   - ${f}`))
     }
 
     // Summary
     console.log('\n=====================')
-    const hasErrors = result.missingFonts.length > 0 || missingStyles.length > 0
+    const hasErrors = result.missingFonts.length > 0 || missingStyles.length > 0 || bodyFontsMissingItalic.length > 0
     if (hasErrors) {
         console.log('VALIDATION FAILED')
         process.exit(1)
