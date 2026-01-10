@@ -169,7 +169,8 @@ async function renderVariant(
     // For now, we test the default rendering for each template
 
     const reactElement = React.createElement(Template, props)
-    const buffer = await renderToBuffer(reactElement)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(reactElement as any)
 
     return { buffer: Buffer.from(buffer), reactElement }
   } catch (error) {
