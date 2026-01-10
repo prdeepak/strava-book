@@ -1,12 +1,8 @@
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { resolveActivityLocation } from '@/lib/activity-utils'
 import mapboxPolyline from '@mapbox/polyline'
-import { SplitsChartSVG } from '@/lib/generateSplitsChart'
-import { StatsGrid } from '@/components/pdf/StatsGrid'
-import { Header } from '@/components/pdf/Header'
-import { CommentsSection } from '@/components/pdf/CommentsSection'
-import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
-import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -14,80 +10,225 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
-const styles = StyleSheet.create({
+// Create styles with format and theme
+const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
     page: {
-        backgroundColor: '#ffffff',
-        padding: 25,
-        flexDirection: 'column',
+        width: format.dimensions.width,
+        height: format.dimensions.height,
+        backgroundColor: '#1a1a1a', // Dark background for dramatic race pages
+        position: 'relative',
     },
 
-    imagesSection: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 12,
-        height: 220,
-    },
-    imageContainer: {
-        flex: 1,
-        backgroundColor: '#f0f0f0',
-        justifyContent: 'center',
-        alignItems: 'center',
+    // Hero photo section - full bleed at top (compact for single-page layout)
+    heroPhotoContainer: {
+        width: '100%',
+        height: 200 * format.scaleFactor,
+        position: 'relative',
         overflow: 'hidden',
     },
-    fullWidthImage: {
+    heroPhoto: {
         width: '100%',
-        height: 220,
-        backgroundColor: '#f0f0f0',
-        marginBottom: 12,
+        height: '100%',
+        objectFit: 'cover',
+    },
+    photoOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 60,
+        background: 'linear-gradient(to top, rgba(26,26,26,1), rgba(26,26,26,0))',
     },
 
-    sectionTitle: {
-        fontSize: 10,
+    // Content area
+    contentArea: {
+        padding: format.safeMargin,
+        paddingTop: 16 * format.scaleFactor,
+    },
+
+    // Title section (more compact)
+    titleSection: {
+        marginBottom: 12 * format.scaleFactor,
+    },
+    raceDate: {
+        fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
+        color: theme.accentColor,
         textTransform: 'uppercase',
-        marginBottom: 6,
-        marginTop: 8,
-        color: '#333',
-        borderBottomWidth: 1,
-        borderBottomColor: '#000',
-        paddingBottom: 2,
+        letterSpacing: 2,
+        marginBottom: 4 * format.scaleFactor,
     },
-    dataGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
+    raceTitle: {
+        fontSize: Math.max(20, 26 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: '#ffffff',
+        fontWeight: 'bold',
+        lineHeight: 1.1,
+        marginBottom: 6 * format.scaleFactor,
     },
-    dataRow: {
-        width: '48%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 2,
-        fontSize: 7,
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#ddd',
-        paddingBottom: 1,
-    },
-    dataLabel: {
+    raceLocation: {
+        fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#666',
-        fontSize: 7,
+        color: '#999999',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    // Hero stats - oversized but more compact
+    heroStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 16 * format.scaleFactor,
+        paddingBottom: 12 * format.scaleFactor,
+        borderBottomWidth: 1,
+        borderBottomColor: '#333333',
+    },
+    heroStat: {
+        alignItems: 'center',
+    },
+    heroStatValue: {
+        fontSize: Math.max(28, 36 * format.scaleFactor),
+        fontFamily: 'Courier-Bold', // Monospace for stats
+        color: theme.accentColor,
+        lineHeight: 1,
+    },
+    heroStatLabel: {
+        fontSize: Math.max(7, 8 * format.scaleFactor),
+        fontFamily: 'Helvetica',
+        color: '#888888',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        marginTop: 4 * format.scaleFactor,
+    },
+
+    // Data sections layout (more compact)
+    dataSections: {
+        flexDirection: 'row',
+        gap: 12 * format.scaleFactor,
+        marginBottom: 12 * format.scaleFactor,
+    },
+    dataColumn: {
         flex: 1,
     },
-    dataValue: {
+
+    // Section headers
+    sectionTitle: {
+        fontSize: Math.max(8, 9 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
-        color: '#000',
-        fontSize: 7,
-        textAlign: 'right',
+        textTransform: 'uppercase',
+        color: theme.accentColor,
+        marginBottom: 6 * format.scaleFactor,
+        letterSpacing: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: '#333333',
+        paddingBottom: 3 * format.scaleFactor,
     },
 
-    footer: {
-        position: 'absolute',
-        bottom: 12,
-        left: 25,
-        right: 25,
-        textAlign: 'center',
-        fontSize: 7,
-        color: '#999',
+    // Splits table (more compact)
+    splitsTable: {
+        marginTop: 4 * format.scaleFactor,
+    },
+    splitRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 2 * format.scaleFactor,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#2a2a2a',
+    },
+    splitLabel: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Helvetica',
+        color: '#999999',
+    },
+    splitValue: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Courier', // Monospace for alignment
+        color: '#ffffff',
+    },
+
+    // Best efforts (more compact)
+    effortRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 2 * format.scaleFactor,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#2a2a2a',
+    },
+    effortLabel: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Helvetica',
+        color: '#999999',
+        flex: 1,
+    },
+    effortValue: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Courier-Bold',
+        color: '#ffffff',
+    },
+    prBadge: {
+        backgroundColor: theme.accentColor,
+        paddingHorizontal: 3,
+        paddingVertical: 1,
+        borderRadius: 2,
+        marginLeft: 4,
+    },
+    prBadgeText: {
+        fontSize: Math.max(5, 6 * format.scaleFactor),
+        fontFamily: 'Helvetica-Bold',
+        color: '#000000',
+    },
+
+    // Comments (more compact)
+    commentsList: {
+        marginTop: 4 * format.scaleFactor,
+    },
+    comment: {
+        marginBottom: 6 * format.scaleFactor,
+        paddingBottom: 4 * format.scaleFactor,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#2a2a2a',
+    },
+    commentAuthor: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Helvetica-Bold',
+        color: theme.accentColor,
+        marginBottom: 1 * format.scaleFactor,
+    },
+    commentText: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Helvetica',
+        color: '#cccccc',
+        lineHeight: 1.3,
+    },
+    kudosCount: {
+        fontSize: Math.max(6, 7 * format.scaleFactor),
+        fontFamily: 'Helvetica-Bold',
+        color: theme.accentColor,
+        marginTop: 4 * format.scaleFactor,
+    },
+
+    // Map/polyline section (smaller for single-page)
+    mapSection: {
+        width: '100%',
+        height: 100 * format.scaleFactor,
+        backgroundColor: '#0a0a0a',
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 12 * format.scaleFactor,
+    },
+
+    // Description (more compact)
+    description: {
+        fontSize: Math.max(7, 8 * format.scaleFactor),
+        fontFamily: 'Helvetica',
+        color: '#cccccc',
+        fontStyle: 'italic',
+        lineHeight: 1.3,
+        marginBottom: 12 * format.scaleFactor,
+        paddingLeft: 10 * format.scaleFactor,
+        borderLeftWidth: 2,
+        borderLeftColor: theme.accentColor,
     },
 })
 
@@ -127,47 +268,95 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
 interface Race_1pProps {
     activity: StravaActivity
     mapboxToken?: string
+    format?: BookFormat
+    theme?: BookTheme
 }
 
-export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
-    // Get Strava photo if available - use resolveImageForPdf for server-side rendering
-    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
-
-    // Get satellite map if token available
-    let satelliteMap: string | null = null
-    if (mapboxToken && activity.map.summary_polyline) {
-        const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
-        const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/800x400?access_token=${mapboxToken}&logo=false&attrib=false`
-        satelliteMap = resolveImageForPdf(rawUrl)
+// Helper to resolve image URLs - use local paths directly, proxy external URLs
+function resolveImageUrl(url: string | undefined): string | null {
+    if (!url) return null
+    // Local file paths (absolute paths from fixtures)
+    if (url.startsWith('/') && !url.startsWith('/api/')) {
+        return url
     }
+    // HTTP URLs need to be proxied
+    if (url.startsWith('http')) {
+        return `/api/proxy-image?url=${encodeURIComponent(url)}`
+    }
+    // Relative paths - assume local
+    return url
+}
 
-    // Determine what to show
-    const hasBothImages = stravaPhoto && satelliteMap
-    const hasOnlyPhoto = stravaPhoto && !satelliteMap
-    const hasOnlyMap = !stravaPhoto && satelliteMap
-    const hasNoImages = !stravaPhoto && !satelliteMap
-    // Prepare chart data - prefer laps over splits
-    // Laps represent manual lap markers (e.g., race laps), splits are auto-generated per km
+// Helper to format time as HH:MM:SS or MM:SS
+function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+// Helper to format pace as MM:SS/km
+function formatPace(distanceMeters: number, timeSeconds: number): string {
+    if (distanceMeters === 0) return '--:--'
+    const paceSecondsPerKm = timeSeconds / (distanceMeters / 1000)
+    const minutes = Math.floor(paceSecondsPerKm / 60)
+    const seconds = Math.floor(paceSecondsPerKm % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+export const Race_1p = ({
+    activity,
+    mapboxToken,
+    format = FORMATS['10x10'],
+    theme = DEFAULT_THEME
+}: Race_1pProps) => {
+    const styles = createStyles(format, theme)
+    const location = resolveActivityLocation(activity)
+
+    // Get Strava photo if available
+    const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
+
+    // Prepare splits data - prefer laps over auto-generated splits (limit to 6 for single page)
     const rawLaps = activity.laps || []
     const rawSplits = activity.splits_metric || []
 
     let displaySplits = []
     if (rawLaps.length > 0) {
-        // Use laps if available
-        displaySplits = rawLaps.map(lap => ({
-            split: lap.lap_index,
-            label: lap.name || `Lap ${lap.lap_index}`,
-            moving_time: lap.moving_time,
-            distance: lap.distance,
-            elevation_difference: lap.total_elevation_gain
+        // Use laps if available (race laps) - limit to 6 for single-page layout
+        displaySplits = rawLaps.slice(0, 6).map((lap, idx) => ({
+            label: lap.name || `Lap ${idx + 1}`,
+            time: formatTime(lap.moving_time),
+            pace: formatPace(lap.distance, lap.moving_time),
         }))
-    } else {
-        // Fall back to splits
-        displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }))
+    } else if (rawSplits.length > 0) {
+        // Fall back to splits - limit to 6 for single-page layout
+        displaySplits = rawSplits.slice(0, 6).map((s, idx) => ({
+            label: `${idx + 1} km`,
+            time: formatTime(s.moving_time),
+            pace: formatPace(s.distance, s.moving_time),
+        }))
     }
 
+    // Prepare best efforts (limit to 6 for single page)
+    const bestEfforts = (activity.best_efforts || [])
+        .filter(e => e.pr_rank && e.pr_rank <= 10)
+        .sort((a, b) => (a.pr_rank || 999) - (b.pr_rank || 999))
+        .slice(0, 6)
 
+    // Prepare comments (limit to 3 for single page)
+    const comments = (activity.comments || [])
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3)
 
+    // Calculate hero stats
+    const distanceKm = (activity.distance / 1000).toFixed(1)
+    const timeFormatted = formatTime(activity.moving_time)
+    const avgPace = formatPace(activity.distance, activity.moving_time)
+    const elevationM = Math.round(activity.total_elevation_gain)
 
 
 
@@ -175,82 +364,148 @@ export const Race_1p = ({ activity, mapboxToken }: Race_1pProps) => {
 
     return (
         <Document>
-            <Page size="LETTER" style={styles.page}>
-                {/* Hero Header - Title and Meta at Top */}
-                <Header activity={activity} />
-
-                {/* Images Section - Photo and/or Map */}
-                {hasBothImages && (
-                    <View style={styles.imagesSection}>
-                        <View style={styles.imageContainer}>
-                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                            <Image src={stravaPhoto!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </View>
-                        <View style={styles.imageContainer}>
-                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                            <Image src={satelliteMap!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </View>
-                    </View>
-                )}
-
-                {hasOnlyPhoto && (
-                    <View style={styles.fullWidthImage}>
+            <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+                {/* Hero Photo - Full Bleed */}
+                {stravaPhoto && (
+                    <View style={styles.heroPhotoContainer}>
                         {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={stravaPhoto!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Image src={stravaPhoto} style={styles.heroPhoto} />
                     </View>
                 )}
 
-                {hasOnlyMap && (
-                    <View style={styles.fullWidthImage}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={satelliteMap!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {/* Content Area */}
+                <View style={styles.contentArea}>
+                    {/* Title Section */}
+                    <View style={styles.titleSection}>
+                        <Text style={styles.raceDate}>
+                            {new Date(activity.start_date).toLocaleDateString(undefined, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            }).toUpperCase()}
+                        </Text>
+                        <Text style={styles.raceTitle}>{activity.name}</Text>
+                        <Text style={styles.raceLocation}>{location}</Text>
                     </View>
-                )}
 
-                {hasNoImages && (
-                    <View style={styles.fullWidthImage}>
-                        <Svg height="220" width="562" viewBox="0 0 562 220" style={{ backgroundColor: '#2a2a2a' }}>
-                            <Polyline
-                                points={normalizePoints(activity.map.summary_polyline, 562, 220)}
-                                stroke="#fc4c02"
-                                strokeWidth={4}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                fill="none"
-                            />
-                        </Svg>
+                    {/* Description */}
+                    {activity.description && (
+                        <Text style={styles.description}>"{activity.description}"</Text>
+                    )}
+
+                    {/* Hero Stats */}
+                    <View style={styles.heroStatsRow}>
+                        <View style={styles.heroStat}>
+                            <Text style={styles.heroStatValue}>{distanceKm}</Text>
+                            <Text style={styles.heroStatLabel}>KM</Text>
+                        </View>
+                        <View style={styles.heroStat}>
+                            <Text style={styles.heroStatValue}>{timeFormatted}</Text>
+                            <Text style={styles.heroStatLabel}>TIME</Text>
+                        </View>
+                        <View style={styles.heroStat}>
+                            <Text style={styles.heroStatValue}>{avgPace}</Text>
+                            <Text style={styles.heroStatLabel}>PACE/KM</Text>
+                        </View>
+                        {elevationM > 0 && (
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>{elevationM}</Text>
+                                <Text style={styles.heroStatLabel}>ELEV (M)</Text>
+                            </View>
+                        )}
                     </View>
-                )}
 
-                {/* Key Stats */}
-                <StatsGrid activity={activity} />
-
-                {/* Three-column layout for splits chart, best efforts, and comments */}
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {/* Splits Chart Column */}
-                    {displaySplits.length > 0 && (
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.sectionTitle}>Splits</Text>
-                            <SplitsChartSVG
-                                splits={displaySplits}
-                                totalTime={activity.moving_time}
-                                width={180}
-                                height={120}
-                            />
+                    {/* Map/Polyline - only show if no photo */}
+                    {!stravaPhoto && activity.map?.summary_polyline && (
+                        <View style={styles.mapSection}>
+                            <Svg
+                                width="100%"
+                                height={100 * format.scaleFactor}
+                                viewBox={`0 0 ${format.dimensions.width - (format.safeMargin * 2)} ${100 * format.scaleFactor}`}
+                            >
+                                <Polyline
+                                    points={normalizePoints(
+                                        activity.map.summary_polyline,
+                                        format.dimensions.width - (format.safeMargin * 2),
+                                        100 * format.scaleFactor
+                                    )}
+                                    stroke={theme.accentColor}
+                                    strokeWidth={3}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    fill="none"
+                                />
+                            </Svg>
                         </View>
                     )}
 
-                    {/* Best Efforts Column */}
-                    {/* Best Efforts Column */}
-                    <BestEffortsTable activity={activity} />
+                    {/* Data Sections */}
+                    <View style={styles.dataSections}>
+                        {/* Splits Column */}
+                        {displaySplits.length > 0 && (
+                            <View style={styles.dataColumn}>
+                                <Text style={styles.sectionTitle}>Splits</Text>
+                                <View style={styles.splitsTable}>
+                                    {displaySplits.map((split, idx) => (
+                                        <View key={idx} style={styles.splitRow}>
+                                            <Text style={styles.splitLabel}>{split.label}</Text>
+                                            <Text style={styles.splitValue}>{split.pace}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
 
-                    {/* Comments/Kudos Column */}
-                    {/* Comments Column */}
-                    <CommentsSection activity={activity} />
-                </View>
+                        {/* Best Efforts Column */}
+                        {bestEfforts.length > 0 && (
+                            <View style={styles.dataColumn}>
+                                <Text style={styles.sectionTitle}>Best Efforts</Text>
+                                <View style={styles.splitsTable}>
+                                    {bestEfforts.map((effort, idx) => {
+                                        const effortPace = formatPace(effort.distance, effort.elapsed_time)
+                                        const isPR = effort.pr_rank && effort.pr_rank <= 3
 
-                <View style={styles.footer}>
-                    <Text>Generated by Strava Book • {activity.type}</Text>
+                                        return (
+                                            <View key={idx} style={styles.effortRow}>
+                                                <Text style={styles.effortLabel}>{effort.name}</Text>
+                                                <Text style={styles.effortValue}>{effortPace}</Text>
+                                                {isPR && (
+                                                    <View style={styles.prBadge}>
+                                                        <Text style={styles.prBadgeText}>PR{effort.pr_rank}</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        )
+                                    })}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Comments Column */}
+                        {(comments.length > 0 || activity.kudos_count > 0) && (
+                            <View style={styles.dataColumn}>
+                                <Text style={styles.sectionTitle}>
+                                    {comments.length > 0 ? 'Comments' : 'Kudos'}
+                                </Text>
+                                {activity.kudos_count > 0 && (
+                                    <Text style={styles.kudosCount}>👍 {activity.kudos_count} kudos</Text>
+                                )}
+                                {comments.length > 0 && (
+                                    <View style={styles.commentsList}>
+                                        {comments.map((comment, idx) => (
+                                            <View key={idx} style={styles.comment}>
+                                                <Text style={styles.commentAuthor}>
+                                                    {comment.athlete.firstname} {comment.athlete.lastname}
+                                                </Text>
+                                                <Text style={styles.commentText}>{comment.text}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
                 </View>
             </Page>
         </Document>
