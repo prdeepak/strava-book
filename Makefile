@@ -77,15 +77,17 @@ web-shell:
 	docker-compose run --rm -w /app/web web /bin/sh
 
 web-dev:
-	# Running interactively (-it) so you can see logs and Ctrl+C
-	docker-compose run --rm --service-ports -w /app/web web npm run dev
+	# Install dependencies (for Linux native modules) then run dev server
+	docker-compose run --rm --service-ports -w /app/web web sh -c "npm install --legacy-peer-deps && npm run dev"
+
+web-install:
+	docker-compose run --rm -w /app/web web npm install --legacy-peer-deps
 
 web-build:
-	docker-compose run --rm -w /app/web web npm run build
+	docker-compose run --rm -w /app/web web sh -c "npm install --legacy-peer-deps && npm run build"
 
 web-check:
-	docker-compose run --rm -w /app/web web npm run lint
-	docker-compose run --rm -w /app/web web npm run build
+	docker-compose run --rm -w /app/web web sh -c "npm install --legacy-peer-deps && npm run lint && npm run build"
 
 web-restart:
 	@echo "Stopping any running web containers..."

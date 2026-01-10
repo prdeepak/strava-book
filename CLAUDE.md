@@ -33,10 +33,9 @@ When user says "Sync", "Save", or "Push":
 ### Data Flow
 1. `/` → Strava OAuth via NextAuth
 2. `/builder` → Fetches 200 recent activities, displays in BuilderClient
-3. User selects activity → Opens PDFGenerationModal or AIGenerationModal
-4. Modal fetches comprehensive data from `/api/comprehensive-activity-data`
-5. User configures template → POST to `/api/generate-pdf` or `/api/ai-generate`
-6. Backend renders React-PDF component → returns binary PDF
+3. User selects activities → Curates book contents
+4. User generates book → POST to `/api/generate-book-pdf`
+5. Backend renders React-PDF component → returns binary PDF
 
 ### Key Directories
 ```
@@ -47,8 +46,6 @@ web/
 │   └── api/               # Backend endpoints
 ├── components/
 │   ├── BuilderClient.tsx  # Main UI (activity list, filtering)
-│   ├── PDFGenerationModal.tsx  # Template selection & config
-│   ├── AIGenerationModal.tsx   # AI-powered design workflow
 │   ├── templates/         # PDF page templates (React-PDF)
 │   └── pdf/               # Reusable PDF components
 └── lib/
@@ -60,15 +57,15 @@ web/
 ### Component Patterns
 - **Client Components** (`'use client'`): BuilderClient, modals (interactive state)
 - **Server Components**: /builder page, API routes (auth, Strava calls)
-- **Templates**: Pure data rendering, PDF-specific (Race_1p, Race_2p, AIRace)
+- **Templates**: Pure data rendering, PDF-specific (Race_1p, Race_2p, BookDocument)
 - **PDF Components**: Reusable React-PDF views (Header, StatsGrid, CommentsSection)
 
 ### Key API Routes
 | Route | Purpose |
 |-------|---------|
 | `/api/comprehensive-activity-data` | Fetch activity + photos + comments + streams |
-| `/api/generate-pdf` | Render PDF from template |
-| `/api/ai-generate` | Generate layout via Gemini |
+| `/api/generate-book-pdf` | Render full book PDF from curated activities |
+| `/api/ai-book-designer` | AI-powered book design via Gemini |
 | `/api/activities` | Paginated activity list |
 
 ## Environment Variables
@@ -78,11 +75,9 @@ Required in `web/.env.local`:
 - `NEXTAUTH_SECRET` / `NEXTAUTH_URL`
 - `NEXT_PUBLIC_MAPBOX_TOKEN`
 - `GEMINI_API_KEY`
-- `USE_REAL_AI=true` (toggle mock/real Gemini)
 
 ## PDF Generation Notes
 
 - Uses @react-pdf/renderer for server-side PDF rendering
 - Templates receive data via props, not direct API calls
-- AI generates JSON design specs (parsed, not executed) for security
 - Fonts are pre-downloaded in `web/public/fonts/` (41 fonts across 6 categories)

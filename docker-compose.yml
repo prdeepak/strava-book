@@ -9,9 +9,10 @@ services:
 
   web:
     build: ./web
-    working_dir: /app
+    working_dir: /app/web
     volumes:
       - .:/app
+      - web_node_modules:/app/web/node_modules  # Named volume for container-specific node_modules
       - ${HOME}/.gcp:/app/.gcp:ro
       - ${HOME}/.aws:/root/.aws:ro
     ports:
@@ -63,4 +64,7 @@ services:
         echo '🎭 Running Playwright tests...' &&
         npx playwright test --reporter=line
       "
+
+volumes:
+  web_node_modules:
 

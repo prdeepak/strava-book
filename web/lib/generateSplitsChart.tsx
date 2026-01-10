@@ -192,13 +192,18 @@ export function generateSplitsChartData(
         distance: totalDistance / 1000
     }
 
-    // X-axis lap labels
+    // X-axis lap labels - reduce number of labels for ultramarathons/many splits
+    // Show every Nth label to prevent overlap based on number of splits
+    const labelInterval = splits.length > 30 ? 10 : splits.length > 15 ? 5 : splits.length > 8 ? 2 : 1
     const lapLabels = splits.map((split, index) => {
         const bar = barData[index]
+        // Only show label at intervals to prevent overlap
+        const showLabel = (index + 1) % labelInterval === 0 || index === 0 || index === splits.length - 1
         return {
             x: bar.x + bar.width / 2,
-            label: `${index + 1}`,
-            y: padding.top + plotHeight + 12
+            label: showLabel ? `${index + 1}` : '',
+            y: padding.top + plotHeight + 12,
+            showLabel
         }
     })
 
@@ -336,10 +341,22 @@ export function SplitsChartSVG({
                 </View>
             ))}
 
-            {/* Lap labels */}
-            {lapLabels && lapLabels.map((label, i) => (
+            {/* Horizontal grid lines for pace comparison */}
+            {paceData.paceTicks.map((tick, i) => (
+                <Polyline
+                    key={`grid-${i}`}
+                    points={`${padding.left},${tick.y} ${padding.left + plotWidth},${tick.y}`}
+                    stroke="#e0e0e0"
+                    strokeWidth="0.5"
+                    strokeDasharray="2,2"
+                    fill="none"
+                />
+            ))}
+
+            {/* Lap labels - only show labels that have content */}
+            {lapLabels && lapLabels.filter(label => label.showLabel).map((label, i) => (
                 <Svg key={`lap-${i}`}>
-                    <Text x={label.x} y={label.y} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: '#666' }} textAnchor="middle">
+                    <Text x={label.x} y={label.y} style={{ fontSize: labelFontSize + 1, fontFamily: 'Helvetica', fill: '#444' }} textAnchor="middle">
                         {label.label}
                     </Text>
                 </Svg>
@@ -376,6 +393,40 @@ export function SplitsChartSVG({
                         fill="#0a7ea4"
                         stroke="none"
                     />
+                )
+            })}
+
+            {/* Pace values on bars - alternating display to prevent overlap */}
+            {barData.map((bar, i) => {
+                const paceSeconds = bar.split.moving_time / (bar.split.distance / 1000)
+                const paceNorm = (paceSeconds - paceData.minPace) / paceData.paceRange
+                const barHeight = paceNorm * paceHeight * 0.7 + paceHeight * 0.15
+                const y = padding.top + paceHeight - barHeight
+                // Show every Nth pace label based on number of splits
+                const paceInterval = barData.length > 30 ? 10 : barData.length > 15 ? 5 : barData.length > 8 ? 3 : 1
+                const showPace = i % paceInterval === 0 || i === barData.length - 1
+
+                if (!showPace) return null
+
+                const mins = Math.floor(paceSeconds / 60)
+                const secs = Math.round(paceSeconds % 60)
+                const paceLabel = `${mins}:${secs.toString().padStart(2, '0')}`
+
+                return (
+                    <Svg key={`pace-label-${i}`}>
+                        <Text
+                            x={bar.x + bar.width / 2}
+                            y={y - 3}
+                            style={{
+                                fontSize: baseFontSize + 1,
+                                fontFamily: 'Helvetica-Bold',
+                                fill: '#333'
+                            }}
+                            textAnchor="middle"
+                        >
+                            {paceLabel}
+                        </Text>
+                    </Svg>
                 )
             })}
 
