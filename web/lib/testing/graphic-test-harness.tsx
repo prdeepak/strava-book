@@ -466,62 +466,154 @@ function renderMapGraphic(fixture: StravaActivity, width: number, height: number
 }
 
 /**
- * Render year heatmap to a PDF document
+ * Render year heatmap to a PDF document (GitHub contribution style)
  */
 function renderHeatmapGraphic(fixture: StravaActivity, width: number, height: number): React.ReactElement {
     const activityDate = new Date(fixture.start_date)
     const year = activityDate.getFullYear()
 
-    // Create mock activity data for the year
+    // Create mock activity data for the year to demonstrate the heatmap
     const activityDays = new Map<string, number>()
-    activityDays.set(fixture.start_date.split('T')[0], fixture.distance || 1000)
 
-    // Calculate grid dimensions
-    const cellSize = 10
-    const cellGap = 2
+    // Add the actual activity
+    activityDays.set(fixture.start_date.split('T')[0], fixture.distance || 10000)
+
+    // Generate realistic training pattern data around the activity date
+    const baseDate = new Date(fixture.start_date)
+    const seededRandom = (seed: number) => {
+        const x = Math.sin(seed) * 10000
+        return x - Math.floor(x)
+    }
+    for (let i = -90; i <= 30; i++) {
+        const date = new Date(baseDate)
+        date.setDate(date.getDate() + i)
+        const dateStr = date.toISOString().split('T')[0]
+        if (activityDays.has(dateStr)) continue
+
+        const dayOfWeek = date.getDay()
+        const daysToRace = Math.abs(i)
+        const seed = i + 1000
+
+        if (dayOfWeek === 0 && seededRandom(seed) > 0.3) continue
+        if (daysToRace < 7 && i < 0) continue
+        if (seededRandom(seed + 1) > 0.6) continue
+
+        let distance = 5000 + seededRandom(seed + 2) * 10000
+        if (daysToRace < 30 && i < 0) distance *= 1.2
+        if (daysToRace < 14 && i < 0) distance *= 0.7
+        if (i > 0) distance *= 0.5
+
+        activityDays.set(dateStr, distance)
+    }
+
+    // Layout constants
+    const leftMargin = 35
+    const topMargin = 45
+    const bottomMargin = 45
+    const rightMargin = 10
+
+    const gridWidth = width - leftMargin - rightMargin
+    const gridHeight = height - topMargin - bottomMargin
+
     const weeksInYear = 53
     const daysInWeek = 7
+    const cellGap = 2
+    const cellSize = Math.min(
+        (gridWidth - (weeksInYear - 1) * cellGap) / weeksInYear,
+        (gridHeight - (daysInWeek - 1) * cellGap) / daysInWeek
+    )
 
-    const gridWidth = weeksInYear * (cellSize + cellGap)
-    const gridHeight = daysInWeek * (cellSize + cellGap)
+    // Color scale (Strava orange tones)
+    const colorScale = ['#ebedf0', '#ffd4c4', '#ffaa88', '#fc6c32', '#fc4c02']
+    const maxValue = Math.max(...Array.from(activityDays.values()))
 
-    // Scale to fit
-    const scale = Math.min(width / gridWidth, height / (gridHeight + 40))
-    const scaledCellSize = cellSize * scale
-    const scaledGap = cellGap * scale
+    const getColor = (value: number): string => {
+        if (value === 0) return colorScale[0]
+        const normalized = value / maxValue
+        if (normalized < 0.25) return colorScale[1]
+        if (normalized < 0.5) return colorScale[2]
+        if (normalized < 0.75) return colorScale[3]
+        return colorScale[4]
+    }
 
-    // Generate cells
     const cells: React.ReactElement[] = []
     const startDate = new Date(year, 0, 1)
     const startDay = startDate.getDay()
+
+    const monthLabels: React.ReactElement[] = []
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    let lastMonth = -1
 
     for (let week = 0; week < weeksInYear; week++) {
         for (let day = 0; day < daysInWeek; day++) {
             const dayIndex = week * 7 + day - startDay
             const date = new Date(year, 0, 1 + dayIndex)
-
             if (date.getFullYear() !== year) continue
 
             const dateStr = date.toISOString().split('T')[0]
             const value = activityDays.get(dateStr) || 0
-
-            const x = week * (scaledCellSize + scaledGap) + 20
-            const y = day * (scaledCellSize + scaledGap) + 30
-
-            const fill = value > 0 ? '#fc4c02' : '#eee'
+            const x = leftMargin + week * (cellSize + cellGap)
+            const y = topMargin + day * (cellSize + cellGap)
 
             cells.push(
                 <Rect
-                    key={`${week}-${day}`}
+                    key={`cell-${week}-${day}`}
                     x={String(x)}
                     y={String(y)}
-                    width={String(scaledCellSize)}
-                    height={String(scaledCellSize)}
-                    fill={fill}
+                    width={String(cellSize)}
+                    height={String(cellSize)}
+                    fill={getColor(value)}
+                    rx="2"
+                    ry="2"
                 />
             )
+
+            if (date.getMonth() !== lastMonth && day === 0) {
+                lastMonth = date.getMonth()
+                monthLabels.push(
+                    <SvgText
+                        key={`month-${lastMonth}`}
+                        x={String(x)}
+                        y={String(topMargin - 8)}
+                        style={{ fontSize: 9, fontFamily: 'Helvetica', fill: '#586069' }}
+                    >
+                        {monthNames[lastMonth]}
+                    </SvgText>
+                )
+            }
         }
     }
+
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const dayLabelElements = [1, 3, 5].map(dayIndex => (
+        <SvgText
+            key={`day-${dayIndex}`}
+            x={String(leftMargin - 6)}
+            y={String(topMargin + dayIndex * (cellSize + cellGap) + cellSize * 0.75)}
+            style={{ fontSize: 9, fontFamily: 'Helvetica', fill: '#586069' }}
+            textAnchor="end"
+        >
+            {dayLabels[dayIndex]}
+        </SvgText>
+    ))
+
+    const legendY = height - 25
+    const legendX = width - 160
+    const legendCellSize = 10
+    const legendGap = 3
+
+    const legendElements = [
+        <SvgText key="legend-less" x={String(legendX - 5)} y={String(legendY + legendCellSize * 0.75)}
+            style={{ fontSize: 9, fontFamily: 'Helvetica', fill: '#586069' }} textAnchor="end">Less</SvgText>,
+        ...colorScale.map((color, i) => (
+            <Rect key={`legend-${i}`} x={String(legendX + i * (legendCellSize + legendGap))} y={String(legendY)}
+                width={String(legendCellSize)} height={String(legendCellSize)} fill={color} rx="2" ry="2" />
+        )),
+        <SvgText key="legend-more" x={String(legendX + colorScale.length * (legendCellSize + legendGap) + 5)}
+            y={String(legendY + legendCellSize * 0.75)} style={{ fontSize: 9, fontFamily: 'Helvetica', fill: '#586069' }}>More</SvgText>
+    ]
+
+    const activityCount = activityDays.size
 
     return (
         <Document>
@@ -529,10 +621,18 @@ function renderHeatmapGraphic(fixture: StravaActivity, width: number, height: nu
                 <View style={styles.container}>
                     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
                         <Rect x="0" y="0" width={String(width)} height={String(height)} fill="white" />
-                        <SvgText x={String(width / 2)} y="20" style={{ fontSize: 14, fontFamily: 'Helvetica-Bold' }} textAnchor="middle">
-                            {String(year)}
+                        <SvgText x={String(width / 2)} y="20"
+                            style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', fill: '#24292e' }} textAnchor="middle">
+                            {`${year} Activity Heatmap`}
                         </SvgText>
+                        {monthLabels}
+                        {dayLabelElements}
                         {cells}
+                        {legendElements}
+                        <SvgText x={String(leftMargin)} y={String(legendY + legendCellSize * 0.75)}
+                            style={{ fontSize: 10, fontFamily: 'Helvetica', fill: '#24292e' }}>
+                            {`${activityCount} activities in ${year}`}
+                        </SvgText>
                     </Svg>
                 </View>
             </Page>
