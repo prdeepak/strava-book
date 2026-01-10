@@ -148,6 +148,8 @@ test-fonts:
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 
 test-e2e:
+	@echo "🔤 Running font validation..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running Playwright e2e tests (requires web dev server)"
 	@echo "Note: Start server with 'make web-dev' first"
 	docker-compose run --rm playwright npx playwright test --reporter=line
@@ -158,6 +160,8 @@ test-e2e-local:
 	cd web && npm run e2e
 
 test-e2e-ci:
+	@echo "🔤 Running font validation..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running self-contained e2e tests in Docker..."
 	@echo "This builds, starts server, and runs tests - fully isolated"
 	docker-compose run --rm e2e
