@@ -22,7 +22,7 @@ interface ComprehensiveActivityData {
 }
 
 interface DataSelection {
-    selectedTemplate: 'race_1p' | 'race_2p' | 'race_1p_scrapbook' | 'ai-generated'
+    selectedTemplate: 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
     pageCount: 1 | 2 | 3
     includePhotos: boolean
     selectedPhotoIds: string[]
@@ -84,13 +84,6 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
     if (!isOpen) return null
 
     const handleGeneratePreview = () => {
-        // For AI-generated, redirect to AI modal workflow
-        if (dataSelection.selectedTemplate === 'ai-generated') {
-            // TODO: Trigger AI generation workflow
-            console.log('AI generation not yet implemented in unified modal')
-            return
-        }
-
         // Build URL with user selections as query parameters
         const template = dataSelection.selectedTemplate
         const params = new URLSearchParams({
@@ -194,7 +187,6 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                     <option value="race_1p">Race (1 Page)</option>
                                     <option value="race_2p">Race (2 Pages)</option>
                                     <option value="race_1p_scrapbook">Race (1 Page - Scrapbook)</option>
-                                    <option value="ai-generated">AI-Generated ✨</option>
                                 </select>
                             </div>
 

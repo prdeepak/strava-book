@@ -272,7 +272,7 @@ function renderElevationGraphic(fixture: StravaActivity, width: number, height: 
     }
 
     // Calculate base elevation from activity data if available
-    const baseElevation = fixture.elev_low || 0
+    const baseElevation = (fixture as StravaActivity & { elev_low?: number }).elev_low || 0
 
     // Convert splits to elevation data
     const elevationData = splitsToElevationData(splits, baseElevation)
