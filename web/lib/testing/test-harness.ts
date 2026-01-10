@@ -124,43 +124,44 @@ export function pdfToImages(pdfPath: string, outputDir: string, verbose = false)
 // Template Registry
 // ============================================================================
 
-type TemplateComponent = React.ComponentType<{ activity: unknown; format?: unknown; theme?: unknown }>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TemplateComponent = React.ComponentType<any>
 
 const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     // Race templates
     'Race_1p': async () => {
         const mod = await import('../../components/templates/Race_1p')
-        return mod.Race_1p as TemplateComponent
+        return mod.Race_1p
     },
     'Race_2p': async () => {
         const mod = await import('../../components/templates/Race_2p')
-        return mod.Race_2pSpread as TemplateComponent
+        return mod.Race_2pSpread
     },
 
     // Other templates - add as needed
     'Cover': async () => {
         const mod = await import('../../components/templates/Cover')
-        return mod.Cover as TemplateComponent
+        return mod.Cover
     },
     'YearStats': async () => {
         const mod = await import('../../components/templates/YearStats')
-        return mod.YearStats as TemplateComponent
+        return mod.YearStats
     },
     'YearCalendar': async () => {
         const mod = await import('../../components/templates/YearCalendar')
-        return mod.YearCalendar as TemplateComponent
+        return mod.YearCalendar
     },
     'MonthlyDivider': async () => {
         const mod = await import('../../components/templates/MonthlyDivider')
-        return mod.MonthlyDivider as TemplateComponent
+        return mod.MonthlyDivider
     },
     'ActivityLog': async () => {
         const mod = await import('../../components/templates/ActivityLog')
-        return mod.ActivityLog as TemplateComponent
+        return mod.ActivityLog
     },
     'BackCover': async () => {
         const mod = await import('../../components/templates/BackCover')
-        return mod.BackCover as TemplateComponent
+        return mod.BackCover
     },
 }
 
