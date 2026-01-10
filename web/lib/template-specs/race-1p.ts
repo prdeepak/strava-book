@@ -7,87 +7,77 @@
 
 import { TemplateSpec, TemplateGuidelines, VariantGuideline } from './types'
 
-// Layout variants for Race_1p
+/**
+ * Layout variants for Race_1p
+ *
+ * IMPORTANT: All variants display ALL available data (photos, maps, stats, splits,
+ * best efforts, comments). Variants differ only in visual presentation and emphasis.
+ * This is our flagship template - maximize information density while varying layout.
+ */
 const variants: VariantGuideline[] = [
   {
     name: 'photo-hero',
-    description: 'Large hero photo with stats below',
+    description: 'Large hero photo dominates top half; map thumbnail, stats, and data below',
     bestFor: [
-      'Activities with high-quality photos',
+      'Activities with stunning photos',
       'Scenic race locations',
-      'Finish line photos',
+      'Finish line or action shots',
     ],
-    avoid: [
-      'Indoor activities',
-      'Activities without photos',
-    ],
-    photoRequirements: {
-      minCount: 1,
-      preferredAspect: 'landscape',
-      requiresHeroPhoto: true,
+    layoutDescription: {
+      hero: 'Photo (large, 50% height)',
+      secondary: 'Map (thumbnail), Stats row, Splits/Efforts/Comments columns',
     },
   },
   {
     name: 'map-hero',
-    description: 'Satellite map as hero with route overlay',
+    description: 'Large satellite map dominates top; photo thumbnail, stats, and data below',
     bestFor: [
       'Trail races with interesting routes',
       'Point-to-point courses',
-      'Activities without good photos',
+      'Scenic GPS routes',
     ],
-    avoid: [
-      'Indoor activities',
-      'Treadmill runs',
-    ],
-    photoRequirements: {
-      minCount: 0,
+    layoutDescription: {
+      hero: 'Satellite map (large, 50% height)',
+      secondary: 'Photo (thumbnail), Stats row, Splits/Efforts/Comments columns',
     },
   },
   {
     name: 'dual-image',
-    description: 'Side-by-side photo and map',
+    description: 'Photo and map side-by-side at top; balanced visual weight',
     bestFor: [
-      'Activities with both good photos and interesting routes',
+      'Activities with both great photos and interesting routes',
       'Destination races',
+      'Visual storytelling',
     ],
-    avoid: [
-      'Activities without photos',
-      'Short or simple routes',
-    ],
-    photoRequirements: {
-      minCount: 1,
-      preferredAspect: 'any',
+    layoutDescription: {
+      hero: 'Photo (left 50%) + Map (right 50%)',
+      secondary: 'Stats row, Splits/Efforts/Comments columns',
     },
   },
   {
     name: 'stats-focus',
-    description: 'Minimal visuals, emphasis on data and splits',
+    description: 'Oversized stats dominate; photo and map as small accents',
     bestFor: [
       'PR-setting races',
-      'Time trial activities',
-      'Activities with detailed splits',
+      'Time trials and tempo runs',
+      'Data-driven athletes',
     ],
-    avoid: [
-      'Casual activities',
-      'Activities without timing data',
-    ],
-    photoRequirements: {
-      minCount: 0,
+    layoutDescription: {
+      hero: 'Giant stats (distance, time, pace, elevation)',
+      secondary: 'Photo (small inset), Map (small inset), Splits/Efforts prominent',
     },
   },
   {
     name: 'polyline-minimal',
-    description: 'SVG route on dark background (no photos/map)',
+    description: 'Artistic SVG route as hero; photo inset, clean dark aesthetic',
     bestFor: [
-      'Activities without photos or map token',
-      'Simple, clean aesthetic',
+      'Interesting route shapes',
+      'Minimalist design preference',
+      'Clean, modern look',
     ],
-    avoid: [
-      'Indoor activities without GPS',
-      'Very short activities',
-    ],
-    photoRequirements: {
-      minCount: 0,
+    layoutDescription: {
+      hero: 'SVG polyline (large, artistic rendering)',
+      secondary: 'Photo (small inset), Stats row, Splits/Efforts/Comments columns',
     },
   },
 ]

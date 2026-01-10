@@ -265,11 +265,15 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
     }
 }
 
+// Layout variants - all show ALL data, just with different visual emphasis
+export type Race1pVariant = 'photo-hero' | 'map-hero' | 'dual-image' | 'stats-focus' | 'polyline-minimal'
+
 interface Race_1pProps {
     activity: StravaActivity
     mapboxToken?: string
     format?: BookFormat
     theme?: BookTheme
+    layoutVariant?: Race1pVariant  // Defaults to auto-detect based on available data
 }
 
 // Helper to resolve image URLs - use local paths directly, proxy external URLs
@@ -312,13 +316,30 @@ export const Race_1p = ({
     activity,
     mapboxToken,
     format = FORMATS['10x10'],
-    theme = DEFAULT_THEME
+    theme = DEFAULT_THEME,
+    layoutVariant
 }: Race_1pProps) => {
     const styles = createStyles(format, theme)
     const location = resolveActivityLocation(activity)
 
     // Get Strava photo if available
     const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
+
+    // Get satellite map URL if token and polyline available
+    const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
+        ? `/api/proxy-image?url=${encodeURIComponent(
+            `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(activity.map.summary_polyline)})/auto/800x400@2x?access_token=${mapboxToken}&logo=false`
+          )}`
+        : null
+
+    // Determine variant: use provided or auto-detect
+    const variant: Race1pVariant = layoutVariant || (() => {
+        if (stravaPhoto && satelliteMapUrl) return 'dual-image'
+        if (stravaPhoto) return 'photo-hero'
+        if (satelliteMapUrl) return 'map-hero'
+        if (activity.map?.summary_polyline) return 'polyline-minimal'
+        return 'stats-focus'
+    })()
 
     // Prepare splits data - prefer laps over auto-generated splits (limit to 6 for single page)
     const rawLaps = activity.laps || []

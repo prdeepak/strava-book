@@ -120,11 +120,16 @@ export interface VariantGuideline {
   name: string
   description: string
   bestFor: string[]         // Conditions when this variant works well
-  avoid: string[]           // Conditions when to avoid this variant
+  avoid?: string[]          // Conditions when to avoid this variant (optional)
   photoRequirements?: {
     minCount?: number
     preferredAspect?: 'landscape' | 'portrait' | 'any'
     requiresHeroPhoto?: boolean
+  }
+  // Layout description for variants that use all available data
+  layoutDescription?: {
+    hero: string            // What element dominates (e.g., "Photo (large, 50% height)")
+    secondary: string       // Supporting elements layout
   }
 }
 

@@ -127,6 +127,7 @@ export function registerPdfFonts(): void {
         fonts: [
             { src: getFontSource('BarlowCondensed-Regular.ttf'), fontWeight: 'normal' },
             { src: getFontSource('BarlowCondensed-Bold.ttf'), fontWeight: 'bold' },
+            { src: getFontSource('BarlowCondensed-Italic.ttf'), fontWeight: 'normal', fontStyle: 'italic' },
         ],
     })
     console.log('[pdf-fonts] Registered: BarlowCondensed')
