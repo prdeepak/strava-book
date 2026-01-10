@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup
 
 help:
 	@echo "Available commands:"
@@ -20,6 +20,14 @@ help:
 	@echo "  make test-e2e-ci      - Self-contained e2e tests (fully isolated)"
 	@echo "  make test-list        - List available templates and fixtures"
 	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
+	@echo ""
+	@echo "Multi-agent workspace commands:"
+	@echo "  make workspace-new name=X   - Create isolated workspace for parallel dev"
+	@echo "  make workspace-list         - List all workspaces with status"
+	@echo "  make workspace-start id=X   - Start a workspace container"
+	@echo "  make workspace-stop id=X    - Stop a workspace container"
+	@echo "  make workspace-destroy id=X - Remove a workspace completely"
+	@echo "  make workspace-cleanup      - Remove stale workspaces (inactive >24h)"
 
 
 # --- The Smart Check ---
@@ -171,3 +179,25 @@ test-e2e-ci:
 start-work:
 	make up
 	make web-restart
+
+
+# --- Multi-Agent Workspace Commands ---
+# Create isolated workspaces for parallel development
+
+workspace-new:
+	@./scripts/workspace-manager.sh new $(name)
+
+workspace-list:
+	@./scripts/workspace-manager.sh list
+
+workspace-start:
+	@./scripts/workspace-manager.sh start $(id)
+
+workspace-stop:
+	@./scripts/workspace-manager.sh stop $(id)
+
+workspace-destroy:
+	@./scripts/workspace-manager.sh destroy $(id) --force
+
+workspace-cleanup:
+	@./scripts/workspace-manager.sh cleanup

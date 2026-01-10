@@ -81,3 +81,44 @@ Required in `web/.env.local`:
 - Uses @react-pdf/renderer for server-side PDF rendering
 - Templates receive data via props, not direct API calls
 - Fonts are pre-downloaded in `web/public/fonts/` (41 fonts across 6 categories)
+
+## Multi-Agent Parallel Development
+
+When running multiple Claude Code sessions in parallel, use isolated workspaces to avoid conflicts.
+
+### Quick Start
+```bash
+# Create a new isolated workspace
+make workspace-new name=feature-name
+
+# Output shows workspace path and port, e.g.:
+#   Directory: ~/bin/strava-workspaces/ws-abc123
+#   Dev server: http://localhost:3001
+
+# Open the new workspace directory in a separate Claude Code session
+cd ~/bin/strava-workspaces/ws-abc123
+```
+
+### Workspace Commands
+```bash
+make workspace-new name=X   # Create isolated workspace (auto-starts container)
+make workspace-list         # Show all workspaces with status
+make workspace-start id=X   # Start a stopped workspace
+make workspace-stop id=X    # Stop a workspace container
+make workspace-destroy id=X # Remove workspace completely
+make workspace-cleanup      # Remove stale workspaces (inactive >24h)
+```
+
+### How It Works
+- Each workspace is a git worktree with its own branch
+- Each workspace runs in a dedicated Docker container on a unique port (3001-3020)
+- The `.env.local` is symlinked from the main repo (shared secrets)
+- Workspaces are tracked in `~/bin/strava-workspaces/registry.json`
+- Workspaces inactive for >24h are marked "stale" and can be cleaned up
+
+### Workflow for Parallel Development
+1. Main repo (`~/bin/strava-book`) stays clean - don't edit directly when parallelizing
+2. Create workspaces for each parallel task
+3. Each Claude Code session works in its own workspace
+4. When done, create PR from workspace branch to main
+5. Cleanup workspace after merge
