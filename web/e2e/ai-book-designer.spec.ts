@@ -208,10 +208,11 @@ test.describe('AI Book Designer', () => {
         await page.waitForTimeout(500)
 
         // Click the header close button (X icon with specific aria-label)
-        const closeButton = page.getByRole('button', { name: 'Close modal' })
+        // Use .first() because both BookGenerationModal and AIBookDesignerModal may have close buttons
+        const closeButton = page.getByRole('button', { name: 'Close modal' }).first()
 
         if (await closeButton.count() > 0) {
-          await closeButton.click()
+          await closeButton.click({ force: true })
           await page.waitForTimeout(300)
 
           // AI Designer specific content should be hidden

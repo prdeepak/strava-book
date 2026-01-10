@@ -123,8 +123,13 @@ function isTestAuthorized(request: NextRequest): boolean {
     return true
   }
 
-  // Allow in CI environments (e2e tests run against production builds)
-  if (process.env.CI === 'true' || process.env.PLAYWRIGHT_TEST === 'true') {
+  // Allow in CI/e2e environments (e2e tests run against production builds)
+  // Check multiple env vars for robustness
+  if (
+    process.env.CI === 'true' ||
+    process.env.PLAYWRIGHT_TEST === 'true' ||
+    process.env.E2E_TEST_MODE === 'true'
+  ) {
     return true
   }
 

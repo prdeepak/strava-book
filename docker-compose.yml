@@ -45,6 +45,8 @@ services:
       - /app/web/node_modules  # Anonymous volume for container-specific node_modules
     environment:
       - CI=true
+      - PLAYWRIGHT_TEST=true
+      - E2E_TEST_MODE=true
       - NEXTAUTH_URL=http://localhost:3001
       - NEXTAUTH_SECRET=test-secret-for-e2e-testing
       - NEXT_PUBLIC_MOCK_AUTH=true
