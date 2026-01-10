@@ -13,14 +13,35 @@ import { getAllFontFamilies, fontHasItalic, getBodyFonts } from './font-registry
 // ============================================================================
 
 /**
- * Safe default fonts to use when AI specifies an unknown font
- * These are built-in fonts that always work with all variants
+ * Preferred fallback fonts (in order of preference)
+ * BarlowCondensed is preferred because it has italic support
+ * Helvetica is the ultimate fallback (built-in, always available)
  */
-export const DEFAULT_HEADING_FONT = 'Helvetica'
-export const DEFAULT_BODY_FONT = 'Helvetica'  // Has full italic/bold support
+const PREFERRED_HEADING_FONT = 'BarlowCondensed'
+const PREFERRED_BODY_FONT = 'BarlowCondensed'  // Has italic support
+const BUILTIN_FALLBACK_FONT = 'Helvetica'  // Built-in, always works
+
+/**
+ * Get the best available fallback font
+ * Prefers BarlowCondensed, falls back to Helvetica if not available
+ */
+function getFallbackFont(isBodyFont: boolean): string {
+  const allFonts = getAllFontFamilies()
+  const preferred = isBodyFont ? PREFERRED_BODY_FONT : PREFERRED_HEADING_FONT
+
+  if (allFonts.includes(preferred)) {
+    return preferred
+  }
+  return BUILTIN_FALLBACK_FONT
+}
+
+// Export for backward compatibility
+export const DEFAULT_HEADING_FONT = PREFERRED_HEADING_FONT
+export const DEFAULT_BODY_FONT = PREFERRED_BODY_FONT
 
 /**
  * Normalize a font name - if unknown, return safe default
+ * Fallback order: BarlowCondensed -> Helvetica
  */
 export function normalizeFontName(font: string, isBodyFont: boolean = false): string {
   const allFonts = getAllFontFamilies()
@@ -44,9 +65,10 @@ export function normalizeFontName(font: string, isBodyFont: boolean = false): st
     return partialMatch
   }
 
-  // Return safe default
-  console.warn(`[ai-validation] Unknown font "${font}", falling back to ${isBodyFont ? DEFAULT_BODY_FONT : DEFAULT_HEADING_FONT}`)
-  return isBodyFont ? DEFAULT_BODY_FONT : DEFAULT_HEADING_FONT
+  // Return safe default (BarlowCondensed if available, else Helvetica)
+  const fallback = getFallbackFont(isBodyFont)
+  console.warn(`[ai-validation] Unknown font "${font}", falling back to ${fallback}`)
+  return fallback
 }
 
 /**

@@ -5,8 +5,36 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { FullBookDocument } from '@/components/templates/BookDocument'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
+import { normalizeFontName } from '@/lib/ai-validation'
 // Register fonts for PDF generation
 import '@/lib/pdf-fonts'
+
+/**
+ * Normalize fonts in a BookTheme to ensure they are registered
+ * Replaces unknown fonts with safe defaults to prevent "Unknown font format" errors
+ */
+function normalizeThemeFonts(theme: BookTheme): BookTheme {
+    const headingFont = normalizeFontName(theme.fontPairing.heading, false)
+    const bodyFont = normalizeFontName(theme.fontPairing.body, true)
+
+    if (headingFont !== theme.fontPairing.heading || bodyFont !== theme.fontPairing.body) {
+        console.log('[Book Generation] Font normalization applied:')
+        if (headingFont !== theme.fontPairing.heading) {
+            console.log(`  Heading: "${theme.fontPairing.heading}" -> "${headingFont}"`)
+        }
+        if (bodyFont !== theme.fontPairing.body) {
+            console.log(`  Body: "${theme.fontPairing.body}" -> "${bodyFont}"`)
+        }
+    }
+
+    return {
+        ...theme,
+        fontPairing: {
+            heading: headingFont,
+            body: bodyFont,
+        },
+    }
+}
 
 interface BookGenerationRequest {
     activities: StravaActivity[]
@@ -48,7 +76,12 @@ export async function POST(request: NextRequest) {
 
         // Ensure format is valid
         const format = config.format || FORMATS['10x10']
-        const theme = config.theme || DEFAULT_THEME
+        const rawTheme = config.theme || DEFAULT_THEME
+
+        // Normalize fonts to prevent "Unknown font format" errors
+        // This replaces any unregistered fonts with safe defaults
+        const theme = normalizeThemeFonts(rawTheme)
+        console.log('[Book Generation] Theme fonts:', theme.fontPairing.heading, '/', theme.fontPairing.body)
 
         // Render PDF using FullBookDocument
         console.log('[Book Generation] Rendering PDF...')

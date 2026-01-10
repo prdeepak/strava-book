@@ -123,6 +123,11 @@ function isTestAuthorized(request: NextRequest): boolean {
     return true
   }
 
+  // Allow in CI environments (e2e tests run against production builds)
+  if (process.env.CI === 'true' || process.env.PLAYWRIGHT_TEST === 'true') {
+    return true
+  }
+
   // Check for test secret header (for CI in production-like environments)
   const testSecret = request.headers.get('X-Test-Secret')
   if (testSecret && testSecret === process.env.E2E_TEST_SECRET) {

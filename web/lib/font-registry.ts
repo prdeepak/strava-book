@@ -34,6 +34,12 @@ export interface FontDefinition {
 /**
  * All registered fonts with their available variants
  * Keep this in sync with pdf-fonts.ts registrations!
+ *
+ * NOTE: Only fonts with valid TTF files are listed here.
+ * Fonts removed due to missing/corrupted files:
+ * - Oswald, Lora, Merriweather, PlayfairDisplay, OpenSans, Roboto,
+ *   Montserrat, Inter, RobotoCondensed, RobotoMono, SourceCodePro,
+ *   DancingScript, ShadowsIntoLight, Caveat
  */
 export const FONT_REGISTRY: FontDefinition[] = [
     // =========================================================================
@@ -69,67 +75,15 @@ export const FONT_REGISTRY: FontDefinition[] = [
         variants: { normal: true, bold: false, italic: false, boldItalic: false },
         description: 'Retro-style display font'
     },
-    {
-        family: 'Oswald',
-        category: 'display',
-        variants: { normal: true, bold: true, italic: false, boldItalic: false },
-        description: 'Condensed display font, has bold'
-    },
 
     // =========================================================================
-    // Serif fonts (many have full variant support)
+    // Serif fonts
     // =========================================================================
     {
         family: 'CrimsonText',
         category: 'serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: false },
-        description: 'Elegant serif, good for body text with italic support'
-    },
-    {
-        family: 'Lora',
-        category: 'serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Contemporary serif with full variant support'
-    },
-    {
-        family: 'Merriweather',
-        category: 'serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Readable serif optimized for screens, full variants'
-    },
-    {
-        family: 'PlayfairDisplay',
-        category: 'serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Elegant transitional serif, full variants'
-    },
-
-    // =========================================================================
-    // Sans-serif fonts (many have full variant support)
-    // =========================================================================
-    {
-        family: 'OpenSans',
-        category: 'sans-serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Highly readable sans-serif, full variants'
-    },
-    {
-        family: 'Roboto',
-        category: 'sans-serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Modern geometric sans-serif, full variants'
-    },
-    {
-        family: 'Montserrat',
-        category: 'sans-serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Geometric sans-serif, full variants'
-    },
-    {
-        family: 'Inter',
-        category: 'sans-serif',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'UI-optimized sans-serif, full variants'
+        variants: { normal: true, bold: true, italic: false, boldItalic: false },
+        description: 'Elegant serif, good for body text'
     },
 
     // =========================================================================
@@ -140,28 +94,6 @@ export const FONT_REGISTRY: FontDefinition[] = [
         category: 'condensed',
         variants: { normal: true, bold: true, italic: true, boldItalic: false },
         description: 'Condensed sans-serif, space-efficient with italic'
-    },
-    {
-        family: 'RobotoCondensed',
-        category: 'condensed',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Condensed version of Roboto, full variants'
-    },
-
-    // =========================================================================
-    // Monospace fonts
-    // =========================================================================
-    {
-        family: 'RobotoMono',
-        category: 'mono',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Monospace with full variant support'
-    },
-    {
-        family: 'SourceCodePro',
-        category: 'mono',
-        variants: { normal: true, bold: true, italic: true, boldItalic: true },
-        description: 'Code-optimized monospace, full variants'
     },
 
     // =========================================================================
@@ -190,24 +122,6 @@ export const FONT_REGISTRY: FontDefinition[] = [
         category: 'handwritten',
         variants: { normal: true, bold: false, italic: false, boldItalic: false },
         description: 'Playful handwritten style'
-    },
-    {
-        family: 'DancingScript',
-        category: 'handwritten',
-        variants: { normal: true, bold: true, italic: false, boldItalic: false },
-        description: 'Script font with bold support'
-    },
-    {
-        family: 'ShadowsIntoLight',
-        category: 'handwritten',
-        variants: { normal: true, bold: false, italic: false, boldItalic: false },
-        description: 'Light handwritten style'
-    },
-    {
-        family: 'Caveat',
-        category: 'handwritten',
-        variants: { normal: true, bold: false, italic: false, boldItalic: false },
-        description: 'Natural handwriting style'
     },
 ]
 

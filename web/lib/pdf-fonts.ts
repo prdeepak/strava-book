@@ -8,6 +8,12 @@
  * For fonts that don't have italic/bold variants, we register the normal variant
  * as a fallback. This prevents "Could not resolve font" errors when templates
  * request a variant that doesn't exist.
+ *
+ * NOTE: Only fonts with valid TTF files are registered here.
+ * Fonts removed due to missing/corrupted files:
+ * - Oswald, Lora, Merriweather, PlayfairDisplay, OpenSans, Roboto,
+ *   Montserrat, Inter, RobotoCondensed, RobotoMono, SourceCodePro,
+ *   DancingScript, ShadowsIntoLight, Caveat
  */
 
 import { Font } from '@react-pdf/renderer'
@@ -128,7 +134,7 @@ export function registerPdfFonts(): void {
     })
 
     // =========================================================================
-    // DISPLAY FONTS (no italic/bold variants exist - use fallbacks)
+    // DISPLAY FONTS (no italic/bold variants - use fallbacks)
     // =========================================================================
 
     // BebasNeue - display font (no variants)
@@ -171,85 +177,17 @@ export function registerPdfFonts(): void {
     })
     console.log('[pdf-fonts] Registered: Righteous (with fallbacks)')
 
-    // Oswald - display font (has bold, no italic)
-    registerFontWithFallbacks('Oswald', 'Oswald', {
+    // =========================================================================
+    // SERIF FONTS
+    // =========================================================================
+
+    // CrimsonText - serif font (has bold only, no italic file)
+    registerFontWithFallbacks('CrimsonText', 'CrimsonText', {
         hasBold: true,
         hasItalic: false,
         hasBoldItalic: false
     })
-    console.log('[pdf-fonts] Registered: Oswald (with fallbacks)')
-
-    // =========================================================================
-    // SERIF FONTS (full variant support)
-    // =========================================================================
-
-    // CrimsonText - serif font (has bold, italic)
-    registerFontWithFallbacks('CrimsonText', 'CrimsonText', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: false  // No bold-italic for CrimsonText
-    })
     console.log('[pdf-fonts] Registered: CrimsonText')
-
-    // Lora - serif font (full variants)
-    registerFontWithFallbacks('Lora', 'Lora', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: Lora')
-
-    // Merriweather - serif font (full variants)
-    registerFontWithFallbacks('Merriweather', 'Merriweather', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: Merriweather')
-
-    // PlayfairDisplay - serif font (full variants)
-    registerFontWithFallbacks('PlayfairDisplay', 'PlayfairDisplay', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: PlayfairDisplay')
-
-    // =========================================================================
-    // SANS-SERIF FONTS
-    // =========================================================================
-
-    // OpenSans - sans-serif (full variants)
-    registerFontWithFallbacks('OpenSans', 'OpenSans', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: OpenSans')
-
-    // Roboto - sans-serif (full variants)
-    registerFontWithFallbacks('Roboto', 'Roboto', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: Roboto')
-
-    // Montserrat - sans-serif (full variants)
-    registerFontWithFallbacks('Montserrat', 'Montserrat', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: Montserrat')
-
-    // Inter - sans-serif (full variants)
-    registerFontWithFallbacks('Inter', 'Inter', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: Inter')
 
     // =========================================================================
     // CONDENSED FONTS
@@ -262,34 +200,6 @@ export function registerPdfFonts(): void {
         hasBoldItalic: false
     })
     console.log('[pdf-fonts] Registered: BarlowCondensed')
-
-    // RobotoCondensed - condensed (full variants)
-    registerFontWithFallbacks('RobotoCondensed', 'RobotoCondensed', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: RobotoCondensed')
-
-    // =========================================================================
-    // MONOSPACE FONTS
-    // =========================================================================
-
-    // RobotoMono - monospace (full variants)
-    registerFontWithFallbacks('RobotoMono', 'RobotoMono', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: RobotoMono')
-
-    // SourceCodePro - monospace (full variants)
-    registerFontWithFallbacks('SourceCodePro', 'SourceCodePro', {
-        hasBold: true,
-        hasItalic: true,
-        hasBoldItalic: true
-    })
-    console.log('[pdf-fonts] Registered: SourceCodePro')
 
     // =========================================================================
     // HANDWRITTEN FONTS (no variants - use fallbacks)
@@ -326,30 +236,6 @@ export function registerPdfFonts(): void {
         hasBoldItalic: false
     })
     console.log('[pdf-fonts] Registered: HennyPenny (with fallbacks)')
-
-    // DancingScript - script font (has bold, no italic)
-    registerFontWithFallbacks('DancingScript', 'DancingScript', {
-        hasBold: true,
-        hasItalic: false,
-        hasBoldItalic: false
-    })
-    console.log('[pdf-fonts] Registered: DancingScript (with fallbacks)')
-
-    // ShadowsIntoLight - handwritten (no variants)
-    registerFontWithFallbacks('ShadowsIntoLight', 'ShadowsIntoLight', {
-        hasBold: false,
-        hasItalic: false,
-        hasBoldItalic: false
-    })
-    console.log('[pdf-fonts] Registered: ShadowsIntoLight (with fallbacks)')
-
-    // Caveat - handwritten (no variants)
-    registerFontWithFallbacks('Caveat', 'Caveat', {
-        hasBold: false,
-        hasItalic: false,
-        hasBoldItalic: false
-    })
-    console.log('[pdf-fonts] Registered: Caveat (with fallbacks)')
 
     // =========================================================================
     // BUILT-IN FONTS
