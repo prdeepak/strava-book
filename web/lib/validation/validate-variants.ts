@@ -6,7 +6,7 @@
  *
  * Usage (from web directory):
  *   npm run validate-variants [-- options]
- *   npx tsx ../scripts/validate-variants.ts [options]
+ *   npx tsx lib/validation/validate-variants.ts [options]
  *
  * Options:
  *   --template <name>   Validate only specific template (e.g., race_1p)
@@ -23,8 +23,8 @@ import * as crypto from 'crypto'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 
-import { analyzePDFBuffer, analyzeReactTree, combineAnalysis, FullAnalysis } from './lib/pdf-analyzer'
-import { validateAgainstSpec, validateDistinctness, getAllSpecs } from './lib/spec-validator'
+import { analyzePDFBuffer, analyzeReactTree, combineAnalysis, FullAnalysis } from './pdf-analyzer'
+import { validateAgainstSpec, validateDistinctness, getAllSpecs } from './spec-validator'
 import {
   VariantResult,
   TemplateReport,
@@ -32,16 +32,16 @@ import {
   formatFullReport,
   formatJsonReport,
   formatProgress,
-} from './lib/report-formatter'
+} from './report-formatter'
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-// Script runs from web directory, so paths are relative to cwd
+// Script is in web/lib/validation, so we navigate up to get paths
 const SCRIPT_DIR = __dirname
-const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..')
-const WEB_DIR = process.cwd() // Expected to be run from web directory
+const WEB_DIR = path.resolve(SCRIPT_DIR, '../..')
+const PROJECT_ROOT = path.resolve(WEB_DIR, '..')
 const FIXTURES_DIR = path.join(WEB_DIR, 'lib', 'testing', 'fixtures')
 const OUTPUT_DIR = path.join(PROJECT_ROOT, 'test-output', 'variant-validation')
 
@@ -73,7 +73,7 @@ const templateRegistry: TemplateRegistry[] = [
   {
     templateId: 'race_1p',
     loader: async () => {
-      const mod = await import('../web/components/templates/Race_1p')
+      const mod = await import('../../components/templates/Race_1p')
       return mod.Race_1p as TemplateComponent
     },
     fixtureType: 'activity',
@@ -81,7 +81,7 @@ const templateRegistry: TemplateRegistry[] = [
   {
     templateId: 'race_2p',
     loader: async () => {
-      const mod = await import('../web/components/templates/Race_2p')
+      const mod = await import('../../components/templates/Race_2p')
       return mod.Race_2pSpread as TemplateComponent
     },
     fixtureType: 'activity',
@@ -155,7 +155,7 @@ async function renderVariant(
 ): Promise<{ buffer: Buffer; reactElement: React.ReactElement } | { error: string }> {
   try {
     // Import book types
-    const { FORMATS, DEFAULT_THEME } = await import('../web/lib/book-types')
+    const { FORMATS, DEFAULT_THEME } = await import('../book-types')
 
     // Create props based on variant (templates may use variant prop differently)
     const props: TemplateProps = {

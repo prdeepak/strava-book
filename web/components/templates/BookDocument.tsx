@@ -485,7 +485,6 @@ export const BookDocument = ({
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page
                             activitiesPerPage={perPage}
-                            showMiniMaps={true}
                             format={format}
                             theme={theme}
                         />
