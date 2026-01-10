@@ -26,7 +26,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 0.5,
+    opacity: 0.35,
     objectFit: 'cover',
   },
   gradientOverlay: {
@@ -36,7 +36,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     width: '100%',
     height: '100%',
     backgroundColor: theme.primaryColor,
-    opacity: 0.3,
+    opacity: 0.85,
   },
   contentContainer: {
     position: 'absolute',
@@ -50,41 +50,77 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Decorative top accent bar
+  topAccent: {
+    position: 'absolute',
+    top: format.safeMargin,
+    left: '50%',
+    width: 80 * format.scaleFactor,
+    height: 4 * format.scaleFactor,
+    backgroundColor: theme.accentColor,
+    transform: 'translateX(-50%)',
+  },
   yearText: {
-    fontSize: Math.max(80, 96 * format.scaleFactor),
+    fontSize: Math.max(120, 140 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
     fontWeight: 'bold',
-    marginBottom: 20 * format.scaleFactor,
+    marginBottom: 24 * format.scaleFactor,
     textAlign: 'center',
+    letterSpacing: -2,
   },
   title: {
-    fontSize: Math.max(28, 36 * format.scaleFactor),
+    fontSize: Math.max(32, 42 * format.scaleFactor),
+    fontFamily: theme.fontPairing.heading,
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: 4,
+    marginBottom: 16 * format.scaleFactor,
+    textAlign: 'center',
+    maxWidth: '85%',
+    lineHeight: 1.2,
+  },
+  subtitle: {
+    fontSize: Math.max(16, 20 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 48 * format.scaleFactor,
+    textAlign: 'center',
+    maxWidth: '75%',
+    lineHeight: 1.4,
+  },
+  // Bottom section with athlete name
+  bottomSection: {
+    position: 'absolute',
+    bottom: format.safeMargin,
+    left: format.safeMargin,
+    right: format.safeMargin,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  athleteLabel: {
+    fontSize: Math.max(9, 11 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 4 * format.scaleFactor,
+  },
+  athleteName: {
+    fontSize: Math.max(14, 18 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: '#ffffff',
     textTransform: 'uppercase',
     letterSpacing: 3,
-    marginBottom: 10 * format.scaleFactor,
     textAlign: 'center',
-    maxWidth: '80%',
   },
-  subtitle: {
-    fontSize: Math.max(14, 18 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#e0e0e0',
-    marginBottom: 40 * format.scaleFactor,
-    textAlign: 'center',
-    maxWidth: '70%',
-  },
-  athleteName: {
-    fontSize: Math.max(12, 16 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    textAlign: 'center',
-    position: 'absolute',
-    bottom: format.safeMargin,
+  // Decorative bottom accent bar
+  bottomAccent: {
+    width: 60 * format.scaleFactor,
+    height: 3 * format.scaleFactor,
+    backgroundColor: theme.accentColor,
+    marginTop: 12 * format.scaleFactor,
   },
 })
 
@@ -124,12 +160,21 @@ export const CoverPage = ({
         }} />
       )}
 
-      {/* Content layer */}
+      {/* Top decorative accent */}
+      <View style={styles.topAccent} />
+
+      {/* Main content layer */}
       <View style={styles.contentContainer}>
         <Text style={styles.yearText}>{year}</Text>
         <Text style={styles.title}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      </View>
+
+      {/* Bottom section with athlete name */}
+      <View style={styles.bottomSection}>
+        <Text style={styles.athleteLabel}>By</Text>
         <Text style={styles.athleteName}>{athleteName}</Text>
+        <View style={styles.bottomAccent} />
       </View>
     </Page>
   )
