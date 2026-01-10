@@ -2,6 +2,14 @@ import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } fr
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
+import {
+    formatDuration,
+    formatPace,
+    processSplits,
+    processBestEfforts,
+    getMapboxSatelliteUrl
+} from '@/lib/race-data-utils'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import mapboxPolyline from '@mapbox/polyline'
 
 // Register emoji source for proper emoji rendering in PDFs
@@ -339,42 +347,6 @@ interface Race_1pProps {
     layoutVariant?: Race1pVariant  // Defaults to auto-detect based on available data
 }
 
-// Helper to resolve image URLs - use local paths directly, proxy external URLs
-function resolveImageUrl(url: string | undefined): string | null {
-    if (!url) return null
-    // Local file paths (absolute paths from fixtures)
-    if (url.startsWith('/') && !url.startsWith('/api/')) {
-        return url
-    }
-    // HTTP URLs need to be proxied
-    if (url.startsWith('http')) {
-        return `/api/proxy-image?url=${encodeURIComponent(url)}`
-    }
-    // Relative paths - assume local
-    return url
-}
-
-// Helper to format time as HH:MM:SS or MM:SS
-function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60)
-
-    if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
-}
-
-// Helper to format pace as MM:SS/km
-function formatPace(distanceMeters: number, timeSeconds: number): string {
-    if (distanceMeters === 0) return '--:--'
-    const paceSecondsPerKm = timeSeconds / (distanceMeters / 1000)
-    const minutes = Math.floor(paceSecondsPerKm / 60)
-    const seconds = Math.floor(paceSecondsPerKm % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
-
 export const Race_1p = ({
     activity,
     mapboxToken,
@@ -386,12 +358,12 @@ export const Race_1p = ({
     const location = resolveActivityLocation(activity)
 
     // Get Strava photo if available
-    const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
+    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
 
     // Get satellite map URL if token and polyline available
     // Use direct URL for @react-pdf/renderer (proxy URLs don't work server-side)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
-        ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(activity.map.summary_polyline)})/auto/800x400@2x?access_token=${mapboxToken}&logo=false`
+        ? getMapboxSatelliteUrl(activity.map.summary_polyline, mapboxToken)
         : null
 
     // Determine variant: use provided or auto-detect
@@ -403,32 +375,11 @@ export const Race_1p = ({
         return 'stats-focus'
     })()
 
-    // Prepare splits data - prefer laps over auto-generated splits (limit to 6 for single page)
-    const rawLaps = activity.laps || []
-    const rawSplits = activity.splits_metric || []
-
-    let displaySplits: Array<{ label: string; time: string; pace: string }> = []
-    if (rawLaps.length > 0) {
-        // Use laps if available (race laps) - limit to 6 for single-page layout
-        displaySplits = rawLaps.slice(0, 6).map((lap, idx) => ({
-            label: lap.name || `Lap ${idx + 1}`,
-            time: formatTime(lap.moving_time),
-            pace: formatPace(lap.distance, lap.moving_time),
-        }))
-    } else if (rawSplits.length > 0) {
-        // Fall back to splits - limit to 6 for single-page layout
-        displaySplits = rawSplits.slice(0, 6).map((s, idx) => ({
-            label: `${idx + 1} km`,
-            time: formatTime(s.moving_time),
-            pace: formatPace(s.distance, s.moving_time),
-        }))
-    }
+    // Prepare splits data
+    const displaySplits = processSplits(activity, 6)
 
     // Prepare best efforts (limit to 6 for single page)
-    const bestEfforts = (activity.best_efforts || [])
-        .filter(e => e.pr_rank && e.pr_rank <= 10)
-        .sort((a, b) => (a.pr_rank || 999) - (b.pr_rank || 999))
-        .slice(0, 6)
+    const bestEfforts = processBestEfforts(activity, 6)
 
     // Prepare comments (limit to 3 for single page)
     const comments = (activity.comments || [])
@@ -437,7 +388,7 @@ export const Race_1p = ({
 
     // Calculate hero stats
     const distanceKm = (activity.distance / 1000).toFixed(1)
-    const timeFormatted = formatTime(activity.moving_time)
+    const timeFormatted = formatDuration(activity.moving_time)
     const avgPace = formatPace(activity.distance, activity.moving_time)
     const elevationM = Math.round(activity.total_elevation_gain)
 
@@ -465,7 +416,7 @@ export const Race_1p = ({
     )
 
     const Description = () => activity.description ? (
-        <Text style={styles.description}>"{activity.description}"</Text>
+        <Text style={styles.description}>&quot;{activity.description}&quot;</Text>
     ) : null
 
     const HeroStats = ({ giant = false }: { giant?: boolean }) => (
@@ -562,12 +513,11 @@ export const Race_1p = ({
                     <Text style={styles.sectionTitle}>Best Efforts</Text>
                     <View style={styles.splitsTable}>
                         {bestEfforts.map((effort, idx) => {
-                            const effortPace = formatPace(effort.distance, effort.elapsed_time)
                             const isPR = effort.pr_rank && effort.pr_rank <= 3
                             return (
                                 <View key={idx} style={styles.effortRow}>
                                     <Text style={styles.effortLabel}>{effort.name}</Text>
-                                    <Text style={styles.effortValue}>{effortPace}</Text>
+                                    <Text style={styles.effortValue}>{effort.pace}</Text>
                                     {isPR && (
                                         <View style={styles.prBadge}>
                                             <Text style={styles.prBadgeText}>PR{effort.pr_rank}</Text>

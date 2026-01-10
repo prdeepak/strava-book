@@ -87,15 +87,54 @@ export async function POST(request: NextRequest) {
         console.log('[Book Generation] Rendering PDF...')
         const startTime = Date.now()
 
+        // Fetch detailed data for race activities (workout_type === 1)
+        // Race pages need photos, splits, best efforts, and comments which are not in the summary
+        const enrichedActivities = await Promise.all(activities.map(async (activity) => {
+            // Only fetch details for Races (workout_type === 1)
+            // AND ensure we have an access token to make the call
+            if (activity.workout_type === 1 && session.accessToken) {
+                try {
+                    console.log(`[Book Generation] Fetching details for race: ${activity.name} (${activity.id})`)
+                    // Fetch details in parallel
+                    // import { getActivity, getActivityPhotos, getActivityComments } from '@/lib/strava'
+                    const [details, photos, comments] = await Promise.all([
+                        import('@/lib/strava').then(m => m.getActivity(session.accessToken as string, activity.id.toString())),
+                        import('@/lib/strava').then(m => m.getActivityPhotos(session.accessToken as string, activity.id.toString())),
+                        import('@/lib/strava').then(m => m.getActivityComments(session.accessToken as string, activity.id.toString()))
+                    ])
+
+                    // Merge details into activity
+                    // We prioritize the detailed fields
+                    return {
+                        ...activity,
+                        ...details,
+                        photos: {
+                            primary: details.photos?.primary || activity.photos?.primary || { urls: {} },
+                            count: photos.length, // Update count from photos endpoint
+                        },
+                        allPhotos: photos, // Store all photos for access if needed
+                        comments: comments,
+                        // Ensure map is preserved/updated
+                        map: details.map || activity.map,
+                    }
+                } catch (err) {
+                    console.error(`[Book Generation] Failed to enrich race ${activity.id}:`, err)
+                    return activity // Fallback to summary if fetch fails
+                }
+            }
+            return activity
+        }))
+
         const pdfBuffer = await renderToBuffer(
             FullBookDocument({
-                activities,
+                activities: enrichedActivities,
                 title: config.title,
                 athleteName,
                 year: config.year,
                 forewordText: config.forewordText,
                 format,
                 theme,
+                mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
             })
         )
 

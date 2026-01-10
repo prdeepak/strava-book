@@ -13,6 +13,12 @@ import { StravaActivity } from '@/lib/strava';
 import { resolveActivityLocation } from '@/lib/activity-utils';
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 import { resolveImageForPdf } from '@/lib/pdf-image-loader';
+import {
+  formatDuration,
+  formatPace,
+  processSplits,
+  getFormattedBestEfforts
+} from '@/lib/race-data-utils';
 
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
@@ -479,11 +485,8 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
 
   // Calculate stats
   const distanceKm = (activity.distance / 1000).toFixed(2);
-  const movingTime = new Date(activity.moving_time * 1000).toISOString().substr(11, 8);
-  const paceSeconds = activity.moving_time / (activity.distance / 1000);
-  const paceMin = Math.floor(paceSeconds / 60);
-  const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0');
-  const avgPace = `${paceMin}:${paceSec}/km`;
+  const movingTime = formatDuration(activity.moving_time);
+  const avgPace = formatPace(activity.distance, activity.moving_time);
   const elevation = `${activity.total_elevation_gain}m`;
 
   // Format date
@@ -494,35 +497,21 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
     year: 'numeric'
   });
 
-  // Prepare best efforts
-  const bestEfforts = (activity.best_efforts || []).slice(0, 6).map(effort => {
-    const effortPaceSeconds = effort.elapsed_time / (effort.distance / 1000);
-    const effortPaceMin = Math.floor(effortPaceSeconds / 60);
-    const effortPaceSec = Math.round(effortPaceSeconds % 60).toString().padStart(2, '0');
-    return {
-      label: effort.name,
-      value: `${effortPaceMin}:${effortPaceSec}/km`
-    };
-  });
+  // Prepare best efforts (using shared utility)
+  const bestEfforts = getFormattedBestEfforts(activity, 6).map(effort => ({
+    label: effort.name,
+    value: effort.pace
+  }));
 
-  // Prepare splits data - prefer laps over splits
-  const rawLaps = activity.laps || [];
-  const rawSplits = activity.splits_metric || [];
-
-  let displaySplits = [];
-  if (rawLaps.length > 0) {
-    // Use laps if available
-    displaySplits = rawLaps.map(lap => ({
-      split: lap.lap_index,
-      label: lap.name || `Lap ${lap.lap_index}`,
-      moving_time: lap.moving_time,
-      distance: lap.distance,
-      elevation_difference: lap.total_elevation_gain
-    }));
-  } else {
-    // Fall back to splits
-    displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }));
-  }
+  // Prepare splits data (using shared utility)
+  // Map back to the structure expected by ScrapbookPageProps and SplitsChartSVG
+  const displaySplits = processSplits(activity).map(split => ({
+    split: split.split_index,
+    label: split.label,
+    moving_time: split.moving_time,
+    distance: split.distance,
+    elevation_difference: split.elevation_difference || 0
+  }));
 
   // Get additional photos from activity.allPhotos (up to 4 for polaroid row)
   // Skip the first photo since Strava returns the primary photo first

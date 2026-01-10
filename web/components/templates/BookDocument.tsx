@@ -14,7 +14,7 @@ import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMAT
 import { calculateActivitiesPerPage } from '@/lib/activity-log-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
-                     'July', 'August', 'September', 'October', 'November', 'December']
+    'July', 'August', 'September', 'October', 'November', 'December']
 
 const styles = StyleSheet.create({
     placeholderPage: {
@@ -342,6 +342,7 @@ interface BookDocumentProps {
     athleteName?: string
     year?: number
     yearSummary?: YearSummary
+    mapboxToken?: string
 }
 
 /**
@@ -356,6 +357,7 @@ export const BookDocument = ({
     athleteName = 'Athlete',
     year = new Date().getFullYear(),
     yearSummary,
+    mapboxToken,
 }: BookDocumentProps) => {
     // Calculate year summary from activities if not provided
     // Uses the comprehensive computeYearSummary function for proper monthly stats
@@ -416,6 +418,7 @@ export const BookDocument = ({
                             format={format}
                             theme={theme}
                             highlightLabel={entry.highlightLabel}
+                            mapboxToken={mapboxToken}
                         />
                     )
                 }
@@ -624,6 +627,7 @@ interface FullBookDocumentProps {
     forewordText?: string
     format?: BookFormat
     theme?: BookTheme
+    mapboxToken?: string
 }
 
 /**
@@ -651,6 +655,7 @@ export const FullBookDocument = ({
     forewordText,
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
+    mapboxToken,
 }: FullBookDocumentProps) => {
     // Generate book entries from activities
     const entries = generateBookEntries(activities, {
@@ -674,6 +679,7 @@ export const FullBookDocument = ({
             athleteName={athleteName}
             year={year}
             yearSummary={yearSummary}
+            mapboxToken={mapboxToken}
         />
     )
 }
