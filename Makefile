@@ -143,6 +143,10 @@ test-ai:
 	@echo "🤖 Running AI output validation tests..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/ai-output-tests.ts
 
+test-fonts:
+	@echo "🔤 Running font validation tests..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+
 test-e2e:
 	@echo "🎭 Running Playwright e2e tests (requires web dev server)"
 	@echo "Note: Start server with 'make web-dev' first"

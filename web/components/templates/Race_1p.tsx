@@ -101,6 +101,61 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginTop: 4 * format.scaleFactor,
     },
 
+    // Giant stats for stats-focus variant
+    giantStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 20 * format.scaleFactor,
+        paddingVertical: 24 * format.scaleFactor,
+        borderBottomWidth: 2,
+        borderBottomColor: theme.accentColor,
+        borderTopWidth: 2,
+        borderTopColor: theme.accentColor,
+    },
+    giantStatValue: {
+        fontSize: Math.max(48, 64 * format.scaleFactor),
+        fontFamily: 'Courier-Bold',
+        color: theme.accentColor,
+        lineHeight: 1,
+    },
+
+    // Thumbnail styles for secondary images
+    thumbnailRow: {
+        flexDirection: 'row',
+        gap: 8 * format.scaleFactor,
+        marginBottom: 12 * format.scaleFactor,
+    },
+    thumbnailContainer: {
+        width: 80 * format.scaleFactor,
+        height: 60 * format.scaleFactor,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    thumbnail: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+    },
+
+    // Dual image layout
+    dualImageRow: {
+        flexDirection: 'row',
+        width: '100%',
+        height: 200 * format.scaleFactor,
+    },
+    dualImageHalf: {
+        flex: 1,
+        overflow: 'hidden',
+    },
+
+    // Polyline hero container
+    polylineHeroContainer: {
+        width: '100%',
+        backgroundColor: '#0a0a0a',
+        padding: format.safeMargin,
+        marginBottom: 8 * format.scaleFactor,
+    },
+
     // Data sections layout (more compact)
     dataSections: {
         flexDirection: 'row',
@@ -345,7 +400,7 @@ export const Race_1p = ({
     const rawLaps = activity.laps || []
     const rawSplits = activity.splits_metric || []
 
-    let displaySplits = []
+    let displaySplits: Array<{ label: string; time: string; pace: string }> = []
     if (rawLaps.length > 0) {
         // Use laps if available (race laps) - limit to 6 for single-page layout
         displaySplits = rawLaps.slice(0, 6).map((lap, idx) => ({
@@ -383,152 +438,265 @@ export const Race_1p = ({
 
 
 
-    return (
-        <Document>
-            <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-                {/* Hero Photo - Full Bleed */}
+    // =========================================================================
+    // Shared Components (used across all variants)
+    // =========================================================================
+
+    const TitleSection = () => (
+        <View style={styles.titleSection}>
+            <Text style={styles.raceDate}>
+                {new Date(activity.start_date).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                }).toUpperCase()}
+            </Text>
+            <Text style={styles.raceTitle}>{activity.name}</Text>
+            <Text style={styles.raceLocation}>{location}</Text>
+        </View>
+    )
+
+    const Description = () => activity.description ? (
+        <Text style={styles.description}>"{activity.description}"</Text>
+    ) : null
+
+    const HeroStats = ({ giant = false }: { giant?: boolean }) => (
+        <View style={giant ? styles.giantStatsRow : styles.heroStatsRow}>
+            <View style={styles.heroStat}>
+                <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{distanceKm}</Text>
+                <Text style={styles.heroStatLabel}>KM</Text>
+            </View>
+            <View style={styles.heroStat}>
+                <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{timeFormatted}</Text>
+                <Text style={styles.heroStatLabel}>TIME</Text>
+            </View>
+            <View style={styles.heroStat}>
+                <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{avgPace}</Text>
+                <Text style={styles.heroStatLabel}>PACE/KM</Text>
+            </View>
+            {elevationM > 0 && (
+                <View style={styles.heroStat}>
+                    <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{elevationM}</Text>
+                    <Text style={styles.heroStatLabel}>ELEV (M)</Text>
+                </View>
+            )}
+        </View>
+    )
+
+    const HeroPhoto = ({ height = 200 }: { height?: number }) => stravaPhoto ? (
+        <View style={[styles.heroPhotoContainer, { height: height * format.scaleFactor }]}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={stravaPhoto} style={styles.heroPhoto} />
+        </View>
+    ) : null
+
+    const HeroMap = ({ height = 200 }: { height?: number }) => satelliteMapUrl ? (
+        <View style={[styles.heroPhotoContainer, { height: height * format.scaleFactor }]}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+        </View>
+    ) : null
+
+    const SmallPhoto = () => stravaPhoto ? (
+        <View style={styles.thumbnailContainer}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={stravaPhoto} style={styles.thumbnail} />
+        </View>
+    ) : null
+
+    const SmallMap = () => satelliteMapUrl ? (
+        <View style={styles.thumbnailContainer}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={satelliteMapUrl} style={styles.thumbnail} />
+        </View>
+    ) : null
+
+    const PolylineHero = ({ height = 180 }: { height?: number }) => activity.map?.summary_polyline ? (
+        <View style={[styles.polylineHeroContainer, { height: height * format.scaleFactor }]}>
+            <Svg
+                width="100%"
+                height={height * format.scaleFactor}
+                viewBox={`0 0 ${format.dimensions.width - (format.safeMargin * 2)} ${height * format.scaleFactor}`}
+            >
+                <Polyline
+                    points={normalizePoints(
+                        activity.map.summary_polyline,
+                        format.dimensions.width - (format.safeMargin * 2),
+                        height * format.scaleFactor
+                    )}
+                    stroke={theme.accentColor}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                />
+            </Svg>
+        </View>
+    ) : null
+
+    const DataSections = () => (
+        <View style={styles.dataSections}>
+            {displaySplits.length > 0 && (
+                <View style={styles.dataColumn}>
+                    <Text style={styles.sectionTitle}>Splits</Text>
+                    <View style={styles.splitsTable}>
+                        {displaySplits.map((split, idx) => (
+                            <View key={idx} style={styles.splitRow}>
+                                <Text style={styles.splitLabel}>{split.label}</Text>
+                                <Text style={styles.splitValue}>{split.pace}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+            )}
+            {bestEfforts.length > 0 && (
+                <View style={styles.dataColumn}>
+                    <Text style={styles.sectionTitle}>Best Efforts</Text>
+                    <View style={styles.splitsTable}>
+                        {bestEfforts.map((effort, idx) => {
+                            const effortPace = formatPace(effort.distance, effort.elapsed_time)
+                            const isPR = effort.pr_rank && effort.pr_rank <= 3
+                            return (
+                                <View key={idx} style={styles.effortRow}>
+                                    <Text style={styles.effortLabel}>{effort.name}</Text>
+                                    <Text style={styles.effortValue}>{effortPace}</Text>
+                                    {isPR && (
+                                        <View style={styles.prBadge}>
+                                            <Text style={styles.prBadgeText}>PR{effort.pr_rank}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )
+                        })}
+                    </View>
+                </View>
+            )}
+            {(comments.length > 0 || activity.kudos_count > 0) && (
+                <View style={styles.dataColumn}>
+                    <Text style={styles.sectionTitle}>
+                        {comments.length > 0 ? 'Comments' : 'Kudos'}
+                    </Text>
+                    {activity.kudos_count > 0 && (
+                        <Text style={styles.kudosCount}>👍 {activity.kudos_count} kudos</Text>
+                    )}
+                    {comments.length > 0 && (
+                        <View style={styles.commentsList}>
+                            {comments.map((comment, idx) => (
+                                <View key={idx} style={styles.comment}>
+                                    <Text style={styles.commentAuthor}>
+                                        {comment.athlete.firstname} {comment.athlete.lastname}
+                                    </Text>
+                                    <Text style={styles.commentText}>{comment.text}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
+        </View>
+    )
+
+    // =========================================================================
+    // Variant-Specific Layouts
+    // =========================================================================
+
+    const renderPhotoHero = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <HeroPhoto height={280} />
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <Description />
+                <View style={styles.thumbnailRow}>
+                    <SmallMap />
+                </View>
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    const renderMapHero = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <HeroMap height={280} />
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <Description />
+                <View style={styles.thumbnailRow}>
+                    <SmallPhoto />
+                </View>
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    const renderDualImage = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <View style={styles.dualImageRow}>
                 {stravaPhoto && (
-                    <View style={styles.heroPhotoContainer}>
+                    <View style={styles.dualImageHalf}>
                         {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         <Image src={stravaPhoto} style={styles.heroPhoto} />
                     </View>
                 )}
-
-                {/* Content Area */}
-                <View style={styles.contentArea}>
-                    {/* Title Section */}
-                    <View style={styles.titleSection}>
-                        <Text style={styles.raceDate}>
-                            {new Date(activity.start_date).toLocaleDateString(undefined, {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                            }).toUpperCase()}
-                        </Text>
-                        <Text style={styles.raceTitle}>{activity.name}</Text>
-                        <Text style={styles.raceLocation}>{location}</Text>
+                {satelliteMapUrl && (
+                    <View style={styles.dualImageHalf}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                        <Image src={satelliteMapUrl} style={styles.heroPhoto} />
                     </View>
+                )}
+            </View>
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <Description />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
 
-                    {/* Description */}
-                    {activity.description && (
-                        <Text style={styles.description}>"{activity.description}"</Text>
-                    )}
-
-                    {/* Hero Stats */}
-                    <View style={styles.heroStatsRow}>
-                        <View style={styles.heroStat}>
-                            <Text style={styles.heroStatValue}>{distanceKm}</Text>
-                            <Text style={styles.heroStatLabel}>KM</Text>
-                        </View>
-                        <View style={styles.heroStat}>
-                            <Text style={styles.heroStatValue}>{timeFormatted}</Text>
-                            <Text style={styles.heroStatLabel}>TIME</Text>
-                        </View>
-                        <View style={styles.heroStat}>
-                            <Text style={styles.heroStatValue}>{avgPace}</Text>
-                            <Text style={styles.heroStatLabel}>PACE/KM</Text>
-                        </View>
-                        {elevationM > 0 && (
-                            <View style={styles.heroStat}>
-                                <Text style={styles.heroStatValue}>{elevationM}</Text>
-                                <Text style={styles.heroStatLabel}>ELEV (M)</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Map/Polyline - only show if no photo */}
-                    {!stravaPhoto && activity.map?.summary_polyline && (
-                        <View style={styles.mapSection}>
-                            <Svg
-                                width="100%"
-                                height={100 * format.scaleFactor}
-                                viewBox={`0 0 ${format.dimensions.width - (format.safeMargin * 2)} ${100 * format.scaleFactor}`}
-                            >
-                                <Polyline
-                                    points={normalizePoints(
-                                        activity.map.summary_polyline,
-                                        format.dimensions.width - (format.safeMargin * 2),
-                                        100 * format.scaleFactor
-                                    )}
-                                    stroke={theme.accentColor}
-                                    strokeWidth={3}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    fill="none"
-                                />
-                            </Svg>
-                        </View>
-                    )}
-
-                    {/* Data Sections */}
-                    <View style={styles.dataSections}>
-                        {/* Splits Column */}
-                        {displaySplits.length > 0 && (
-                            <View style={styles.dataColumn}>
-                                <Text style={styles.sectionTitle}>Splits</Text>
-                                <View style={styles.splitsTable}>
-                                    {displaySplits.map((split, idx) => (
-                                        <View key={idx} style={styles.splitRow}>
-                                            <Text style={styles.splitLabel}>{split.label}</Text>
-                                            <Text style={styles.splitValue}>{split.pace}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Best Efforts Column */}
-                        {bestEfforts.length > 0 && (
-                            <View style={styles.dataColumn}>
-                                <Text style={styles.sectionTitle}>Best Efforts</Text>
-                                <View style={styles.splitsTable}>
-                                    {bestEfforts.map((effort, idx) => {
-                                        const effortPace = formatPace(effort.distance, effort.elapsed_time)
-                                        const isPR = effort.pr_rank && effort.pr_rank <= 3
-
-                                        return (
-                                            <View key={idx} style={styles.effortRow}>
-                                                <Text style={styles.effortLabel}>{effort.name}</Text>
-                                                <Text style={styles.effortValue}>{effortPace}</Text>
-                                                {isPR && (
-                                                    <View style={styles.prBadge}>
-                                                        <Text style={styles.prBadgeText}>PR{effort.pr_rank}</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                        )
-                                    })}
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Comments Column */}
-                        {(comments.length > 0 || activity.kudos_count > 0) && (
-                            <View style={styles.dataColumn}>
-                                <Text style={styles.sectionTitle}>
-                                    {comments.length > 0 ? 'Comments' : 'Kudos'}
-                                </Text>
-                                {activity.kudos_count > 0 && (
-                                    <Text style={styles.kudosCount}>👍 {activity.kudos_count} kudos</Text>
-                                )}
-                                {comments.length > 0 && (
-                                    <View style={styles.commentsList}>
-                                        {comments.map((comment, idx) => (
-                                            <View key={idx} style={styles.comment}>
-                                                <Text style={styles.commentAuthor}>
-                                                    {comment.athlete.firstname} {comment.athlete.lastname}
-                                                </Text>
-                                                <Text style={styles.commentText}>{comment.text}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                )}
-                            </View>
-                        )}
-                    </View>
+    const renderStatsFocus = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats giant={true} />
+                <View style={styles.thumbnailRow}>
+                    <SmallPhoto />
+                    <SmallMap />
                 </View>
-            </Page>
+                <Description />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    const renderPolylineMinimal = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <PolylineHero height={220} />
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <View style={styles.thumbnailRow}>
+                    <SmallPhoto />
+                </View>
+                <Description />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // =========================================================================
+    // Render based on variant
+    // =========================================================================
+
+    return (
+        <Document>
+            {variant === 'photo-hero' && renderPhotoHero()}
+            {variant === 'map-hero' && renderMapHero()}
+            {variant === 'dual-image' && renderDualImage()}
+            {variant === 'stats-focus' && renderStatsFocus()}
+            {variant === 'polyline-minimal' && renderPolylineMinimal()}
         </Document>
     )
 }
