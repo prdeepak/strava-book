@@ -115,6 +115,7 @@ export function registerPdfFonts(): void {
         fonts: [
             { src: getFontSource('CrimsonText-Regular.ttf'), fontWeight: 'normal' },
             { src: getFontSource('CrimsonText-Bold.ttf'), fontWeight: 'bold' },
+            { src: getFontSource('CrimsonText-Italic.ttf'), fontWeight: 'normal', fontStyle: 'italic' },
         ],
     })
     console.log('[pdf-fonts] Registered: CrimsonText')
