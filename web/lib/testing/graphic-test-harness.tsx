@@ -368,7 +368,7 @@ function renderMapGraphic(fixture: StravaActivity, width: number, height: number
     // Generate subtle grid lines for geographic context - visible for print
     const gridLines: React.ReactElement[] = []
     const gridSpacing = 40
-    const gridColor = '#404040'  // More visible gray
+    const gridColor = '#4a4a4a'  // More visible gray for print
 
     // Vertical grid lines
     for (let x = gridSpacing; x < width; x += gridSpacing) {
@@ -411,12 +411,12 @@ function renderMapGraphic(fixture: StravaActivity, width: number, height: number
                         {/* Subtle grid for geographic context */}
                         {gridLines}
 
-                        {/* Route path with Strava orange */}
+                        {/* Route path with Strava orange - thicker for print visibility */}
                         <Polyline
                             points={points}
                             fill="none"
                             stroke="#fc4c02"
-                            strokeWidth="3"
+                            strokeWidth="3.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                         />
