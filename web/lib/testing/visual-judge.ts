@@ -39,6 +39,7 @@ export interface JudgeContext {
         accentColor: string
         backgroundColor: string
     }
+    customPrompt?: string  // Override default prompt (for graphic tests)
 }
 
 export interface JudgeOptions {
@@ -90,6 +91,11 @@ Return ONLY valid JSON (no markdown, no explanation outside JSON):
 }`
 
 function buildPrompt(context: JudgeContext): string {
+    // Use custom prompt if provided (for graphic tests)
+    if (context.customPrompt) {
+        return context.customPrompt
+    }
+
     let themeInfo = ''
     if (context.theme) {
         themeInfo = `Theme: Primary=${context.theme.primaryColor}, Accent=${context.theme.accentColor}, Background=${context.theme.backgroundColor}`

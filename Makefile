@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list
 
 help:
 	@echo "Available commands:"
@@ -13,11 +13,13 @@ help:
 	@echo "Testing commands:"
 	@echo "  make test-visual      - Run all visual template tests"
 	@echo "  make test-template    - Test specific template (template=X fixture=Y)"
+	@echo "  make test-graphic     - Test graphic component (graphic=X fixture=Y)"
 	@echo "  make test-integration - Run full book integration tests"
 	@echo "  make test-ai          - Run AI output validation tests"
 	@echo "  make test-e2e         - Run Playwright e2e tests (requires web-dev)"
 	@echo "  make test-e2e-ci      - Self-contained e2e tests (fully isolated)"
 	@echo "  make test-list        - List available templates and fixtures"
+	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
 
 
 # --- The Smart Check ---
@@ -112,6 +114,14 @@ test-list:
 test-pdf:
 	@echo "📄 Generating PDF only (no visual judge)..."
 	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+
+test-graphic:
+	@echo "🎨 Testing $(graphic) graphic with fixture $(fixture)..."
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --graphic $(graphic) --fixture $(fixture) --verbose
+
+test-graphic-list:
+	@echo "🎨 Available graphics and fixtures:"
+	docker-compose run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --list
 
 test-integration:
 	@echo "📚 Running integration tests (full book generation)..."
