@@ -109,8 +109,10 @@ export async function POST(request: NextRequest) {
                         ...activity,
                         ...details,
                         photos: {
-                            primary: details.photos?.primary || activity.photos?.primary || { urls: {} },
-                            count: photos.length, // Update count from photos endpoint
+                            primary: details.photos?.primary ||
+                                activity.photos?.primary ||
+                                (photos.length > 0 ? { urls: photos[0].urls } : { urls: {} }),
+                            count: photos.length,
                         },
                         allPhotos: photos, // Store all photos for access if needed
                         comments: comments,
