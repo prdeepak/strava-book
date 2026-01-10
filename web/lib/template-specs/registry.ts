@@ -10,6 +10,13 @@ import { TemplateSpec, BookPageType } from './types'
 import { race1pSpec } from './race-1p'
 import { race2pSpec } from './race-2p'
 import { coverSpec, yearStatsSpec, monthlyDividerSpec, yearCalendarSpec } from './book-templates'
+import {
+  activityLogSpec,
+  backCoverSpec,
+  forewordSpec,
+  tableOfContentsSpec,
+  aiRaceSpec,
+} from './additional-templates'
 
 // All registered template specs
 const templateSpecs: Map<string, TemplateSpec> = new Map([
@@ -19,6 +26,11 @@ const templateSpecs: Map<string, TemplateSpec> = new Map([
   ['year_stats', yearStatsSpec],
   ['monthly_divider', monthlyDividerSpec],
   ['year_calendar', yearCalendarSpec],
+  ['activity_log', activityLogSpec],
+  ['back_cover', backCoverSpec],
+  ['foreword', forewordSpec],
+  ['table_of_contents', tableOfContentsSpec],
+  ['ai_race', aiRaceSpec],
 ])
 
 /**

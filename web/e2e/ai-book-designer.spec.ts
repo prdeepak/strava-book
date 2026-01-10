@@ -154,14 +154,13 @@ test.describe('AI Book Designer', () => {
         await aiDesignButton.click()
         await page.waitForTimeout(500)
 
-        // Should have input fields for book details
-        const titleInput = page.getByPlaceholder(/year in running|book title/i)
-          .or(page.locator('input[type="text"]').first())
+        // Should have input fields for book details - use label to find the specific input
+        const titleInput = page.getByLabel(/book title/i)
 
         if (await titleInput.count() > 0) {
           // Should be able to type in the title
-          await titleInput.fill('My Test Book')
-          await expect(titleInput).toHaveValue('My Test Book')
+          await titleInput.first().fill('My Test Book')
+          await expect(titleInput.first()).toHaveValue('My Test Book')
         }
       }
     }
@@ -208,12 +207,11 @@ test.describe('AI Book Designer', () => {
         await aiDesignButton.click()
         await page.waitForTimeout(500)
 
-        // Click close button
-        const closeButton = page.getByRole('button', { name: /close/i })
-          .or(page.locator('button[aria-label*="close" i]'))
+        // Click the header close button (X icon with specific aria-label)
+        const closeButton = page.getByRole('button', { name: 'Close modal' })
 
         if (await closeButton.count() > 0) {
-          await closeButton.first().click()
+          await closeButton.click()
           await page.waitForTimeout(300)
 
           // AI Designer specific content should be hidden

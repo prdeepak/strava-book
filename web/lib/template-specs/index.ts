@@ -11,6 +11,13 @@ export * from './types'
 export { race1pSpec } from './race-1p'
 export { race2pSpec } from './race-2p'
 export { coverSpec, yearStatsSpec, monthlyDividerSpec, yearCalendarSpec } from './book-templates'
+export {
+  activityLogSpec,
+  backCoverSpec,
+  forewordSpec,
+  tableOfContentsSpec,
+  aiRaceSpec,
+} from './additional-templates'
 
 // Registry functions
 export {
