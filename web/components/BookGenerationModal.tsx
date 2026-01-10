@@ -5,11 +5,13 @@ import { StravaActivity } from '@/lib/strava'
 import { BookTheme, FORMATS, BookFormat } from '@/lib/book-types'
 import { estimatePageCount } from '@/components/templates/BookDocument'
 import AIBookDesignerModal from '@/components/AIBookDesignerModal'
+import { generatePeriodName, getDefaultDateRange, formatDateRange } from '@/lib/period-name-generator'
 
 interface BookGenerationModalProps {
     activities: StravaActivity[]
     isOpen: boolean
     onClose: () => void
+    athleteName?: string
 }
 
 type GenerationStep = 'configure' | 'generating' | 'complete' | 'error'
@@ -17,8 +19,10 @@ type StylePreference = 'minimal' | 'bold' | 'classic' | 'ai'
 
 interface BookConfig {
     title: string
+    periodName: string
     athleteName: string
-    year: number
+    startDate: string // ISO date string
+    endDate: string   // ISO date string
     forewordText: string
     format: BookFormat
     theme: BookTheme
@@ -72,29 +76,22 @@ export default function BookGenerationModal({
     activities,
     isOpen,
     onClose,
+    athleteName: initialAthleteName = 'Athlete',
 }: BookGenerationModalProps) {
-    // Derive year from activities (most common year, or current year if empty)
-    const getYearFromActivities = () => {
-        if (activities.length === 0) return new Date().getFullYear()
-        // Use the year from the most recent activity
-        const sorted = [...activities].sort((a, b) =>
-            new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
-        )
-        return new Date(sorted[0].start_date_local || sorted[0].start_date).getFullYear()
-    }
-
-    const derivedYear = getYearFromActivities()
-
-    // Generate a title based on date range
-    const getDefaultTitle = () => {
-        if (activities.length === 0) return 'My Running Book'
-        const dates = activities.map(a => new Date(a.start_date_local || a.start_date))
-        const years = new Set(dates.map(d => d.getFullYear()))
-        if (years.size === 1) {
-            return `${derivedYear} Year in Review`
+    // Get default date range from activities
+    const getInitialDateRange = useCallback(() => {
+        const { startDate, endDate } = getDefaultDateRange(activities)
+        return {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
         }
-        return 'My Running Journey'
-    }
+    }, [activities])
+
+    // Generate period name from date range and activities
+    const getInitialPeriodName = useCallback(() => {
+        const { startDate, endDate } = getDefaultDateRange(activities)
+        return generatePeriodName(startDate, endDate, activities)
+    }, [activities])
 
     const [step, setStep] = useState<GenerationStep>('configure')
     const [progress, setProgress] = useState(0)
@@ -105,10 +102,13 @@ export default function BookGenerationModal({
     const [aiThemeReasoning, setAiThemeReasoning] = useState<string | null>(null)
     const [aiDesignerOpen, setAiDesignerOpen] = useState(false)
 
+    const initialDates = getInitialDateRange()
     const [config, setConfig] = useState<BookConfig>({
-        title: getDefaultTitle(),
-        athleteName: 'Athlete',
-        year: derivedYear,
+        title: 'My Running Journey',
+        periodName: getInitialPeriodName(),
+        athleteName: initialAthleteName,
+        startDate: initialDates.startDate,
+        endDate: initialDates.endDate,
         forewordText: '',
         format: FORMATS['10x10'],
         theme: PRESET_THEMES.classic,
@@ -117,19 +117,45 @@ export default function BookGenerationModal({
 
     // Update config when activities change
     useEffect(() => {
-        const newYear = getYearFromActivities()
-        if (newYear !== config.year || activities.length > 0) {
-            setConfig(prev => ({
-                ...prev,
-                year: newYear,
-                title: prev.title === getDefaultTitle() ? getDefaultTitle() : prev.title,
-            }))
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activities.length])
+        const { startDate, endDate } = getDefaultDateRange(activities)
+        const newPeriodName = generatePeriodName(startDate, endDate, activities)
+        setConfig(prev => ({
+            ...prev,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            periodName: newPeriodName,
+        }))
+    }, [activities])
 
-    // Use all activities passed in (already filtered by /builder date range)
-    const pageEstimate = estimatePageCount(activities, config.format)
+    // Regenerate period name when dates change
+    const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+        setConfig(prev => {
+            const newConfig = { ...prev, [field]: value }
+            // Regenerate period name suggestion
+            const start = new Date(newConfig.startDate)
+            const end = new Date(newConfig.endDate)
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                // Filter activities to the new date range for better naming
+                const filteredActivities = activities.filter(a => {
+                    const actDate = new Date(a.start_date_local || a.start_date)
+                    return actDate >= start && actDate <= end
+                })
+                newConfig.periodName = generatePeriodName(start, end, filteredActivities)
+            }
+            return newConfig
+        })
+    }
+
+    // Get activities filtered by the selected date range
+    const filteredActivities = activities.filter(a => {
+        const actDate = new Date(a.start_date_local || a.start_date)
+        const start = new Date(config.startDate)
+        const end = new Date(config.endDate)
+        return actDate >= start && actDate <= end
+    })
+
+    // Use filtered activities for page estimation
+    const pageEstimate = estimatePageCount(filteredActivities, config.format)
 
     // Cleanup PDF URL on unmount
     useEffect(() => {
@@ -224,7 +250,7 @@ export default function BookGenerationModal({
         try {
             // Step 1: Prepare data (10%)
             setProgress(10)
-            setProgressMessage(`Building ${pageEstimate.total} pages for ${activities.length} activities...`)
+            setProgressMessage(`Building ${pageEstimate.total} pages for ${filteredActivities.length} activities...`)
 
             await new Promise(resolve => setTimeout(resolve, 500)) // Brief pause for UI feedback
 
@@ -236,11 +262,13 @@ export default function BookGenerationModal({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    activities: activities,
+                    activities: filteredActivities,
                     config: {
                         title: config.title,
+                        periodName: config.periodName,
                         athleteName: config.athleteName,
-                        year: config.year,
+                        startDate: config.startDate,
+                        endDate: config.endDate,
                         forewordText: config.forewordText || undefined,
                         format: config.format,
                         theme: config.theme,
@@ -294,7 +322,7 @@ export default function BookGenerationModal({
             setErrorMessage(error instanceof Error ? error.message : 'Failed to generate book')
             setStep('error')
         }
-    }, [activities, config, pageEstimate.total])
+    }, [filteredActivities, config, pageEstimate.total])
 
     const downloadPdf = useCallback(() => {
         if (pdfUrl) {
@@ -325,9 +353,9 @@ export default function BookGenerationModal({
                 <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-2xl font-bold mb-2">Generate Year Book</h2>
+                            <h2 className="text-2xl font-bold mb-2">Create Your Book</h2>
                             <p className="text-blue-100 text-sm">
-                                Create a complete coffee-table book from your activities
+                                Build a coffee-table book from any training period, race buildup, or season
                             </p>
                         </div>
                         <button
@@ -347,6 +375,46 @@ export default function BookGenerationModal({
                     {/* Configuration Step */}
                     {step === 'configure' && (
                         <div className="space-y-6">
+                            {/* Date Range Selection */}
+                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+                                <h3 className="font-semibold text-indigo-800 mb-3">Time Period</h3>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-xs text-indigo-600 mb-1">Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={config.startDate}
+                                            onChange={(e) => handleDateChange('startDate', e.target.value)}
+                                            className="w-full px-3 py-2 border border-indigo-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-indigo-600 mb-1">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={config.endDate}
+                                            onChange={(e) => handleDateChange('endDate', e.target.value)}
+                                            className="w-full px-3 py-2 border border-indigo-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-indigo-600 mb-1">
+                                        Period Name <span className="text-indigo-400">(appears on cover &amp; headers)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={config.periodName}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, periodName: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-indigo-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-lg font-medium"
+                                        placeholder="Road to Comrades 2025"
+                                    />
+                                    <p className="text-xs text-indigo-500 mt-1">
+                                        {filteredActivities.length} activities in this period
+                                    </p>
+                                </div>
+                            </div>
+
                             {/* Book Info */}
                             <div className="bg-stone-50 rounded-xl p-4">
                                 <h3 className="font-semibold text-stone-800 mb-4">Book Details</h3>
@@ -358,7 +426,7 @@ export default function BookGenerationModal({
                                             value={config.title}
                                             onChange={(e) => setConfig(prev => ({ ...prev, title: e.target.value }))}
                                             className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="My Year in Review"
+                                            placeholder="My Running Journey"
                                         />
                                     </div>
                                     <div>
@@ -489,7 +557,7 @@ export default function BookGenerationModal({
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     <div>
                                         <span className="block text-xs text-blue-600">Activities</span>
-                                        <span className="font-bold text-blue-900">{activities.length}</span>
+                                        <span className="font-bold text-blue-900">{filteredActivities.length}</span>
                                     </div>
                                     <div>
                                         <span className="block text-xs text-blue-600">Estimated Pages</span>
@@ -500,9 +568,9 @@ export default function BookGenerationModal({
                                         <span className="font-bold text-blue-900">{pageEstimate.breakdown.racePages / 2}</span>
                                     </div>
                                 </div>
-                                {activities.length === 0 && (
+                                {filteredActivities.length === 0 && (
                                     <p className="mt-2 text-xs text-amber-600">
-                                        No activities loaded. Use the date filter above to load activities.
+                                        No activities in selected date range. Adjust the dates above.
                                     </p>
                                 )}
                             </div>
@@ -511,7 +579,7 @@ export default function BookGenerationModal({
                             <div className="space-y-3">
                                 <button
                                     onClick={generateBook}
-                                    disabled={activities.length === 0}
+                                    disabled={filteredActivities.length === 0}
                                     className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     Generate Book ({pageEstimate.total} pages)
@@ -528,7 +596,7 @@ export default function BookGenerationModal({
 
                                 <button
                                     onClick={() => setAiDesignerOpen(true)}
-                                    disabled={activities.length === 0}
+                                    disabled={filteredActivities.length === 0}
                                     className="w-full px-6 py-4 bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold rounded-lg hover:from-violet-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -587,7 +655,7 @@ export default function BookGenerationModal({
                                 </svg>
                             </div>
                             <h3 className="text-xl font-semibold text-stone-800 mb-2">Your Book is Ready!</h3>
-                            <p className="text-stone-600 mb-6">{pageEstimate.total} pages of your {config.year} journey</p>
+                            <p className="text-stone-600 mb-6">{pageEstimate.total} pages celebrating &quot;{config.periodName}&quot;</p>
 
                             <div className="flex gap-4 justify-center">
                                 <button
@@ -634,13 +702,15 @@ export default function BookGenerationModal({
 
             {/* AI Book Designer Modal */}
             <AIBookDesignerModal
-                activities={activities}
+                activities={filteredActivities}
                 isOpen={aiDesignerOpen}
                 onClose={() => setAiDesignerOpen(false)}
                 initialConfig={{
                     title: config.title,
+                    periodName: config.periodName,
                     athleteName: config.athleteName,
-                    year: config.year,
+                    startDate: config.startDate,
+                    endDate: config.endDate,
                     format: config.format,
                 }}
             />

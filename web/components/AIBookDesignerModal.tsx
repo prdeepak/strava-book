@@ -10,8 +10,10 @@ interface AIBookDesignerModalProps {
     onClose: () => void
     initialConfig?: {
         title: string
+        periodName: string
         athleteName: string
-        year: number
+        startDate: string
+        endDate: string
         format: BookFormat
     }
 }
@@ -100,8 +102,11 @@ export default function AIBookDesignerModal({
     initialConfig,
 }: AIBookDesignerModalProps) {
     // Configuration state
-    const [title, setTitle] = useState(initialConfig?.title || 'My Year in Running')
+    const [title, setTitle] = useState(initialConfig?.title || 'My Running Journey')
+    const [periodName, setPeriodName] = useState(initialConfig?.periodName || 'My Running Journey')
     const [athleteName, setAthleteName] = useState(initialConfig?.athleteName || 'Athlete')
+    const [startDate] = useState(initialConfig?.startDate || new Date().toISOString().split('T')[0])
+    const [endDate] = useState(initialConfig?.endDate || new Date().toISOString().split('T')[0])
     const [format, setFormat] = useState<BookFormat>(initialConfig?.format || FORMATS['10x10'])
 
     // Design process state
@@ -155,8 +160,10 @@ export default function AIBookDesignerModal({
                     activities: activities,
                     config: {
                         title,
+                        periodName,
                         athleteName,
-                        year: new Date(activities[0]?.start_date || Date.now()).getFullYear(),
+                        startDate,
+                        endDate,
                         format,
                         theme: designSession.output?.artDirector?.theme,
                     },
@@ -179,7 +186,7 @@ export default function AIBookDesignerModal({
         } catch (error) {
             console.error('Failed to generate PDF from design:', error)
         }
-    }, [activities, title, athleteName, format])
+    }, [activities, title, periodName, athleteName, startDate, endDate, format])
 
     // Poll for status updates
     const pollStatus = useCallback(async (sessionId: string) => {
@@ -247,8 +254,10 @@ export default function AIBookDesignerModal({
                     })),
                     config: {
                         title,
+                        periodName,
                         athleteName,
-                        year: new Date(activities[0]?.start_date || Date.now()).getFullYear(),
+                        startDate,
+                        endDate,
                         format,
                     },
                 }),
