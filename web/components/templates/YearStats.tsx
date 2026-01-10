@@ -1,10 +1,14 @@
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
-import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME } from '@/lib/book-types'
+import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS, MonthlyStats } from '@/lib/book-types'
+import { StravaActivity } from '@/lib/strava'
 
 interface YearStatsProps {
-  yearSummary: YearSummary
-  format: BookFormat
-  theme: BookTheme
+  activity?: {
+    yearSummary?: YearSummary | null
+  }
+  yearSummary?: YearSummary
+  format?: BookFormat
+  theme?: BookTheme
 }
 
 // Create styles with format scaling
@@ -14,101 +18,151 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     height: format.dimensions.height,
     padding: format.safeMargin,
     backgroundColor: theme.backgroundColor,
+    flexDirection: 'column',
+  },
+
+  // Header section
+  header: {
+    marginBottom: 16 * format.scaleFactor,
   },
   yearTitle: {
-    fontSize: 64 * format.scaleFactor,
+    fontSize: Math.max(60, 84 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
+    color: theme.accentColor,
     textAlign: 'center',
-    marginBottom: 8 * format.scaleFactor,
-    letterSpacing: 2,
+    marginBottom: 2 * format.scaleFactor,
+    letterSpacing: 4,
+    fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: Math.max(12, 16 * format.scaleFactor),
+    fontSize: Math.max(9, 11 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     textAlign: 'center',
-    marginBottom: 40 * format.scaleFactor,
-    opacity: 0.7,
+    marginBottom: 2 * format.scaleFactor,
+    opacity: 0.6,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
-  heroStatsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 32 * format.scaleFactor,
+
+  // Hero stats - Big Three
+  heroStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20 * format.scaleFactor,
+    paddingBottom: 16 * format.scaleFactor,
+    borderBottomWidth: 2,
+    borderBottomColor: theme.primaryColor,
+    borderBottomStyle: 'solid',
   },
   heroStat: {
     alignItems: 'center',
-    marginBottom: 24 * format.scaleFactor,
+    flex: 1,
   },
   heroValue: {
-    fontSize: Math.max(56, 72 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
+    fontSize: Math.max(52, 86 * format.scaleFactor),
+    fontFamily: 'Courier-Bold', // Monospace for tabular figures
     color: theme.accentColor,
     lineHeight: 1,
+    letterSpacing: -2,
   },
   heroUnit: {
-    fontSize: Math.max(18, 24 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
+    fontSize: Math.max(13, 16 * format.scaleFactor),
+    fontFamily: 'Courier-Bold',
     color: theme.accentColor,
-    opacity: 0.8,
-    marginTop: 4 * format.scaleFactor,
+    opacity: 0.7,
+    marginTop: 2 * format.scaleFactor,
   },
   heroLabel: {
-    fontSize: Math.max(12, 16 * format.scaleFactor),
+    fontSize: Math.max(7, 9 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginTop: 8 * format.scaleFactor,
+    marginTop: 6 * format.scaleFactor,
+    opacity: 0.6,
+  },
+
+  // Secondary stats grid
+  secondarySection: {
+    marginBottom: 14 * format.scaleFactor,
+  },
+  sectionTitle: {
+    fontSize: Math.max(11, 14 * format.scaleFactor),
+    fontFamily: theme.fontPairing.heading,
+    color: theme.primaryColor,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 16 * format.scaleFactor,
     opacity: 0.7,
   },
   secondaryStatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    marginTop: 32 * format.scaleFactor,
-    paddingTop: 24 * format.scaleFactor,
-    borderTopWidth: 2,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
-    gap: 16 * format.scaleFactor,
+    justifyContent: 'space-between',
+    gap: 6 * format.scaleFactor,
   },
   secondaryStat: {
     alignItems: 'center',
-    width: '30%',
+    width: '22%',
+    marginBottom: 6 * format.scaleFactor,
   },
   secondaryValue: {
-    fontSize: Math.max(20, 28 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
+    fontSize: Math.max(20, 26 * format.scaleFactor),
+    fontFamily: 'Courier-Bold', // Monospace for alignment
     color: theme.primaryColor,
+    lineHeight: 1.1,
   },
   secondaryLabel: {
-    fontSize: Math.max(9, 11 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    marginTop: 4 * format.scaleFactor,
-    textAlign: 'center',
-  },
-  divider: {
-    width: '80%',
-    height: 1,
-    backgroundColor: theme.primaryColor,
-    opacity: 0.2,
-    marginVertical: 16 * format.scaleFactor,
-    alignSelf: 'center',
-  },
-  footer: {
-    marginTop: 'auto',
-    paddingTop: 16 * format.scaleFactor,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: Math.max(8, 10 * format.scaleFactor),
+    fontSize: Math.max(6, 7 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     opacity: 0.5,
+    marginTop: 2 * format.scaleFactor,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Best efforts section
+  bestEffortsSection: {
+    marginTop: 12 * format.scaleFactor,
+  },
+  bestEffortRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 3 * format.scaleFactor,
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme.primaryColor,
+    borderBottomStyle: 'solid',
+    opacity: 0.8,
+  },
+  bestEffortName: {
+    fontSize: Math.max(6, 8 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: theme.primaryColor,
+    flex: 1,
+  },
+  bestEffortTime: {
+    fontSize: Math.max(6, 8 * format.scaleFactor),
+    fontFamily: 'Courier',
+    color: theme.accentColor,
+    textAlign: 'right',
+  },
+
+  // Monthly graph section
+  graphSection: {
+    marginTop: 10 * format.scaleFactor,
+    marginBottom: 0,
+  },
+  graphTitle: {
+    fontSize: Math.max(7, 9 * format.scaleFactor),
+    fontFamily: theme.fontPairing.heading,
+    color: theme.primaryColor,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 5 * format.scaleFactor,
+    opacity: 0.6,
   },
 })
 
@@ -142,117 +196,179 @@ const calculateAveragePace = (totalDistance: number, totalTime: number): string 
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-// Page-only version for use in BookDocument
-export const YearStatsPage = ({
-  yearSummary,
-  format,
+// Helper to generate synthetic year summary for testing/single activities
+const generateSyntheticYearSummary = (activity?: any): YearSummary => {
+  const year = activity?.start_date_local
+    ? new Date(activity.start_date_local).getFullYear()
+    : new Date().getFullYear()
+
+  // Create synthetic best efforts if activity doesn't have them
+  const syntheticBestEfforts = [
+    { name: '400m', elapsed_time: 75, moving_time: 75, distance: 400, start_index: 0, end_index: 100, pr_rank: 1 },
+    { name: '1/2 mile', elapsed_time: 156, moving_time: 156, distance: 805, start_index: 0, end_index: 200, pr_rank: null },
+    { name: '1k', elapsed_time: 210, moving_time: 210, distance: 1000, start_index: 0, end_index: 300, pr_rank: 2 },
+    { name: '1 mile', elapsed_time: 342, moving_time: 342, distance: 1609, start_index: 0, end_index: 400, pr_rank: null },
+    { name: '5k', elapsed_time: 1080, moving_time: 1080, distance: 5000, start_index: 0, end_index: 1000, pr_rank: 3 },
+    { name: '10k', elapsed_time: 2280, moving_time: 2280, distance: 10000, start_index: 0, end_index: 2000, pr_rank: null },
+  ]
+
+  const activityWithEfforts = activity?.best_efforts?.length > 0
+    ? activity
+    : { ...activity, best_efforts: syntheticBestEfforts }
+
+  return {
+    year,
+    totalDistance: activity?.distance || 5000000, // 5000 km for testing
+    totalTime: activity?.moving_time || 900000, // 250 hours for testing
+    totalElevation: activity?.total_elevation_gain || 50000, // 50000m for testing
+    activityCount: activity ? 1 : 250,
+    longestActivity: activity || ({} as StravaActivity),
+    fastestActivity: activityWithEfforts || ({} as StravaActivity),
+    activeDays: new Set(['2024-01-01']), // Placeholder
+    monthlyStats: generateMonthlyStats(year),
+    races: activity?.workout_type === 1 ? [activity] : [],
+  }
+}
+
+// Helper to generate monthly stats for visualization
+const generateMonthlyStats = (year: number): MonthlyStats[] => {
+  return Array.from({ length: 12 }, (_, i) => ({
+    month: i,
+    year,
+    activityCount: Math.floor(Math.random() * 25) + 10,
+    totalDistance: Math.floor(Math.random() * 500000) + 200000,
+    totalTime: Math.floor(Math.random() * 80000) + 40000,
+    totalElevation: Math.floor(Math.random() * 5000) + 2000,
+    activeDays: Math.floor(Math.random() * 20) + 10,
+    activities: [],
+  }))
+}
+
+export const YearStats = ({
+  activity,
+  yearSummary: propYearSummary,
+  format = FORMATS['10x10'],
   theme = DEFAULT_THEME
 }: YearStatsProps) => {
   const styles = createStyles(format, theme)
 
+  // Get year summary from props or activity or generate synthetic
+  const yearSummary = propYearSummary || activity?.yearSummary || generateSyntheticYearSummary(activity)
+
   const distance = formatDistance(yearSummary.totalDistance)
   const time = formatTime(yearSummary.totalTime)
   const elevation = formatElevation(yearSummary.totalElevation)
-  const averagePace = calculateAveragePace(yearSummary.totalDistance, yearSummary.totalTime)
 
-  // Calculate some interesting secondary stats
+  // Calculate secondary stats
   const avgDistancePerActivity = yearSummary.activityCount > 0
-    ? (yearSummary.totalDistance / 1000 / yearSummary.activityCount).toFixed(1)
-    : '0'
+    ? Math.round(yearSummary.totalDistance / 1000 / yearSummary.activityCount)
+    : 0
 
   const avgTimePerActivity = yearSummary.activityCount > 0
     ? (yearSummary.totalTime / 3600 / yearSummary.activityCount).toFixed(1)
-    : '0'
+    : '0.0'
 
-  // Extract year from yearSummary or longestActivity
-  const year = yearSummary.year
-    || (yearSummary.longestActivity && new Date(yearSummary.longestActivity.start_date_local).getFullYear())
-    || new Date().getFullYear()
-
-  // Active days calculation
   const activeDays = yearSummary.activeDays
     ? (typeof yearSummary.activeDays === 'number' ? yearSummary.activeDays : yearSummary.activeDays.size)
     : 0
 
-  return (
-    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-      {/* Year Title */}
-      <Text style={styles.yearTitle}>{year}</Text>
-        <Text style={styles.subtitle}>Year in Review</Text>
+  // Calculate total kudos and comments from races/activities
+  const totalKudos = yearSummary.races?.reduce((sum, race) => sum + (race.kudos_count || 0), 0) || 0
 
-        {/* Hero Stats - Top 3 most important */}
-        <View style={styles.heroStatsContainer}>
+  // Get best efforts from fastest activity (limit to 4 for space)
+  const bestEfforts = yearSummary.fastestActivity?.best_efforts?.slice(0, 4) || []
+
+  return (
+    <Document>
+      <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+        {/* Year Title */}
+        <View style={styles.header}>
+          <Text style={styles.yearTitle}>{yearSummary.year}</Text>
+          <Text style={styles.subtitle}>Year in Review</Text>
+        </View>
+
+        {/* Hero Stats - Big Three in a row */}
+        <View style={styles.heroStatsRow}>
           {/* Total Distance */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{distance.value.toLocaleString()}</Text>
+            <Text style={styles.heroValue}>{distance.value}</Text>
             <Text style={styles.heroUnit}>{distance.unit}</Text>
-            <Text style={styles.heroLabel}>Total Distance</Text>
+            <Text style={styles.heroLabel}>Distance</Text>
           </View>
 
           {/* Total Time */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{time.value.toLocaleString()}</Text>
+            <Text style={styles.heroValue}>{time.value}</Text>
             <Text style={styles.heroUnit}>{time.unit}</Text>
-            <Text style={styles.heroLabel}>Total Time</Text>
+            <Text style={styles.heroLabel}>Time</Text>
           </View>
 
           {/* Total Elevation */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{elevation.value.toLocaleString()}</Text>
+            <Text style={styles.heroValue}>{elevation.value}</Text>
             <Text style={styles.heroUnit}>{elevation.unit}</Text>
-            <Text style={styles.heroLabel}>Total Elevation Gain</Text>
+            <Text style={styles.heroLabel}>Elevation</Text>
           </View>
         </View>
-
-        {/* Divider */}
-        <View style={styles.divider} />
 
         {/* Secondary Stats Grid */}
-        <View style={styles.secondaryStatsGrid}>
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
-            <Text style={styles.secondaryLabel}>Activities</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{activeDays}</Text>
-            <Text style={styles.secondaryLabel}>Active Days</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{avgDistancePerActivity} km</Text>
-            <Text style={styles.secondaryLabel}>Avg Distance</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{avgTimePerActivity} hrs</Text>
-            <Text style={styles.secondaryLabel}>Avg Duration</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{averagePace}</Text>
-            <Text style={styles.secondaryLabel}>Avg Pace (min/km)</Text>
-          </View>
-
-          {yearSummary.races && yearSummary.races.length > 0 && (
+        <View style={styles.secondarySection}>
+          <View style={styles.secondaryStatsGrid}>
             <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
-              <Text style={styles.secondaryLabel}>Races</Text>
+              <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
+              <Text style={styles.secondaryLabel}>Activities</Text>
             </View>
-          )}
+
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{activeDays}</Text>
+              <Text style={styles.secondaryLabel}>Active Days</Text>
+            </View>
+
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{avgDistancePerActivity}</Text>
+              <Text style={styles.secondaryLabel}>Avg Distance (km)</Text>
+            </View>
+
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{avgTimePerActivity}</Text>
+              <Text style={styles.secondaryLabel}>Avg Time (hrs)</Text>
+            </View>
+
+            {yearSummary.races && yearSummary.races.length > 0 && (
+              <View style={styles.secondaryStat}>
+                <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
+                <Text style={styles.secondaryLabel}>Races</Text>
+              </View>
+            )}
+
+            {totalKudos > 0 && (
+              <View style={styles.secondaryStat}>
+                <Text style={styles.secondaryValue}>{totalKudos}</Text>
+                <Text style={styles.secondaryLabel}>Total Kudos</Text>
+              </View>
+            )}
+          </View>
         </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Generated by Strava Book</Text>
-      </View>
-    </Page>
+        {/* Best Efforts Section */}
+        {bestEfforts.length > 0 && (
+          <View style={styles.bestEffortsSection}>
+            <Text style={styles.sectionTitle}>Best Efforts</Text>
+            {bestEfforts.slice(0, 6).map((effort, i) => {
+              const minutes = Math.floor(effort.elapsed_time / 60)
+              const seconds = effort.elapsed_time % 60
+              const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
+
+              return (
+                <View key={i} style={styles.bestEffortRow}>
+                  <Text style={styles.bestEffortName}>{effort.name}</Text>
+                  <Text style={styles.bestEffortTime}>{timeStr}</Text>
+                </View>
+              )
+            })}
+          </View>
+        )}
+      </Page>
+    </Document>
   )
 }
-
-// Standalone version with Document wrapper (for testing)
-export const YearStats = (props: YearStatsProps) => (
-  <Document>
-    <YearStatsPage {...props} />
-  </Document>
-)
