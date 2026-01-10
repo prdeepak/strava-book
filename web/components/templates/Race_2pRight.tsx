@@ -1,67 +1,101 @@
 import { Page, Text, View, StyleSheet, Svg, Polyline, Image } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import mapboxPolyline from '@mapbox/polyline'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
-const styles = StyleSheet.create({
-    page: {
-        backgroundColor: '#ffffff',
-        padding: 40,
-        flexDirection: 'column',
-    },
-    mapContainer: {
-        height: 280, // Reduced from 400 to fit splits + best efforts on one page
-        backgroundColor: '#f8f8f8',
-        marginBottom: 20,
-        border: '1px solid #eeeeee',
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-    },
-    sectionTitle: {
-        fontSize: 12,
-        fontFamily: 'Helvetica-Bold',
-        textTransform: 'uppercase',
-        marginBottom: 10,
-        color: '#333',
-        borderBottomWidth: 1,
-        borderBottomColor: '#000',
-        paddingBottom: 4,
-    },
-    splitsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    splitRow: {
-        width: '48%', // Two columns
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingBottom: 2,
-        marginRight: '2%'
-    },
-    splitText: {
-        fontSize: 9,
-        fontFamily: 'Helvetica',
-        color: '#555',
-    },
-    splitHeader: {
-        width: '48%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-        marginRight: '2%',
-    },
-    splitHeaderText: {
-        fontSize: 8,
-        fontFamily: 'Helvetica-Bold',
-        uppercase: true,
-        color: '#999',
-    }
-})
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+    const mapHeight = Math.min(
+        format.dimensions.height * 0.35,
+        280 * format.scaleFactor
+    )
+
+    return StyleSheet.create({
+        page: {
+            width: format.dimensions.width,
+            height: format.dimensions.height,
+            backgroundColor: theme.backgroundColor,
+            padding: format.safeMargin,
+            flexDirection: 'column',
+        },
+        mapContainer: {
+            height: mapHeight,
+            backgroundColor: '#f5f5f5',
+            marginBottom: 12 * format.scaleFactor,
+            border: `1px solid ${theme.primaryColor}`,
+            borderWidth: 0.5,
+            justifyContent: 'center',
+            alignItems: 'center',
+            overflow: 'hidden',
+        },
+        sectionTitle: {
+            fontSize: Math.max(10, 12 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
+            textTransform: 'uppercase',
+            marginBottom: 8 * format.scaleFactor,
+            marginTop: 8 * format.scaleFactor,
+            color: theme.primaryColor,
+            borderBottomWidth: 1.5,
+            borderBottomColor: theme.accentColor,
+            paddingBottom: 4 * format.scaleFactor,
+            letterSpacing: 1.5,
+        },
+        splitsContainer: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            marginBottom: 8 * format.scaleFactor,
+        },
+        splitRow: {
+            width: '48%',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 4 * format.scaleFactor,
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#e0e0e0',
+            paddingBottom: 3 * format.scaleFactor,
+            paddingHorizontal: 4 * format.scaleFactor,
+            marginRight: '2%'
+        },
+        splitLabel: {
+            fontSize: Math.max(8, 10 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
+            color: '#333',
+            width: '25%',
+        },
+        splitPace: {
+            fontSize: Math.max(8, 10 * format.scaleFactor),
+            fontFamily: theme.fontPairing.body,
+            color: '#555',
+            width: '45%',
+            textAlign: 'center',
+        },
+        splitElev: {
+            fontSize: Math.max(8, 9 * format.scaleFactor),
+            fontFamily: theme.fontPairing.body,
+            color: '#777',
+            width: '30%',
+            textAlign: 'right',
+        },
+        splitHeader: {
+            width: '48%',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 6 * format.scaleFactor,
+            paddingHorizontal: 4 * format.scaleFactor,
+            marginRight: '2%',
+        },
+        splitHeaderText: {
+            fontSize: Math.max(7, 8 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
+            textTransform: 'uppercase',
+            color: '#999',
+            letterSpacing: 0.5,
+        }
+    })
+}
 
 // Helper to scale coordinates to SVG viewbox
 const normalizePoints = (encodedPolyline: string, width: number, height: number) => {
@@ -107,19 +141,38 @@ const normalizePoints = (encodedPolyline: string, width: number, height: number)
 
 interface Race_2pRightProps {
     activity: StravaActivity
+    format: BookFormat
+    theme: BookTheme
     mapboxToken?: string
 }
 
-export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
-    const mapPoints = normalizePoints(activity.map.summary_polyline, 500, 300)
+export const Race_2pRight = ({
+    activity,
+    format,
+    theme = DEFAULT_THEME,
+    mapboxToken
+}: Race_2pRightProps) => {
+    const styles = createStyles(format, theme)
+
+    // Calculate map dimensions based on format
+    const mapWidth = format.dimensions.width - (format.safeMargin * 2)
+    const mapHeight = Math.min(
+        format.dimensions.height * 0.35,
+        280 * format.scaleFactor
+    )
+
+    const mapPoints = normalizePoints(activity.map.summary_polyline, mapWidth, mapHeight)
 
     // Fallback if no splits fetched (default api call might not have them without effort detail)
     const rawSplits = activity.splits_metric || []
 
-    // Aggregate splits if there are too many (e.g. > 20)
+    // Aggregate splits if there are too many
+    // Limit to max 10 displayed splits to ensure everything fits on one page with best efforts
+    const MAX_DISPLAY_SPLITS = 10
     let displaySplits = []
+
     if (rawSplits.length > 20) {
-        // Group by 5km
+        // Group by 5km for very long races
         const chunkSize = 5
         for (let i = 0; i < rawSplits.length; i += chunkSize) {
             const chunk = rawSplits.slice(i, i + chunkSize)
@@ -131,15 +184,17 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
             const totalElev = chunk.reduce((acc, curr) => acc + curr.elevation_difference, 0)
 
             displaySplits.push({
-                split: last.split, // The marker (e.g. 5, 10, 15)
+                split: last.split,
                 moving_time: totalMovingTime,
                 distance: totalDist,
                 elevation_difference: totalElev,
                 label: `${chunk[0].split}-${last.split}km`
             })
         }
+        // Limit to max splits
+        displaySplits = displaySplits.slice(0, MAX_DISPLAY_SPLITS)
     } else {
-        displaySplits = rawSplits.map(s => ({ ...s, label: s.split.toString() }))
+        displaySplits = rawSplits.map(s => ({ ...s, label: `${s.split}km` }))
     }
 
     // Map Rendering Logic
@@ -159,46 +214,49 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
     }
 
     return (
-        <Page size="LETTER" style={styles.page}>
+        <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
                     // eslint-disable-next-line jsx-a11y/alt-text
                     <Image src={satelliteUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                     <>
-                        {/* Blueprint Grid Background - Made Darker and Technical */}
-                        <Svg height="300" width="500" viewBox="0 0 500 300" style={{ position: 'absolute', top: 0, left: 0, backgroundColor: '#f0f0f0' }}>
+                        {/* Blueprint Grid Background */}
+                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0, backgroundColor: '#f5f5f5' }}>
                             {/* Horizontal Grid Lines */}
-                            <Polyline points="0,60 500,60" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="0,120 500,120" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="0,180 500,180" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="0,240 500,240" stroke="#ddd" strokeWidth={1} />
+                            {Array.from({ length: 5 }).map((_, i) => {
+                                const y = (mapHeight / 5) * (i + 1)
+                                return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                            })}
 
                             {/* Vertical Grid Lines */}
-                            <Polyline points="100,0 100,300" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="200,0 200,300" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="300,0 300,300" stroke="#ddd" strokeWidth={1} />
-                            <Polyline points="400,0 400,300" stroke="#ddd" strokeWidth={1} />
+                            {Array.from({ length: 5 }).map((_, i) => {
+                                const x = (mapWidth / 5) * (i + 1)
+                                return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                            })}
                         </Svg>
 
-                        {/* Technical Markers (Overlay) */}
-                        <Text style={{ position: 'absolute', top: 10, left: 5, fontSize: 6, color: '#888', fontFamily: 'Helvetica' }}>LAT 40.7128° N</Text>
-                        <Text style={{ position: 'absolute', bottom: 10, left: 5, fontSize: 6, color: '#888', fontFamily: 'Helvetica' }}>SCALE 1:50000</Text>
-
                         {/* Vector Map */}
-                        <Svg height="300" width="500" viewBox="0 0 500 300" style={{ position: 'absolute', top: 0, left: 0 }}>
+                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0 }}>
                             <Polyline
                                 points={mapPoints}
-                                stroke="#FF4500" // Strava Orange
-                                strokeWidth={3} // Thicker line
+                                stroke={theme.accentColor}
+                                strokeWidth={3 * format.scaleFactor}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 fill="none"
                             />
                         </Svg>
 
-                        <Text style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 8, color: '#aaa', fontFamily: 'Helvetica' }}>
-                            VECTOR BLUEPRINT • SATELLITE DATA UNAVAILABLE
+                        <Text style={{
+                            position: 'absolute',
+                            bottom: 8,
+                            right: 8,
+                            fontSize: Math.max(6, 8 * format.scaleFactor),
+                            color: '#aaa',
+                            fontFamily: theme.fontPairing.body
+                        }}>
+                            VECTOR MAP
                         </Text>
                     </>
                 )}
@@ -212,28 +270,28 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
                     <View style={styles.splitsContainer}>
                         {/* Headers for columns */}
                         <View style={styles.splitHeader}>
-                            <Text style={styles.splitHeaderText}>Dist</Text>
-                            <Text style={styles.splitHeaderText}>Pace</Text>
-                            <Text style={styles.splitHeaderText}>Elev</Text>
+                            <Text style={[styles.splitHeaderText, { width: '25%' }]}>Dist</Text>
+                            <Text style={[styles.splitHeaderText, { width: '45%', textAlign: 'center' }]}>Pace</Text>
+                            <Text style={[styles.splitHeaderText, { width: '30%', textAlign: 'right' }]}>Elev</Text>
                         </View>
                         <View style={styles.splitHeader}>
-                            <Text style={styles.splitHeaderText}>Dist</Text>
-                            <Text style={styles.splitHeaderText}>Pace</Text>
-                            <Text style={styles.splitHeaderText}>Elev</Text>
+                            <Text style={[styles.splitHeaderText, { width: '25%' }]}>Dist</Text>
+                            <Text style={[styles.splitHeaderText, { width: '45%', textAlign: 'center' }]}>Pace</Text>
+                            <Text style={[styles.splitHeaderText, { width: '30%', textAlign: 'right' }]}>Elev</Text>
                         </View>
 
                         {displaySplits.map((split, i) => {
                             // Calculate pace from moving_time/distance
-                            // split.distance is usually ~1000m or ~5000m
                             const paceSeconds = split.moving_time / (split.distance / 1000)
                             const paceMin = Math.floor(paceSeconds / 60)
                             const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
+                            const elev = Math.round(split.elevation_difference)
 
                             return (
                                 <View key={i} style={styles.splitRow}>
-                                    <Text style={[styles.splitText, { width: 30 }]}>{split.label}</Text>
-                                    <Text style={styles.splitText}>{paceMin}:{paceSec}/km</Text>
-                                    <Text style={styles.splitText}>{split.elevation_difference > 0 ? '+' : ''}{Math.round(split.elevation_difference)}m</Text>
+                                    <Text style={styles.splitLabel}>{split.label}</Text>
+                                    <Text style={styles.splitPace}>{paceMin}:{paceSec}/km</Text>
+                                    <Text style={styles.splitElev}>{elev > 0 ? '+' : ''}{elev}m</Text>
                                 </View>
                             )
                         })}
@@ -242,7 +300,13 @@ export const Race_2pRight = ({ activity, mapboxToken }: Race_2pRightProps) => {
             )}
 
             {/* Best Efforts Section */}
-            <BestEffortsTable activity={activity} maxEfforts={20} />
+            {/* Limit best efforts based on splits count to ensure everything fits */}
+            <BestEffortsTable
+                activity={activity}
+                format={format}
+                theme={theme}
+                maxEfforts={displaySplits.length > 0 ? 6 : 14}
+            />
         </Page>
     )
 }

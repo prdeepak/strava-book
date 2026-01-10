@@ -1,55 +1,65 @@
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 
-const styles = StyleSheet.create({
+const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
     sectionTitle: {
-        fontSize: 10,
-        fontFamily: 'Helvetica-Bold',
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
         textTransform: 'uppercase',
-        marginBottom: 6,
-        marginTop: 8,
-        color: '#333',
-        borderBottomWidth: 1,
-        borderBottomColor: '#000',
-        paddingBottom: 2,
+        marginBottom: 8 * format.scaleFactor,
+        marginTop: 8 * format.scaleFactor,
+        color: theme.primaryColor,
+        borderBottomWidth: 1.5,
+        borderBottomColor: theme.accentColor,
+        paddingBottom: 4 * format.scaleFactor,
+        letterSpacing: 1.5,
     },
     dataGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 6,
+        gap: 4 * format.scaleFactor,
     },
     dataRow: {
         width: '48%',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 2,
-        fontSize: 7,
+        marginBottom: 3 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#ddd',
-        paddingBottom: 1,
+        borderBottomColor: '#e0e0e0',
+        paddingBottom: 2 * format.scaleFactor,
     },
     dataLabel: {
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: '#666',
-        fontSize: 7,
+        fontSize: Math.max(7, 9 * format.scaleFactor),
         flex: 1,
     },
     dataValue: {
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: '#000',
-        fontSize: 7,
+        fontSize: Math.max(7, 9 * format.scaleFactor),
         textAlign: 'right',
     },
 })
 
 interface BestEffortsTableProps {
     activity: StravaActivity
+    format?: BookFormat
+    theme?: BookTheme
     maxEfforts?: number  // Maximum number of efforts to display (default: 10)
 }
 
-export const BestEffortsTable = ({ activity, maxEfforts = 10 }: BestEffortsTableProps) => {
+export const BestEffortsTable = ({
+    activity,
+    format = FORMATS['10x10'],
+    theme = DEFAULT_THEME,
+    maxEfforts = 10
+}: BestEffortsTableProps) => {
+    const styles = createStyles(format, theme)
+
     // Prepare best efforts with smart prioritization
-    // Algorithm: 
+    // Algorithm:
     // 1. Prioritize any efforts in top-3 (pr_rank 1-3)
     // 2. Then prioritize longest distances
     // 3. Limit to maxEfforts for space

@@ -1,7 +1,7 @@
 import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
+import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
-import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -9,12 +9,15 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
-const styles = StyleSheet.create({
+const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
     page: {
-        backgroundColor: '#1a1a1a',
+        width: format.dimensions.width,
+        height: format.dimensions.height,
+        backgroundColor: theme.primaryColor,
         flexDirection: 'column',
         justifyContent: 'flex-end',
         padding: 0,
+        position: 'relative',
     },
     backgroundImage: {
         position: 'absolute',
@@ -22,132 +25,154 @@ const styles = StyleSheet.create({
         left: 0,
         width: '100%',
         height: '100%',
-        opacity: 0.6,
+        opacity: 0.5,
         objectFit: 'cover',
     },
     contentOverlay: {
-        padding: 40,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
         width: '100%',
+        padding: format.safeMargin,
+        paddingTop: format.safeMargin * 1.5,
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
-    title: {
-        fontSize: 38, // Slightly reduced to ensure wrapping works
-        fontFamily: 'Helvetica-Bold',
-        color: '#ffffff',
+    highlightLabel: {
+        color: theme.accentColor,
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        marginBottom: 8 * format.scaleFactor,
+        fontFamily: theme.fontPairing.heading,
         textTransform: 'uppercase',
-        marginBottom: 10,
-        marginTop: 10,
-        lineHeight: 1.1,
-        maxWidth: '100%',
+        letterSpacing: 1.5,
     },
     meta: {
-        color: '#e0e0e0',
-        fontSize: 14,
-        fontFamily: 'Helvetica',
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontSize: Math.max(11, 14 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
         textTransform: 'uppercase',
         letterSpacing: 2,
-        marginBottom: 5,
+        marginBottom: 6 * format.scaleFactor,
+    },
+    title: {
+        fontSize: Math.max(28, 42 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: '#ffffff',
+        textTransform: 'uppercase',
+        marginBottom: 12 * format.scaleFactor,
+        marginTop: 12 * format.scaleFactor,
+        lineHeight: 1.1,
+        maxWidth: '100%',
+        letterSpacing: 1,
     },
     statsRow: {
         flexDirection: 'row',
-        marginTop: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#ffffff',
-        paddingTop: 15,
+        marginTop: 20 * format.scaleFactor,
+        borderTopWidth: 2,
+        borderTopColor: theme.accentColor,
+        paddingTop: 18 * format.scaleFactor,
+        gap: format.safeMargin * 0.8,
     },
     stat: {
-        marginRight: 40,
+        flex: 1,
+        maxWidth: '30%',
     },
     statValue: {
         color: '#ffffff',
-        fontSize: 24,
-        fontFamily: 'Helvetica-Bold',
+        fontSize: Math.max(20, 32 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        lineHeight: 1.1,
     },
     statLabel: {
-        color: '#aaaaaa',
-        fontSize: 10,
-        marginTop: 2,
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: Math.max(8, 11 * format.scaleFactor),
+        marginTop: 4 * format.scaleFactor,
         textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontFamily: theme.fontPairing.body,
     }
 })
 
 export interface Race_2pLeftProps {
     activity: StravaActivity
+    format: BookFormat
+    theme: BookTheme
     highlightLabel?: string
-    mapboxToken?: string
 }
 
-export const Race_2pLeft = ({ activity, highlightLabel }: Race_2pLeftProps) => {
-    // Check for high-res photo, typically Strava doesn't give full res via API without more scope/logic
-    // but we added type support. For now, if no photo, we keep the dark background.
-    // Use resolveImageForPdf for server-side PDF rendering
-    const bgImage = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+export const Race_2pLeft = ({
+    activity,
+    format,
+    theme = DEFAULT_THEME,
+    highlightLabel
+}: Race_2pLeftProps) => {
+    const styles = createStyles(format, theme)
+
+    // Check for high-res photo - prefer higher resolution if available
+    const bgImage = activity.photos?.primary?.urls?.['600']
+        ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
+        : null
 
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)
 
+    // Format stats with safe fallbacks
+    const distance = activity.distance ? (activity.distance / 1000).toFixed(1) : '0.0'
+    const time = activity.moving_time
+        ? new Date(activity.moving_time * 1000).toISOString().substr(11, 8)
+        : '00:00:00'
+
+    // Calculate pace safely
+    const paceMinPerKm = activity.distance > 0 && activity.moving_time > 0
+        ? (activity.moving_time / 60) / (activity.distance / 1000)
+        : 0
+    const paceMin = Math.floor(paceMinPerKm)
+    const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
+    const pace = paceMinPerKm > 0 ? `${paceMin}:${paceSec.toString().padStart(2, '0')}` : 'N/A'
+
     return (
-        <Page size="LETTER" style={styles.page}>
-            <View style={{ width: '100%', height: '100%', position: 'relative' }}>
-                {bgImage && (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image
-                        src={bgImage}
-                        style={styles.backgroundImage}
-                    />
+        <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+            {/* Background Image Layer */}
+            {bgImage && (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image
+                    src={bgImage}
+                    style={styles.backgroundImage}
+                />
+            )}
+
+            {/* Content Overlay at Bottom */}
+            <View style={styles.contentOverlay}>
+                {highlightLabel && (
+                    <Text style={styles.highlightLabel}>
+                        {highlightLabel}
+                    </Text>
                 )}
 
-                {/* Content Overlay - Position Absolute Bottom to ensure it sits on top */}
-                <View style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    padding: 40,
-                    backgroundColor: 'rgba(0,0,0,0.4)'
-                }}>
-                    {highlightLabel && (
-                        <Text style={{
-                            color: 'orange',
-                            fontSize: 12,
-                            marginBottom: 8,
-                            fontFamily: 'Helvetica-Bold',
-                            textTransform: 'uppercase'
-                        }}>
-                            {highlightLabel}
-                        </Text>
-                    )}
-                    <Text style={styles.meta}>
-                        {new Date(activity.start_date).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
-                    </Text>
-                    <Text style={styles.meta}>{location}</Text>
+                <Text style={styles.meta}>
+                    {new Date(activity.start_date).toLocaleDateString(undefined, {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })}
+                </Text>
 
-                    <Text style={styles.title}>{activity.name}</Text>
+                {location && <Text style={styles.meta}>{location}</Text>}
 
-                    <View style={styles.statsRow}>
-                        <View style={styles.stat}>
-                            <Text style={styles.statValue}>{(activity.distance / 1000).toFixed(2)}</Text>
-                            <Text style={styles.statLabel}>Kilometers</Text>
-                        </View>
-                        <View style={styles.stat}>
-                            <Text style={styles.statValue}>{
-                                new Date(activity.moving_time * 1000).toISOString().substr(11, 8)
-                            }</Text>
-                            <Text style={styles.statLabel}>Time</Text>
-                        </View>
-                        <View style={styles.stat}>
-                            <Text style={styles.statValue}>{
-                                Math.floor((activity.moving_time / 60) / (activity.distance / 1000))
-                            }:{
-                                    Math.round(((activity.moving_time / 60) / (activity.distance / 1000) % 1) * 60).toString().padStart(2, '0')
-                                }</Text>
-                            <Text style={styles.statLabel}>Avg Pace</Text>
-                        </View>
+                <Text style={styles.title}>{activity.name}</Text>
+
+                <View style={styles.statsRow}>
+                    <View style={styles.stat}>
+                        <Text style={styles.statValue}>{distance}</Text>
+                        <Text style={styles.statLabel}>Kilometers</Text>
+                    </View>
+                    <View style={styles.stat}>
+                        <Text style={styles.statValue}>{time}</Text>
+                        <Text style={styles.statLabel}>Time</Text>
+                    </View>
+                    <View style={styles.stat}>
+                        <Text style={styles.statValue}>{pace}</Text>
+                        <Text style={styles.statLabel}>Avg Pace</Text>
                     </View>
                 </View>
             </View>
