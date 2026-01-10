@@ -2,6 +2,7 @@ import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
+import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -108,9 +109,23 @@ export const Race_2pLeft = ({
     const styles = createStyles(format, theme)
 
     // Check for high-res photo - prefer higher resolution if available
-    const bgImage = activity.photos?.primary?.urls?.['600']
-        ? `/api/proxy-image?url=${encodeURIComponent(activity.photos.primary.urls['600'])}`
-        : null
+    let bgImage: string | null = null
+    const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
+
+    if (primaryUrls) {
+        // Try to get the best available URL
+        const rawUrl = primaryUrls['600'] ||
+            primaryUrls['5000'] ||
+            primaryUrls['100'] ||
+            Object.values(primaryUrls)[0]
+
+        if (rawUrl) {
+            // Use resolveImageForPdf to handle the URL correctly for server-side PDF generation
+            // This handles both external URLs (returned as-is) and proxy-image URLs
+            // For PDF generation we want the direct external URL
+            bgImage = resolveImageForPdf(rawUrl)
+        }
+    }
 
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)

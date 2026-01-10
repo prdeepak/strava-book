@@ -225,3 +225,73 @@
 [2026-01-08T13:14:50.221Z] [Proxy] Success: 81189 bytes, Type: image/jpeg
 [2026-01-08T13:14:50.340Z] [Proxy] Response status: 200
 [2026-01-08T13:14:50.360Z] [Proxy] Success: 120283 bytes, Type: image/jpeg
+[2026-01-10T17:32:15.687Z] [Proxy] Request received
+[2026-01-10T17:32:15.688Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/uLuGwmdk8DhB9jweDW9N-Mbva4-FTVOUuPw14g0404E-2048x1536.jpg
+[2026-01-10T17:32:15.688Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/uLuGwmdk8DhB9jweDW9N-Mbva4-FTVOUuPw14g0404E-2048x1536.jpg
+[2026-01-10T17:32:15.692Z] [Proxy] Request received
+[2026-01-10T17:32:15.692Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/OdGhdOGaCQ9tNrloXT_LFCyGCPCSuX15yv58GG8vnSI-2048x1536.jpg
+[2026-01-10T17:32:15.692Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/OdGhdOGaCQ9tNrloXT_LFCyGCPCSuX15yv58GG8vnSI-2048x1536.jpg
+[2026-01-10T17:32:15.695Z] [Proxy] Request received
+[2026-01-10T17:32:15.695Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/4_5E_x2mvn-SoZ14BTDTVrzNEQeAOE4dulax4S3tufI-2048x1536.jpg
+[2026-01-10T17:32:15.696Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/4_5E_x2mvn-SoZ14BTDTVrzNEQeAOE4dulax4S3tufI-2048x1536.jpg
+[2026-01-10T17:32:15.698Z] [Proxy] Request received
+[2026-01-10T17:32:15.698Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/Dsy1J-kJh1489LE0bhJ-p0bYirtomPdwWIHjxEvM1yU-1536x2048.jpg
+[2026-01-10T17:32:15.698Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/Dsy1J-kJh1489LE0bhJ-p0bYirtomPdwWIHjxEvM1yU-1536x2048.jpg
+[2026-01-10T17:32:15.701Z] [Proxy] Request received
+[2026-01-10T17:32:15.701Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/_kdKb6gRwo3vf0SL51r4eRwkuI06aJUBfDNF6epJDBk-2048x1536.jpg
+[2026-01-10T17:32:15.701Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/_kdKb6gRwo3vf0SL51r4eRwkuI06aJUBfDNF6epJDBk-2048x1536.jpg
+[2026-01-10T17:32:15.806Z] [Proxy] Response status: 200
+[2026-01-10T17:32:15.811Z] [Proxy] Response status: 200
+[2026-01-10T17:32:15.872Z] [Proxy] Success: 523301 bytes, Type: image/jpeg
+[2026-01-10T17:32:15.920Z] [Proxy] Success: 295789 bytes, Type: image/jpeg
+[2026-01-10T17:32:15.924Z] [Proxy] Response status: 200
+[2026-01-10T17:32:15.936Z] [Proxy] Response status: 200
+[2026-01-10T17:32:15.966Z] [Proxy] Response status: 200
+[2026-01-10T17:32:15.981Z] [Proxy] Success: 404751 bytes, Type: image/jpeg
+[2026-01-10T17:32:16.021Z] [Proxy] Success: 454237 bytes, Type: image/jpeg
+[2026-01-10T17:32:16.050Z] [Proxy] Success: 404259 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.255Z] [Proxy] Request received
+[2026-01-10T17:41:50.256Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/ZGaDm1_uILKfWjAOrk6jHmGLqglU3NMQE1CY1A9og1k-1536x2048.jpg
+[2026-01-10T17:41:50.256Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/ZGaDm1_uILKfWjAOrk6jHmGLqglU3NMQE1CY1A9og1k-1536x2048.jpg
+[2026-01-10T17:41:50.261Z] [Proxy] Request received
+[2026-01-10T17:41:50.261Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/r32j-uPUAZtSkXi1HlRuwP-dZP7pcW0T8CDAXMHlUbE-2048x1536.jpg
+[2026-01-10T17:41:50.261Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/r32j-uPUAZtSkXi1HlRuwP-dZP7pcW0T8CDAXMHlUbE-2048x1536.jpg
+[2026-01-10T17:41:50.264Z] [Proxy] Request received
+[2026-01-10T17:41:50.265Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-1536x2048.jpg
+[2026-01-10T17:41:50.265Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-1536x2048.jpg
+[2026-01-10T17:41:50.269Z] [Proxy] Request received
+[2026-01-10T17:41:50.269Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/WfiV8mK2VYorRkBLnRjPuDX8JkPCnXdTekAviQjB-TA-1536x2048.jpg
+[2026-01-10T17:41:50.269Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/WfiV8mK2VYorRkBLnRjPuDX8JkPCnXdTekAviQjB-TA-1536x2048.jpg
+[2026-01-10T17:41:50.272Z] [Proxy] Request received
+[2026-01-10T17:41:50.272Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/03_IntzTdKDRuUAzIKlvMdphEJgyMUKfF-OTFePQGqc-2048x1536.jpg
+[2026-01-10T17:41:50.272Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/03_IntzTdKDRuUAzIKlvMdphEJgyMUKfF-OTFePQGqc-2048x1536.jpg
+[2026-01-10T17:41:50.496Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.528Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.537Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.545Z] [Proxy] Success: 245024 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.552Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.557Z] [Proxy] Request received
+[2026-01-10T17:41:50.558Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/FrToxTD7ndarrnRH1MBbsN-MuwjF-hn5EnbVIkcP-OY-1536x2048.jpg
+[2026-01-10T17:41:50.558Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/FrToxTD7ndarrnRH1MBbsN-MuwjF-hn5EnbVIkcP-OY-1536x2048.jpg
+[2026-01-10T17:41:50.560Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.607Z] [Proxy] Success: 490300 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.619Z] [Proxy] Request received
+[2026-01-10T17:41:50.620Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/PX6pZxwVVIyZ3sv7ayqBdJ79tYpQqNeS16C9W2F7LgU-2048x1536.jpg
+[2026-01-10T17:41:50.620Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/PX6pZxwVVIyZ3sv7ayqBdJ79tYpQqNeS16C9W2F7LgU-2048x1536.jpg
+[2026-01-10T17:41:50.626Z] [Proxy] Success: 371582 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.634Z] [Proxy] Success: 404106 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.646Z] [Proxy] Request received
+[2026-01-10T17:41:50.646Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/C-tQgBI6NO_A4zCsm6qF7poFAiM8vpgNJGhl4lt09ps-2048x1536.jpg
+[2026-01-10T17:41:50.647Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/C-tQgBI6NO_A4zCsm6qF7poFAiM8vpgNJGhl4lt09ps-2048x1536.jpg
+[2026-01-10T17:41:50.677Z] [Proxy] Success: 598494 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.750Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.791Z] [Proxy] Success: 392777 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.843Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.845Z] [Proxy] Response status: 200
+[2026-01-10T17:41:50.879Z] [Proxy] Success: 307866 bytes, Type: image/jpeg
+[2026-01-10T17:41:50.896Z] [Proxy] Success: 461394 bytes, Type: image/jpeg
+[2026-01-10T17:41:57.926Z] [Proxy] Request received
+[2026-01-10T17:41:57.927Z] [Proxy] URL parameter: https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg
+[2026-01-10T17:41:57.927Z] [Proxy] Fetching: https://dgtzuqphqg23d.cloudfront.net/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg
+[2026-01-10T17:41:58.077Z] [Proxy] Response status: 200
+[2026-01-10T17:41:58.090Z] [Proxy] Success: 54307 bytes, Type: image/jpeg
