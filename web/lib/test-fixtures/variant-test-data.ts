@@ -98,22 +98,45 @@ function createMockComment(id: number, text: string, firstname: string, lastname
   return { id, text, athlete: { firstname, lastname } }
 }
 
-function createSplits(count: number, basePace: number): Array<{ distance: number; moving_time: number; elevation_difference: number }> {
-  return Array.from({ length: count }, (_, i) => ({
-    distance: 1000,
-    moving_time: basePace + Math.floor(Math.random() * 20 - 10),
-    elevation_difference: Math.floor(Math.random() * 20 - 10),
-  }))
+function createSplits(count: number, basePace: number): Array<{
+  distance: number
+  elapsed_time: number
+  elevation_difference: number
+  moving_time: number
+  split: number
+  average_speed: number
+  pace_zone: number
+}> {
+  return Array.from({ length: count }, (_, i) => {
+    const movingTime = basePace + Math.floor(Math.random() * 20 - 10)
+    return {
+      distance: 1000,
+      elapsed_time: movingTime + Math.floor(Math.random() * 5),
+      elevation_difference: Math.floor(Math.random() * 20 - 10),
+      moving_time: movingTime,
+      split: i + 1,
+      average_speed: 1000 / movingTime,
+      pace_zone: Math.min(4, Math.floor(movingTime / 100) + 1),
+    }
+  })
 }
 
-function createBestEfforts(): Array<{ name: string; distance: number; elapsed_time: number; pr_rank: number | null }> {
+function createBestEfforts(): Array<{
+  name: string
+  elapsed_time: number
+  moving_time: number
+  distance: number
+  start_index: number
+  end_index: number
+  pr_rank?: number | null
+}> {
   return [
-    { name: '400m', distance: 400, elapsed_time: 72, pr_rank: 2 },
-    { name: '1/2 mile', distance: 805, elapsed_time: 165, pr_rank: 1 },
-    { name: '1K', distance: 1000, elapsed_time: 210, pr_rank: 3 },
-    { name: '1 mile', distance: 1609, elapsed_time: 360, pr_rank: 1 },
-    { name: '5K', distance: 5000, elapsed_time: 1140, pr_rank: 2 },
-    { name: '10K', distance: 10000, elapsed_time: 2400, pr_rank: 1 },
+    { name: '400m', distance: 400, elapsed_time: 72, moving_time: 70, start_index: 0, end_index: 400, pr_rank: 2 },
+    { name: '1/2 mile', distance: 805, elapsed_time: 165, moving_time: 162, start_index: 0, end_index: 805, pr_rank: 1 },
+    { name: '1K', distance: 1000, elapsed_time: 210, moving_time: 205, start_index: 0, end_index: 1000, pr_rank: 3 },
+    { name: '1 mile', distance: 1609, elapsed_time: 360, moving_time: 355, start_index: 0, end_index: 1609, pr_rank: 1 },
+    { name: '5K', distance: 5000, elapsed_time: 1140, moving_time: 1130, start_index: 0, end_index: 5000, pr_rank: 2 },
+    { name: '10K', distance: 10000, elapsed_time: 2400, moving_time: 2380, start_index: 0, end_index: 10000, pr_rank: 1 },
   ]
 }
 
@@ -233,15 +256,15 @@ const race1pStatsFocus: TestFixture = {
     photos: { primary: {}, count: 0 },
     splits_metric: createSplits(10, 228),
     best_efforts: [
-      { name: '1K', distance: 1000, elapsed_time: 218, pr_rank: 1 },
-      { name: '1 mile', distance: 1609, elapsed_time: 352, pr_rank: 1 },
-      { name: '5K', distance: 5000, elapsed_time: 1120, pr_rank: 1 },
-      { name: '10K', distance: 10000, elapsed_time: 2280, pr_rank: 1 },
+      { name: '1K', distance: 1000, elapsed_time: 218, moving_time: 215, start_index: 0, end_index: 1000, pr_rank: 1 },
+      { name: '1 mile', distance: 1609, elapsed_time: 352, moving_time: 348, start_index: 0, end_index: 1609, pr_rank: 1 },
+      { name: '5K', distance: 5000, elapsed_time: 1120, moving_time: 1110, start_index: 0, end_index: 5000, pr_rank: 1 },
+      { name: '10K', distance: 10000, elapsed_time: 2280, moving_time: 2260, start_index: 0, end_index: 10000, pr_rank: 1 },
     ],
     laps: [
-      { name: 'Lap 1', distance: 400, moving_time: 91, lap_index: 0 },
-      { name: 'Lap 2', distance: 400, moving_time: 90, lap_index: 1 },
-      { name: 'Lap 3', distance: 400, moving_time: 91, lap_index: 2 },
+      { id: 1, name: 'Lap 1', distance: 400, elapsed_time: 95, moving_time: 91, start_index: 0, end_index: 400, total_elevation_gain: 5, average_speed: 4.4, lap_index: 0 },
+      { id: 2, name: 'Lap 2', distance: 400, elapsed_time: 94, moving_time: 90, start_index: 400, end_index: 800, total_elevation_gain: 3, average_speed: 4.4, lap_index: 1 },
+      { id: 3, name: 'Lap 3', distance: 400, elapsed_time: 95, moving_time: 91, start_index: 800, end_index: 1200, total_elevation_gain: 4, average_speed: 4.4, lap_index: 2 },
     ],
     comments: [],
   },

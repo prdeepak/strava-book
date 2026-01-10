@@ -13,55 +13,54 @@
 | Book assembly & routing | ✅ Complete |
 | AI Book Designer agents | ✅ Built & wired to UI |
 | E2E tests | ✅ 28 tests passing |
-| Templates | ⚡ Functional, need visual polish |
+| Templates | ✅ 7/8 redesigned (BackCover pending) |
+| Variant validation | ✅ Infrastructure complete |
+| Font validation | ✅ Tests added |
+| Graphics generation | ✅ Done (pending merge) |
 
 ---
 
-## Immediate Priority: Template Visual Polish
+## Template Redesign Status
 
-All templates exist and generate valid PDFs. They currently score 70-83 on visual judge but need polish to reach magazine quality.
-
-### Self-Validating Loop
-
-Each template can be improved iteratively:
-1. Run `make test-template template=X fixture=Y`
-2. Read visual judge feedback
-3. Improve template based on suggestions
-4. Repeat until score ≥ 80
-
-### Templates to Polish
-
-| Template | Fixture | Target |
-|----------|---------|--------|
-| Cover | race_marathon | Premium cover feel |
-| YearStats | activeYear | Hero numbers, magazine style |
-| YearCalendar | activeYear | Clean heatmap grid |
-| Race_1p | race_marathon | High-impact race page |
-| Race_2p | race_ultramarathon | Cohesive spread design |
-| ActivityLog | activeYear | Scannable, good density |
-| MonthlyDivider | activeYear | Bold, dynamic |
-| BackCover | activeYear | Professional close |
+| Template | Status | Notes |
+|----------|--------|-------|
+| Cover | ✅ Redesigned | Professional print-ready |
+| YearStats | ✅ Redesigned | Bold typography, best efforts |
+| YearCalendar | ✅ Redesigned | Professional print quality |
+| Race_1p | ✅ Redesigned | Dramatic dark layout |
+| Race_2p | ✅ Redesigned | Professional 2-page spread |
+| ActivityLog | ✅ Redesigned | Card-based with photos/maps/stats |
+| MonthlyDivider | ✅ Redesigned | Professional split-panel |
+| BackCover | ⚡ Needs redesign | Original implementation |
 
 ---
 
-## Secondary Priority: Graphics Generation
+## Graphics Generation Status
 
-| Component | Status | Goal |
-|-----------|--------|------|
-| Splits chart | Needs improvement | Cleaner SVG, better scaling |
-| Elevation profile | Needs improvement | Works at all sizes |
-| Route maps | Needs improvement | High-quality static maps |
-| Year heatmap | Needs improvement | GitHub contribution style |
+| Component | Status |
+|-----------|--------|
+| Splits chart | ✅ Done (pending merge) |
+| Elevation profile | ✅ Done (pending merge) |
+| Route maps | ✅ Done (pending merge) |
+| Year heatmap | ✅ Done (pending merge) |
 
 ---
 
-## Overnight Agents
+## Variant Validation System
 
-Run `./overnight-agents.sh` to launch 12 parallel agents:
-- 8 template polish agents (Stream A)
-- 4 graphics improvement agents (Stream B)
+Infrastructure for testing template variants with different data:
+- `web/lib/validation/validate-variants.ts` - Core validation runner
+- `web/lib/validation/spec-validator.ts` - Spec compliance checker
+- `web/lib/validation/pdf-analyzer.ts` - PDF content analysis
+- `web/lib/test-fixtures/variant-test-data.ts` - Test data fixtures
 
-See `archive/` for historical planning docs.
+---
+
+## Immediate Priority
+
+1. **BackCover redesign** - Last template needing visual refresh
+2. **Merge graphics branch** - Integrate completed graphics work
+3. **Variant validation refinement** - Polish the new validation system
 
 ---
 
@@ -72,7 +71,6 @@ See `archive/` for historical planning docs.
 | SPEC.md | Technical specification |
 | AGENT_INSTRUCTIONS.md | Agent workflow & test commands |
 | CLAUDE.md | Project overview |
-| overnight-agents.sh | Launch parallel agents |
 
 ---
 
