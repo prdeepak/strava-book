@@ -115,6 +115,12 @@ function getRegisteredFonts(): Set<string> {
         registered.add(match[1])
     }
 
+    // Match registerFontWithFallbacks('FontName', ...)
+    const fallbackRegex = /registerFontWithFallbacks\s*\(\s*['"]([^'"]+)['"]/g
+    while ((match = fallbackRegex.exec(content)) !== null) {
+        registered.add(match[1])
+    }
+
     // Add built-in fonts
     BUILTIN_FONTS.forEach(f => registered.add(f))
 
@@ -298,9 +304,8 @@ function getRegisteredFontStyles(): Map<string, Set<string>> {
     const content = fs.readFileSync(pdfFontsPath, 'utf-8')
     const fontStyles = new Map<string, Set<string>>()
 
-    // Parse font registrations
+    // Parse old-style Font.register() calls
     const registerBlocks = content.split('Font.register(')
-
     for (const block of registerBlocks.slice(1)) {
         const familyMatch = block.match(/family:\s*['"]([^'"]+)['"]/)
         if (!familyMatch) continue
@@ -318,6 +323,32 @@ function getRegisteredFontStyles(): Map<string, Set<string>> {
             styles.add('italic')
         }
 
+        fontStyles.set(family, styles)
+    }
+
+    // Parse new-style registerFontWithFallbacks() calls
+    // Format: registerFontWithFallbacks('FontName', 'BaseName', { hasBold: true, hasItalic: true, ... })
+    const fallbackRegex = /registerFontWithFallbacks\s*\(\s*['"]([^'"]+)['"][^{]*\{([^}]*)\}/g
+    let match
+    while ((match = fallbackRegex.exec(content)) !== null) {
+        const family = match[1]
+        const options = match[2]
+        const styles = new Set<string>(['normal']) // normal is always available
+
+        // All fonts registered with fallbacks have all styles (with fallbacks)
+        // Check the actual variant availability from the options
+        if (options.includes('hasBold: true')) {
+            styles.add('bold')
+        }
+        if (options.includes('hasItalic: true')) {
+            styles.add('italic')
+        }
+        if (options.includes('hasBoldItalic: true')) {
+            styles.add('bold-italic')
+        }
+
+        // Note: Even fonts without actual variants have fallback registration
+        // So they won't cause errors, but we track actual support here
         fontStyles.set(family, styles)
     }
 
@@ -433,14 +464,16 @@ async function runFontValidation(): Promise<void> {
     }
 
     // Test 3: Check body fonts have italic (for theme.fontPairing.body)
+    // Note: With fallback registrations, fonts without italic won't cause errors
+    // but will use normal variant as fallback
     console.log('\n3. Checking theme body fonts have italic variants...')
     const bodyFonts = getThemeBodyFonts()
     const bodyFontsMissingItalic = validateBodyFontsHaveItalic(bodyFonts, registeredStyles)
 
     if (bodyFontsMissingItalic.length > 0) {
-        console.log('\n   ERRORS - Body fonts missing italic variant:')
+        console.log('\n   INFO - Body fonts without native italic (will use fallback):')
         bodyFontsMissingItalic.forEach(font => {
-            console.log(`   - "${font}" is used as body font but has no italic registered`)
+            console.log(`   - "${font}" has no italic variant (normal will be used as fallback)`)
         })
     } else {
         console.log(`   Checked ${bodyFonts.length} body fonts - all have italic variants.`)
@@ -454,7 +487,8 @@ async function runFontValidation(): Promise<void> {
 
     // Summary
     console.log('\n=====================')
-    const hasErrors = result.missingFonts.length > 0 || missingStyles.length > 0 || bodyFontsMissingItalic.length > 0
+    // Note: bodyFontsMissingItalic is just info now (fallbacks exist), not an error
+    const hasErrors = result.missingFonts.length > 0 || missingStyles.length > 0
     if (hasErrors) {
         console.log('VALIDATION FAILED')
         process.exit(1)

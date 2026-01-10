@@ -7,6 +7,7 @@
 
 import { BookTheme } from './book-types'
 import { StravaActivity, StravaPhoto } from './strava'
+import { getFontInfoForAI, getHeadingFonts, getBodyFonts } from './font-registry'
 
 // ============================================================================
 // Types
@@ -71,29 +72,8 @@ const KNOWN_RACE_COLORS: Record<string, RaceColorScheme> = {
   }
 }
 
-// Available fonts categorized by style
-// NOTE: Only fonts verified as valid TTF files are included
-// Many fonts were corrupted (contain HTML instead of font data)
-const AVAILABLE_FONTS = {
-  display: [
-    'BebasNeue', 'Anton', 'ArchivoBlack', 'Bangers'
-  ],
-  sansSerif: [
-    'Helvetica', 'BarlowCondensed'
-  ],
-  serif: [
-    'CrimsonText'
-  ],
-  handwritten: [
-    'PermanentMarker', 'IndieFlower', 'PatrickHand', 'HennyPenny'
-  ],
-  mono: [
-    'Helvetica'  // Use built-in as fallback
-  ],
-  condensed: [
-    'BarlowCondensed'
-  ]
-}
+// Font lists are sourced from font-registry.ts (single source of truth)
+// Body fonts MUST have italic variants - templates use italic for descriptions
 
 // ============================================================================
 // Race Detection
@@ -160,11 +140,7 @@ const STYLE_GUIDE_PROMPT = `You are a professional book designer creating a styl
 CONTEXT:
 {context}
 
-AVAILABLE FONTS (you MUST only use these):
-- Display/Heading fonts: ${AVAILABLE_FONTS.display.join(', ')}
-- Sans-serif fonts: ${AVAILABLE_FONTS.sansSerif.join(', ')}
-- Serif fonts: ${AVAILABLE_FONTS.serif.join(', ')}
-- Condensed fonts: ${AVAILABLE_FONTS.condensed.join(', ')}
+{fontInfo}
 
 USER PREFERENCE: {preference}
 
@@ -384,9 +360,11 @@ export async function generateStyleGuide(
   // Build the prompt
   const context = buildContext(request)
   const preference = request.userPreference || 'classic'
+  const fontInfo = getFontInfoForAI()
 
   const prompt = STYLE_GUIDE_PROMPT
     .replace('{context}', context)
+    .replace('{fontInfo}', fontInfo)
     .replace('{preference}', preference)
 
   if (verbose) {
@@ -452,16 +430,20 @@ function generateMockStyleGuide(
     accentColor = '#e67e22'
   }
 
-  // Font selection based on energy (using verified valid fonts)
+  // Font selection based on energy
+  // Body fonts are from getBodyFonts() which guarantees italic variants
+  const headingFonts = getHeadingFonts()
+  const bodyFonts = getBodyFonts()
+
   if (energy === 'high') {
-    headingFont = 'Anton'
-    bodyFont = 'BarlowCondensed'
+    headingFont = headingFonts.includes('Anton') ? 'Anton' : headingFonts[0]
+    bodyFont = bodyFonts.includes('BarlowCondensed') ? 'BarlowCondensed' : bodyFonts[0]
   } else if (energy === 'calm') {
-    headingFont = 'ArchivoBlack'
-    bodyFont = 'CrimsonText'
+    headingFont = headingFonts.includes('ArchivoBlack') ? 'ArchivoBlack' : headingFonts[0]
+    bodyFont = bodyFonts.includes('CrimsonText') ? 'CrimsonText' : bodyFonts[0]
   } else {
-    headingFont = 'BebasNeue'
-    bodyFont = 'BarlowCondensed'
+    headingFont = headingFonts.includes('BebasNeue') ? 'BebasNeue' : headingFonts[0]
+    bodyFont = bodyFonts.includes('BarlowCondensed') ? 'BarlowCondensed' : bodyFonts[0]
   }
 
   const theme: BookTheme = {
