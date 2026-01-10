@@ -101,22 +101,29 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginTop: 4 * format.scaleFactor,
     },
 
-    // Giant stats for stats-focus variant
-    giantStatsRow: {
+    // Giant stats for stats-focus variant - 2x2 grid
+    giantStatsGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 20 * format.scaleFactor,
-        paddingVertical: 24 * format.scaleFactor,
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 16 * format.scaleFactor,
+        paddingVertical: 16 * format.scaleFactor,
         borderBottomWidth: 2,
         borderBottomColor: theme.accentColor,
         borderTopWidth: 2,
         borderTopColor: theme.accentColor,
     },
+    giantStat: {
+        width: '48%',
+        alignItems: 'center',
+        marginBottom: 12 * format.scaleFactor,
+    },
     giantStatValue: {
-        fontSize: Math.max(48, 64 * format.scaleFactor),
+        fontSize: Math.max(36, 48 * format.scaleFactor),
         fontFamily: 'Courier-Bold',
         color: theme.accentColor,
         lineHeight: 1,
+        textAlign: 'center',
     },
 
     // Thumbnail styles for secondary images
@@ -144,7 +151,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         height: 200 * format.scaleFactor,
     },
     dualImageHalf: {
-        flex: 1,
+        width: '50%',
+        height: '100%',
         overflow: 'hidden',
     },
 
@@ -381,10 +389,9 @@ export const Race_1p = ({
     const stravaPhoto = resolveImageUrl(activity.photos?.primary?.urls?.['600'])
 
     // Get satellite map URL if token and polyline available
+    // Use direct URL for @react-pdf/renderer (proxy URLs don't work server-side)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
-        ? `/api/proxy-image?url=${encodeURIComponent(
-            `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(activity.map.summary_polyline)})/auto/800x400@2x?access_token=${mapboxToken}&logo=false`
-          )}`
+        ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(activity.map.summary_polyline)})/auto/800x400@2x?access_token=${mapboxToken}&logo=false`
         : null
 
     // Determine variant: use provided or auto-detect
@@ -462,21 +469,21 @@ export const Race_1p = ({
     ) : null
 
     const HeroStats = ({ giant = false }: { giant?: boolean }) => (
-        <View style={giant ? styles.giantStatsRow : styles.heroStatsRow}>
-            <View style={styles.heroStat}>
+        <View style={giant ? styles.giantStatsGrid : styles.heroStatsRow}>
+            <View style={giant ? styles.giantStat : styles.heroStat}>
                 <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{distanceKm}</Text>
                 <Text style={styles.heroStatLabel}>KM</Text>
             </View>
-            <View style={styles.heroStat}>
+            <View style={giant ? styles.giantStat : styles.heroStat}>
                 <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{timeFormatted}</Text>
                 <Text style={styles.heroStatLabel}>TIME</Text>
             </View>
-            <View style={styles.heroStat}>
+            <View style={giant ? styles.giantStat : styles.heroStat}>
                 <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{avgPace}</Text>
                 <Text style={styles.heroStatLabel}>PACE/KM</Text>
             </View>
             {elevationM > 0 && (
-                <View style={styles.heroStat}>
+                <View style={giant ? styles.giantStat : styles.heroStat}>
                     <Text style={giant ? styles.giantStatValue : styles.heroStatValue}>{elevationM}</Text>
                     <Text style={styles.heroStatLabel}>ELEV (M)</Text>
                 </View>
@@ -602,7 +609,7 @@ export const Race_1p = ({
     // =========================================================================
 
     const renderPhotoHero = () => (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
             <HeroPhoto height={280} />
             <View style={styles.contentArea}>
                 <TitleSection />
@@ -617,7 +624,7 @@ export const Race_1p = ({
     )
 
     const renderMapHero = () => (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
             <HeroMap height={280} />
             <View style={styles.contentArea}>
                 <TitleSection />
@@ -632,18 +639,18 @@ export const Race_1p = ({
     )
 
     const renderDualImage = () => (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
             <View style={styles.dualImageRow}>
-                {stravaPhoto && (
-                    <View style={styles.dualImageHalf}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={stravaPhoto} style={styles.heroPhoto} />
-                    </View>
-                )}
                 {satelliteMapUrl && (
                     <View style={styles.dualImageHalf}>
                         {/* eslint-disable-next-line jsx-a11y/alt-text */}
                         <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                    </View>
+                )}
+                {stravaPhoto && (
+                    <View style={styles.dualImageHalf}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                        <Image src={stravaPhoto} style={styles.heroPhoto} />
                     </View>
                 )}
             </View>
@@ -657,7 +664,7 @@ export const Race_1p = ({
     )
 
     const renderStatsFocus = () => (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
             <View style={styles.contentArea}>
                 <TitleSection />
                 <HeroStats giant={true} />
@@ -672,7 +679,7 @@ export const Race_1p = ({
     )
 
     const renderPolylineMinimal = () => (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
             <PolylineHero height={220} />
             <View style={styles.contentArea}>
                 <TitleSection />

@@ -66,6 +66,7 @@ export interface TestConfig {
     keepArtifacts?: boolean
     verbose?: boolean
     skipJudge?: boolean  // Just generate PDF, don't evaluate
+    variant?: string     // Force specific layout variant (e.g., 'photo-hero', 'map-hero')
 }
 
 // ============================================================================
@@ -183,6 +184,30 @@ export function loadFixture(fixtureName: string): unknown {
 
     const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
 
+    // Merge comprehensiveData into main activity object for template access
+    if (fixture.comprehensiveData) {
+        // Merge comments
+        if (fixture.comprehensiveData.comments && fixture.comprehensiveData.comments.length > 0) {
+            fixture.comments = fixture.comprehensiveData.comments
+        }
+        // Only merge comprehensiveData photos if fixture.photos.primary doesn't already have local photo paths
+        // (Local paths start with "photos/" and are preferred over cloudfront URLs for testing)
+        const hasLocalPhotos = fixture.photos?.primary?.urls?.['600']?.startsWith('photos/')
+        if (!hasLocalPhotos && fixture.comprehensiveData.photos && fixture.comprehensiveData.photos.length > 0) {
+            const primaryPhoto = fixture.comprehensiveData.photos[0]
+            fixture.photos = fixture.photos || {}
+            fixture.photos.primary = fixture.photos.primary || {
+                urls: primaryPhoto.urls || {}
+            }
+            // Use the largest available size for primary photo
+            const sizes = Object.keys(primaryPhoto.urls || {}).map(Number).sort((a, b) => b - a)
+            if (sizes.length > 0) {
+                fixture.photos.primary.urls = fixture.photos.primary.urls || {}
+                fixture.photos.primary.urls['600'] = primaryPhoto.urls[sizes[0]]
+            }
+        }
+    }
+
     // Resolve relative photo paths to absolute paths
     const json = JSON.stringify(fixture)
     const resolved = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
@@ -219,7 +244,8 @@ export async function testTemplate(
         outputDir = path.join(__dirname, '../../..', 'test-output'),
         keepArtifacts = true,
         verbose = false,
-        skipJudge = false
+        skipJudge = false,
+        variant
     } = config
 
     // Ensure output directory exists
@@ -264,12 +290,26 @@ export async function testTemplate(
         // Import book types for default format and theme
         const { FORMATS, DEFAULT_THEME } = await import('../book-types')
 
+        // Get mapbox token from environment for satellite maps
+        const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_TOKEN
+
+        const templateProps: Record<string, unknown> = {
+            activity: fixture,
+            format: FORMATS['10x10'],
+            theme: DEFAULT_THEME,
+            mapboxToken
+        }
+
+        // Add variant if specified
+        if (variant) {
+            templateProps.layoutVariant = variant
+            if (verbose) {
+                console.log(`[Test Harness] Using variant: ${variant}`)
+            }
+        }
+
         const pdfBuffer = await renderToBuffer(
-            React.createElement(Template, {
-                activity: fixture,
-                format: FORMATS['10x10'],
-                theme: DEFAULT_THEME
-            })
+            React.createElement(Template, templateProps)
         )
 
         // Save PDF
@@ -453,6 +493,7 @@ Usage:
 Options:
   --template <name>    Test specific template
   --fixture <name>     Use specific fixture
+  --variant <name>     Force specific layout variant (e.g., photo-hero, map-hero)
   --list               List available templates and fixtures
   --verbose            Show detailed output
   --skip-judge         Generate PDF only, skip visual evaluation
@@ -460,6 +501,7 @@ Options:
 
 Examples:
   npx ts-node test-harness.ts --template Race_1p --fixture race_marathon --verbose
+  npx ts-node test-harness.ts --template Race_1p --fixture race_ultramarathon --variant map-hero --verbose
   npx ts-node test-harness.ts --all --verbose
   npx ts-node test-harness.ts --list
         `)
@@ -477,6 +519,8 @@ Examples:
 
     const templateIdx = args.indexOf('--template')
     const fixtureIdx = args.indexOf('--fixture')
+    const variantIdx = args.indexOf('--variant')
+    const variant = variantIdx >= 0 ? args[variantIdx + 1] : undefined
 
     if (args.includes('--all')) {
         runAllTests({ verbose, skipJudge })
@@ -500,7 +544,7 @@ Examples:
         const template = args[templateIdx + 1]
         const fixture = args[fixtureIdx + 1]
 
-        testTemplate(template, fixture, { verbose, skipJudge })
+        testTemplate(template, fixture, { verbose, skipJudge, variant })
             .then(result => {
                 console.log('\n=== Result ===')
                 console.log(JSON.stringify(result, null, 2))
