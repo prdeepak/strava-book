@@ -145,17 +145,32 @@ function extractText(children: unknown): string {
  * Analyze a PDF buffer for basic properties
  * Simple analysis without external dependencies
  */
-export function analyzePDFBuffer(buffer: Buffer): { fileSize: number; estimatedPages: number } {
+export function analyzePDFBuffer(buffer: Buffer): {
+  fileSize: number
+  estimatedPages: number
+  hasText: boolean
+  hasImages: boolean
+} {
   const fileSize = buffer.length
 
-  // Simple heuristic: count PDF page markers
+  // Convert to string for text searching
   const content = buffer.toString('binary')
+
+  // Simple heuristic: count PDF page markers
   const pageMatches = content.match(/\/Type\s*\/Page[^s]/g)
   const estimatedPages = pageMatches ? pageMatches.length : 1
+
+  // Check for text content (PDF text operators)
+  const hasText = /\/Type\s*\/Font/.test(content) || /\bTj\b|\bTJ\b/.test(content)
+
+  // Check for images (PDF image markers)
+  const hasImages = /\/Subtype\s*\/Image/.test(content) || /\/XObject/.test(content)
 
   return {
     fileSize,
     estimatedPages,
+    hasText,
+    hasImages,
   }
 }
 
@@ -173,7 +188,7 @@ export interface FullAnalysis extends PDFAnalysisResult {
  */
 export function combineAnalysis(
   treeAnalysis: PDFAnalysisResult,
-  bufferAnalysis: { fileSize: number; estimatedPages: number },
+  bufferAnalysis: { fileSize: number; estimatedPages: number; hasText: boolean; hasImages: boolean },
   renderSuccess: boolean,
   renderError?: string
 ): FullAnalysis {
@@ -181,6 +196,9 @@ export function combineAnalysis(
     ...treeAnalysis,
     fileSize: bufferAnalysis.fileSize,
     pageCount: treeAnalysis.pageCount || bufferAnalysis.estimatedPages,
+    // Use buffer analysis for text/images as it's more reliable
+    hasText: bufferAnalysis.hasText || treeAnalysis.hasText,
+    hasImages: bufferAnalysis.hasImages || treeAnalysis.hasImages,
     renderSuccess,
     renderError,
   }

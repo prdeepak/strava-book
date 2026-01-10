@@ -313,7 +313,7 @@ export const ActivityLog = ({
                         👍 {activity.kudos_count}
                       </Text>
                     )}
-                    {activity.comment_count > 0 && (
+                    {(activity.comment_count ?? 0) > 0 && (
                       <Text style={styles.comments}>
                         💬 {activity.comment_count}
                       </Text>

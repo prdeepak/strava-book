@@ -5,8 +5,8 @@
  * matches the variant requirements.
  */
 
-import { TemplateSpec, VariantGuideline } from '../../web/lib/template-specs/types'
-import { getTemplateSpec, getAllTemplateSpecs } from '../../web/lib/template-specs/registry'
+import { TemplateSpec, VariantGuideline } from '../template-specs/types'
+import { getTemplateSpec, getAllTemplateSpecs } from '../template-specs/registry'
 import { FullAnalysis } from './pdf-analyzer'
 
 // ============================================================================

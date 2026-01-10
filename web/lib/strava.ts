@@ -150,6 +150,7 @@ export type StravaActivity = {
     timezone: string
     description?: string
     kudos_count: number
+    comment_count?: number
     map: {
         summary_polyline: string
     }
