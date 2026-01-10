@@ -342,6 +342,7 @@ interface BookDocumentProps {
     athleteName?: string
     year?: number
     yearSummary?: YearSummary
+    mapboxToken?: string
 }
 
 /**
@@ -356,6 +357,7 @@ export const BookDocument = ({
     athleteName = 'Athlete',
     year = new Date().getFullYear(),
     yearSummary,
+    mapboxToken,
 }: BookDocumentProps) => {
     // Calculate year summary from activities if not provided
     // Uses the comprehensive computeYearSummary function for proper monthly stats
@@ -415,6 +417,7 @@ export const BookDocument = ({
                             activity={activity}
                             format={format}
                             theme={theme}
+                            mapboxToken={mapboxToken}
                             highlightLabel={entry.highlightLabel}
                         />
                     )
