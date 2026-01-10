@@ -413,6 +413,8 @@ export const BookDocument = ({
                         <Race_2pSpreadPages
                             key={index}
                             activity={activity}
+                            format={format}
+                            theme={theme}
                             highlightLabel={entry.highlightLabel}
                         />
                     )
