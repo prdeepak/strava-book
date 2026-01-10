@@ -5,11 +5,11 @@ import { Race_2pSpreadPages } from './Race_2p'
 import { TableOfContents, TOCEntry } from './TableOfContents'
 import { CoverPage } from './Cover'
 import { Foreword } from './Foreword'
-import { BackCoverPage } from './BackCover'
-import { YearCalendarPage } from './YearCalendar'
-import { YearStatsPage } from './YearStats'
-import { MonthlyDividerPage } from './MonthlyDivider'
-import { ActivityLogPage } from './ActivityLog'
+import { BackCover } from './BackCover'
+import { YearCalendar } from './YearCalendar'
+import { YearStats } from './YearStats'
+import { MonthlyDivider } from './MonthlyDivider'
+import { ActivityLog } from './ActivityLog'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-log-utils'
 
@@ -427,7 +427,7 @@ export const BookDocument = ({
                         return activityMonth === entry.month
                     })
                     return (
-                        <MonthlyDividerPage
+                        <MonthlyDivider
                             key={index}
                             month={entry.month ?? 0}
                             year={entry.year ?? year}
@@ -445,7 +445,7 @@ export const BookDocument = ({
                 // YEAR_AT_A_GLANCE
                 if (entry.type === 'YEAR_AT_A_GLANCE') {
                     return (
-                        <YearCalendarPage
+                        <YearCalendar
                             key={index}
                             year={entry.year ?? year}
                             activities={activities}
@@ -459,7 +459,7 @@ export const BookDocument = ({
                 // YEAR_STATS
                 if (entry.type === 'YEAR_STATS') {
                     return (
-                        <YearStatsPage
+                        <YearStats
                             key={index}
                             yearSummary={computedYearSummary}
                             format={format}
@@ -480,7 +480,7 @@ export const BookDocument = ({
                             (entry.pageNumber || 1) * perPage
                         )
                     return (
-                        <ActivityLogPage
+                        <ActivityLog
                             key={index}
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page
@@ -538,7 +538,7 @@ export const BookDocument = ({
                 // BACK_COVER
                 if (entry.type === 'BACK_COVER') {
                     return (
-                        <BackCoverPage
+                        <BackCover
                             key={index}
                             yearSummary={computedYearSummary}
                             format={format}

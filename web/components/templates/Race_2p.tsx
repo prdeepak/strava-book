@@ -35,6 +35,33 @@ export const Race_2pSpread = ({
     </Document>
 )
 
+/**
+ * Race_2pSpreadPages - Returns just the pages without Document wrapper
+ * Use this when embedding inside another Document (like BookDocument)
+ */
+export const Race_2pSpreadPages = ({
+    activity,
+    format,
+    theme = DEFAULT_THEME,
+    mapboxToken,
+    highlightLabel
+}: Race_2pSpreadProps) => (
+    <>
+        <Race_2pLeft
+            activity={activity}
+            format={format}
+            theme={theme}
+            highlightLabel={highlightLabel}
+        />
+        <Race_2pRight
+            activity={activity}
+            format={format}
+            theme={theme}
+            mapboxToken={mapboxToken}
+        />
+    </>
+)
+
 export interface Race_2pProps {
     activity: StravaActivity
     format?: BookFormat

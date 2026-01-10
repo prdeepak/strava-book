@@ -17,6 +17,35 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { judgePageVisual, VisualJudgment, JudgeContext } from './visual-judge'
 
 // ============================================================================
+// Utilities
+// ============================================================================
+
+/**
+ * Generate a unique run ID based on timestamp
+ */
+export function generateRunId(): string {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const mins = String(now.getMinutes()).padStart(2, '0')
+    const secs = String(now.getSeconds()).padStart(2, '0')
+    return `${year}${month}${day}-${hours}${mins}${secs}`
+}
+
+/**
+ * Get output directory for a test run
+ */
+export function getRunOutputDir(baseDir: string, runId: string): string {
+    const outputDir = path.join(baseDir, runId)
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true })
+    }
+    return outputDir
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
