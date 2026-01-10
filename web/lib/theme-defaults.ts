@@ -1,12 +1,11 @@
 import { BookTheme } from './book-types'
+import { getHeadingFonts, getBodyFonts, getAllFontFamilies } from './font-registry'
 
 /**
  * Default themes for different sport types
  *
- * NOTE: Only using fonts that are verified as valid TTF files
- * Valid fonts: Anton, ArchivoBlack, Bangers, BarlowCondensed, BebasNeue,
- *              CrimsonText, IndieFlower, PatrickHand, PermanentMarker, HennyPenny,
- *              Helvetica, Helvetica-Bold (built-in)
+ * NOTE: Fonts are sourced from font-registry.ts which is the single source of truth
+ * Body fonts MUST have italic variants (templates use italic for descriptions)
  */
 
 export const RUNNING_THEME: BookTheme = {
@@ -120,36 +119,35 @@ export function getAllDefaultThemes(): Record<string, BookTheme> {
 }
 
 /**
- * Available fonts for headings (verified valid TTF files)
+ * Available fonts for headings
+ * Sources from font-registry.ts for consistency
  */
-export const HEADING_FONTS = [
-  'Anton',
-  'ArchivoBlack',
-  'Bangers',
-  'BebasNeue',
-  'Helvetica-Bold',
-] as const
+export const HEADING_FONTS = getHeadingFonts()
 
 /**
- * Available fonts for body text (verified valid TTF files)
+ * Available fonts for body text
+ * MUST have italic variants (templates use italic for descriptions)
+ * Sources from font-registry.ts for consistency
  */
-export const BODY_FONTS = [
-  'BarlowCondensed',
-  'CrimsonText',
-  'PatrickHand',
-  'IndieFlower',
-  'Helvetica',
-] as const
+export const BODY_FONTS = getBodyFonts()
 
 /**
- * Validate if a font is available
+ * All available fonts (heading + body + handwritten)
+ */
+export const ALL_FONTS = getAllFontFamilies()
+
+/**
+ * Validate if a font is available for headings
  */
 export function isValidHeadingFont(font: string): boolean {
-  return (HEADING_FONTS as readonly string[]).includes(font)
+  return HEADING_FONTS.includes(font)
 }
 
+/**
+ * Validate if a font is available for body text (must have italic)
+ */
 export function isValidBodyFont(font: string): boolean {
-  return (BODY_FONTS as readonly string[]).includes(font)
+  return BODY_FONTS.includes(font)
 }
 
 /**

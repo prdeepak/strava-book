@@ -6,6 +6,100 @@
  */
 
 import { HEADING_FONTS, BODY_FONTS } from './theme-defaults'
+import { getAllFontFamilies, fontHasItalic, getBodyFonts } from './font-registry'
+
+// ============================================================================
+// Safe Default Fonts
+// ============================================================================
+
+/**
+ * Safe default fonts to use when AI specifies an unknown font
+ * These are built-in fonts that always work with all variants
+ */
+export const DEFAULT_HEADING_FONT = 'Helvetica'
+export const DEFAULT_BODY_FONT = 'Helvetica'  // Has full italic/bold support
+
+/**
+ * Normalize a font name - if unknown, return safe default
+ */
+export function normalizeFontName(font: string, isBodyFont: boolean = false): string {
+  const allFonts = getAllFontFamilies()
+
+  // If font is valid, return it
+  if (allFonts.includes(font)) {
+    return font
+  }
+
+  // Try case-insensitive match
+  const lowerFont = font.toLowerCase()
+  const match = allFonts.find(f => f.toLowerCase() === lowerFont)
+  if (match) {
+    return match
+  }
+
+  // Try partial match (e.g., "Bebas Neue" -> "BebasNeue")
+  const noSpaces = font.replace(/\s+/g, '')
+  const partialMatch = allFonts.find(f => f.toLowerCase() === noSpaces.toLowerCase())
+  if (partialMatch) {
+    return partialMatch
+  }
+
+  // Return safe default
+  console.warn(`[ai-validation] Unknown font "${font}", falling back to ${isBodyFont ? DEFAULT_BODY_FONT : DEFAULT_HEADING_FONT}`)
+  return isBodyFont ? DEFAULT_BODY_FONT : DEFAULT_HEADING_FONT
+}
+
+/**
+ * Normalize fonts in a design spec - replace unknown fonts with safe defaults
+ */
+export function normalizeFonts(spec: DesignSpec): { spec: DesignSpec; replacements: string[] } {
+  const replacements: string[] = []
+  const allFonts = getAllFontFamilies()
+
+  let headingFont = spec.theme.fontPairing.heading
+  let bodyFont = spec.theme.fontPairing.body
+
+  // Normalize heading font
+  if (!allFonts.includes(headingFont)) {
+    const normalized = normalizeFontName(headingFont, false)
+    if (normalized !== headingFont) {
+      replacements.push(`Heading font "${headingFont}" -> "${normalized}"`)
+      headingFont = normalized
+    }
+  }
+
+  // Normalize body font
+  if (!allFonts.includes(bodyFont)) {
+    const normalized = normalizeFontName(bodyFont, true)
+    if (normalized !== bodyFont) {
+      replacements.push(`Body font "${bodyFont}" -> "${normalized}"`)
+      bodyFont = normalized
+    }
+  }
+
+  // If body font is valid but doesn't have italic, suggest a better one
+  // (but don't replace - fallbacks will handle it)
+  if (allFonts.includes(bodyFont) && !fontHasItalic(bodyFont)) {
+    const bodyFontsWithItalic = getBodyFonts()
+    if (bodyFontsWithItalic.length > 0) {
+      replacements.push(`Note: "${bodyFont}" lacks italic, will use normal variant as fallback`)
+    }
+  }
+
+  return {
+    spec: {
+      ...spec,
+      theme: {
+        ...spec.theme,
+        fontPairing: {
+          heading: headingFont,
+          body: bodyFont
+        }
+      }
+    },
+    replacements
+  }
+}
 
 // ============================================================================
 // Types
@@ -162,36 +256,15 @@ export function validateDesignSpec(spec: unknown): ValidationResult {
 
 /**
  * All valid fonts for PDF generation
- * Includes registered custom fonts plus built-in PDF fonts
+ * Sources from font-registry.ts for consistency
  */
-export const VALID_FONTS = [
-  // Display fonts (registered custom)
-  'Anton',
-  'ArchivoBlack',
-  'Bangers',
-  'BebasNeue',
-  // Serif fonts
-  'CrimsonText',
-  // Condensed fonts
-  'BarlowCondensed',
-  // Handwritten fonts
-  'IndieFlower',
-  'PatrickHand',
-  'PermanentMarker',
-  'HennyPenny',
-  // Built-in PDF fonts
-  'Helvetica',
-  'Helvetica-Bold',
-  'Times-Roman',
-  'Times-Bold',
-  'Courier',
-  'Courier-Bold'
-] as const
+export const VALID_FONTS = getAllFontFamilies()
 
-export type ValidFont = typeof VALID_FONTS[number]
+export type ValidFont = string
 
 /**
  * Validate that fonts are from the registered set
+ * Note: Unknown fonts will be auto-replaced by normalizeFonts(), so we warn instead of error
  */
 export function validateFonts(spec: DesignSpec): ValidationResult {
   const errors: string[] = []
@@ -200,14 +273,20 @@ export function validateFonts(spec: DesignSpec): ValidationResult {
   const headingFont = spec.theme.fontPairing.heading
   const bodyFont = spec.theme.fontPairing.body
 
-  // Check heading font
-  if (!VALID_FONTS.includes(headingFont as ValidFont)) {
-    errors.push(`Invalid heading font "${headingFont}". Valid fonts: ${HEADING_FONTS.join(', ')}`)
+  // Check heading font is valid - warn only since normalizeFonts() will fix it
+  if (!VALID_FONTS.includes(headingFont)) {
+    warnings.push(`Unknown heading font "${headingFont}" will be replaced with "${DEFAULT_HEADING_FONT}"`)
   }
 
-  // Check body font
-  if (!VALID_FONTS.includes(bodyFont as ValidFont)) {
-    errors.push(`Invalid body font "${bodyFont}". Valid fonts: ${BODY_FONTS.join(', ')}`)
+  // Check body font is valid - warn only since normalizeFonts() will fix it
+  if (!VALID_FONTS.includes(bodyFont)) {
+    warnings.push(`Unknown body font "${bodyFont}" will be replaced with "${DEFAULT_BODY_FONT}"`)
+  }
+
+  // Check body font has italic variant (templates use italic for descriptions)
+  // Note: Fallbacks exist so this won't cause errors, but we warn for best results
+  if (VALID_FONTS.includes(bodyFont) && !fontHasItalic(bodyFont)) {
+    warnings.push(`Body font "${bodyFont}" does not have italic variant - normal variant will be used as fallback`)
   }
 
   // Warn if using same font for heading and body
@@ -216,7 +295,7 @@ export function validateFonts(spec: DesignSpec): ValidationResult {
   }
 
   // Warn about handwritten fonts for body text
-  const handwrittenFonts = ['IndieFlower', 'PatrickHand', 'PermanentMarker', 'HennyPenny']
+  const handwrittenFonts = ['IndieFlower', 'PatrickHand', 'PermanentMarker', 'HennyPenny', 'DancingScript', 'ShadowsIntoLight', 'Caveat']
   if (handwrittenFonts.includes(bodyFont)) {
     warnings.push(`Handwritten font "${bodyFont}" may be hard to read for body text`)
   }
@@ -505,43 +584,50 @@ export function validateAll(spec: unknown): ValidationResult {
 }
 
 /**
- * Sanitize a spec by escaping potentially dangerous content
+ * Sanitize a spec by escaping potentially dangerous content and normalizing fonts
  */
 export function sanitizeSpec(spec: DesignSpec): DesignSpec {
+  // First normalize fonts (replace unknown fonts with safe defaults)
+  const { spec: normalizedSpec, replacements } = normalizeFonts(spec)
+
+  if (replacements.length > 0) {
+    console.log('[ai-validation] Font normalizations applied:', replacements)
+  }
+
   const sanitized: DesignSpec = {
     theme: {
-      primaryColor: spec.theme.primaryColor,
-      accentColor: spec.theme.accentColor,
-      backgroundColor: spec.theme.backgroundColor,
+      primaryColor: normalizedSpec.theme.primaryColor,
+      accentColor: normalizedSpec.theme.accentColor,
+      backgroundColor: normalizedSpec.theme.backgroundColor,
       fontPairing: {
-        heading: spec.theme.fontPairing.heading,
-        body: spec.theme.fontPairing.body
+        heading: normalizedSpec.theme.fontPairing.heading,
+        body: normalizedSpec.theme.fontPairing.body
       },
-      motif: spec.theme.motif,
-      backgroundStyle: spec.theme.backgroundStyle
+      motif: normalizedSpec.theme.motif,
+      backgroundStyle: normalizedSpec.theme.backgroundStyle
     }
   }
 
-  if (spec.layout) {
-    sanitized.layout = { ...spec.layout }
+  if (normalizedSpec.layout) {
+    sanitized.layout = { ...normalizedSpec.layout }
   }
 
-  if (spec.content) {
+  if (normalizedSpec.content) {
     sanitized.content = {}
-    if (spec.content.title) {
-      sanitized.content.title = sanitizeText(spec.content.title)
+    if (normalizedSpec.content.title) {
+      sanitized.content.title = sanitizeText(normalizedSpec.content.title)
     }
-    if (spec.content.subtitle) {
-      sanitized.content.subtitle = sanitizeText(spec.content.subtitle)
+    if (normalizedSpec.content.subtitle) {
+      sanitized.content.subtitle = sanitizeText(normalizedSpec.content.subtitle)
     }
-    if (spec.content.athleteName) {
-      sanitized.content.athleteName = sanitizeText(spec.content.athleteName)
+    if (normalizedSpec.content.athleteName) {
+      sanitized.content.athleteName = sanitizeText(normalizedSpec.content.athleteName)
     }
-    if (spec.content.foreword) {
-      sanitized.content.foreword = sanitizeText(spec.content.foreword)
+    if (normalizedSpec.content.foreword) {
+      sanitized.content.foreword = sanitizeText(normalizedSpec.content.foreword)
     }
-    if (spec.content.captions) {
-      sanitized.content.captions = spec.content.captions.map(c =>
+    if (normalizedSpec.content.captions) {
+      sanitized.content.captions = normalizedSpec.content.captions.map(c =>
         typeof c === 'string' ? sanitizeText(c) : c
       )
     }
