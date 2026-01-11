@@ -55,7 +55,9 @@ services:
       - PLAYWRIGHT_BASE_URL=http://localhost:3001
     command: >
       sh -c "
-        echo '🔧 Installing dependencies...' &&
+        echo '📦 Installing system dependencies...' &&
+        apt-get update && apt-get install -y poppler-utils &&
+        echo '🔧 Installing npm dependencies...' &&
         npm install --legacy-peer-deps &&
         echo '🔨 Building Next.js app...' &&
         npm run build &&

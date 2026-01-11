@@ -1,4 +1,4 @@
-import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, BookPageType } from '@/lib/book-types'
 
 export interface TOCEntry {
@@ -89,7 +89,9 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
  * Lists sections with page numbers, grouped by category
  * Clean typography with dot leaders and theme-consistent styling
  */
-export const TableOfContents = ({
+
+// Page-only version for use in BookDocument (no Document wrapper)
+export const TableOfContentsPage = ({
   entries,
   format,
   theme = DEFAULT_THEME,
@@ -148,3 +150,10 @@ export const TableOfContents = ({
     </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const TableOfContents = (props: TableOfContentsProps) => (
+  <Document>
+    <TableOfContentsPage {...props} />
+  </Document>
+)
