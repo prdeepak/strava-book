@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { StravaActivity } from '@/lib/strava'
+import { getSingleActivityTemplates } from '@/lib/template-specs/registry'
+
+// Get available templates from registry
+const availableTemplates = getSingleActivityTemplates()
+const defaultTemplateId = availableTemplates.find(t => t.id === 'race_2p')?.id || availableTemplates[0]?.id || 'race_1p'
 
 interface PDFGenerationModalProps {
     activity: StravaActivity
@@ -22,7 +27,7 @@ interface ComprehensiveActivityData {
 }
 
 interface DataSelection {
-    selectedTemplate: 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
+    selectedTemplate: string
     pageCount: 1 | 2 | 3
     includePhotos: boolean
     selectedPhotoIds: string[]
@@ -37,7 +42,7 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
     const [fetchingData, setFetchingData] = useState(false)
     const [comprehensiveData, setComprehensiveData] = useState<ComprehensiveActivityData | null>(null)
     const [dataSelection, setDataSelection] = useState<DataSelection>({
-        selectedTemplate: 'race_2p',
+        selectedTemplate: defaultTemplateId,
         pageCount: 1,
         includePhotos: true,
         selectedPhotoIds: [],
@@ -180,13 +185,15 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                     value={dataSelection.selectedTemplate}
                                     onChange={(e) => setDataSelection(prev => ({
                                         ...prev,
-                                        selectedTemplate: e.target.value as DataSelection['selectedTemplate']
+                                        selectedTemplate: e.target.value
                                     }))}
                                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 >
-                                    <option value="race_1p">Race (1 Page)</option>
-                                    <option value="race_2p">Race (2 Pages)</option>
-                                    <option value="race_1p_scrapbook">Race (1 Page - Scrapbook)</option>
+                                    {availableTemplates.map(template => (
+                                        <option key={template.id} value={template.id}>
+                                            {template.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
