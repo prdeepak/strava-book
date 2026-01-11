@@ -1,6 +1,12 @@
 # Agent Instructions for Template Development
 
-This document describes how autonomous agents should iterate on PDF templates.
+This document describes how autonomous agents should iterate on PDF templates and develop new features.
+
+## Standard Development Flow
+**ALWAYS** follow the Isolated Feature Development workflow for new features or complex changes.
+1. Run `/isolated-feature-dev` to see the steps.
+2. NELVER edit files in `bin/strava-book` directly for feature work.
+3. ALWAYS create a PR for review.
 
 ## Git Workflow for Parallel Agents
 
