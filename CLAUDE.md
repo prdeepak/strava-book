@@ -24,7 +24,11 @@ make sync msg="..."  # Commit & push (always confirm message with user first)
 
 **These rules are non-negotiable:**
 
-1. **Always use workspaces for code changes.** Before making ANY code changes, run `make workspace-new name=<feature>` and work in that workspace. Never edit code directly in the main repo (`~/bin/strava-book`).
+1. **Always use workspaces for code changes.** Before making ANY code changes:
+   - Run `make workspace-new name=<feature>`
+   - Immediately `cd` into the workspace directory shown in the output
+   - All subsequent work happens in that workspace
+   - Never edit code directly in the main repo (`~/bin/strava-book`)
 
 2. **Always create PRs for approval.** Never push directly to main - branch protection will reject it. Always:
    - Create a feature branch
@@ -134,7 +138,7 @@ make workspace-new name=feature-name
 #   Directory: ~/bin/strava-workspaces/ws-abc123
 #   Dev server: http://localhost:3001
 
-# Open the new workspace directory in a separate Claude Code session
+# IMPORTANT: Immediately cd into the workspace before any code changes
 cd ~/bin/strava-workspaces/ws-abc123
 ```
 
