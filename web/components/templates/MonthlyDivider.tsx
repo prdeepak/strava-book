@@ -1,6 +1,6 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
-import { getMonthName, formatDistance, formatTime } from '@/lib/activity-log-utils'
+import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 
 interface MonthlyDividerProps {
   month?: number  // 0-11

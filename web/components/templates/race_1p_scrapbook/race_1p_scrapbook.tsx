@@ -10,15 +10,15 @@ import {
   Font,
 } from '@react-pdf/renderer';
 import { StravaActivity } from '@/lib/strava';
-import { resolveActivityLocation } from '@/lib/activity-utils';
-import { SplitsChartSVG } from '@/lib/generateSplitsChart';
-import { resolveImageForPdf } from '@/lib/pdf-image-loader';
 import {
+  resolveActivityLocation,
   formatDuration,
   formatPace,
   processSplits,
   getFormattedBestEfforts
-} from '@/lib/race-data-utils';
+} from '@/lib/activity-utils';
+import { SplitsChartSVG } from '@/lib/generateSplitsChart';
+import { resolveImageForPdf } from '@/lib/pdf-image-loader';
 
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
@@ -486,7 +486,7 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
   // Calculate stats
   const distanceKm = (activity.distance / 1000).toFixed(2);
   const movingTime = formatDuration(activity.moving_time);
-  const avgPace = formatPace(activity.distance, activity.moving_time);
+  const avgPace = formatPace(activity.moving_time, activity.distance, 'metric');
   const elevation = `${activity.total_elevation_gain}m`;
 
   // Format date

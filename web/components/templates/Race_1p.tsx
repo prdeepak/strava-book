@@ -1,14 +1,14 @@
 import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
-import { resolveActivityLocation } from '@/lib/activity-utils'
 import {
+    resolveActivityLocation,
     formatDuration,
     formatPace,
     processSplits,
     processBestEfforts,
     getMapboxSatelliteUrl
-} from '@/lib/race-data-utils'
+} from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import mapboxPolyline from '@mapbox/polyline'
 
@@ -389,7 +389,7 @@ export const Race_1p = ({
     // Calculate hero stats
     const distanceKm = (activity.distance / 1000).toFixed(1)
     const timeFormatted = formatDuration(activity.moving_time)
-    const avgPace = formatPace(activity.distance, activity.moving_time)
+    const avgPace = formatPace(activity.moving_time, activity.distance, 'metric')
     const elevationM = Math.round(activity.total_elevation_gain)
 
 
