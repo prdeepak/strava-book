@@ -24,9 +24,17 @@ make sync msg="..."  # Commit & push (always confirm message with user first)
 
 **These rules are non-negotiable:**
 
-1. **Always use workspaces for code changes.** Before making ANY code changes, run `make workspace-new name=<feature>` and work in that workspace. Never edit code directly in the main repo.
+1. **Always use workspaces for code changes.** Before making ANY code changes, run `make workspace-new name=<feature>` and work in that workspace. Never edit code directly in the main repo (`~/bin/strava-book`).
 
-2. **Run e2e tests before marking code ready.** Before telling the user that code is ready for review or creating a PR, run `make test-e2e-ci` and ensure all tests pass.
+2. **Always create PRs for approval.** Never push directly to main - branch protection will reject it. Always:
+   - Create a feature branch
+   - Push to origin
+   - Create a PR with `gh pr create`
+   - Wait for user approval before merging
+
+3. **Never merge PRs without explicit approval.** The `gh pr merge` command is denied by permission settings. Always wait for the user to approve and merge.
+
+4. **Run e2e tests before marking code ready.** Before telling the user that code is ready for review or creating a PR, run `make test-e2e-ci` and ensure all tests pass.
 
 ## Git Sync Protocol
 
@@ -125,8 +133,9 @@ make workspace-cleanup      # Remove stale workspaces (inactive >24h)
 - Workspaces inactive for >24h are marked "stale" and can be cleaned up
 
 ### Workflow for Parallel Development
-1. Main repo (`~/bin/strava-book`) stays clean - don't edit directly when parallelizing
-2. Create workspaces for each parallel task
+1. Main repo (`~/bin/strava-book`) stays clean - never edit directly
+2. Create workspaces for each task: `make workspace-new name=<feature>`
 3. Each Claude Code session works in its own workspace
 4. When done, create PR from workspace branch to main
-5. Cleanup workspace after merge
+5. Wait for user to approve and merge the PR
+6. Cleanup workspace after merge: `make workspace-destroy id=<workspace-id>`
