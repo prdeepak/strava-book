@@ -17,6 +17,7 @@
       "Bash(git remote:*)",
       "Bash(git stash:*)",
       "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr status:*)",
