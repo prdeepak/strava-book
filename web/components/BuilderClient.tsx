@@ -170,8 +170,20 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
                     </div>
                 </div>
 
-                <div className="text-sm font-mono bg-stone-200 px-3 py-1 rounded inline-block">
-                    Found {activities.length} activities
+                <div className="flex justify-between items-center mb-6">
+                    <div className="text-sm font-mono bg-stone-200 px-3 py-1 rounded inline-block">
+                        Found {activities.length} activities
+                    </div>
+
+                    {hasMore && (
+                        <button
+                            onClick={loadMore}
+                            disabled={loading}
+                            className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded hover:bg-stone-700 transition disabled:bg-stone-300 disabled:cursor-not-allowed"
+                        >
+                            {loading ? 'Loading...' : 'Load More Activities'}
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -244,17 +256,7 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
                 })}
             </div>
 
-            {hasMore && (
-                <div className="max-w-6xl mx-auto mt-8 text-center">
-                    <button
-                        onClick={loadMore}
-                        disabled={loading}
-                        className="px-8 py-3 bg-stone-800 text-white font-semibold rounded-lg hover:bg-stone-700 transition disabled:bg-stone-300 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'Loading...' : 'Load More Activities'}
-                    </button>
-                </div>
-            )}
+            {/* Activities List */}
 
             {/* PDF Generation Modal */}
             {selectedActivity && (
