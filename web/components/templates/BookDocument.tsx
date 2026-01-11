@@ -417,6 +417,7 @@ export const BookDocument = ({
                             activity={activity}
                             format={format}
                             theme={theme}
+                            mapboxToken={mapboxToken}
                             highlightLabel={entry.highlightLabel}
                             mapboxToken={mapboxToken}
                         />
