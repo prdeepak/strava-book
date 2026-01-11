@@ -2,75 +2,11 @@ import { NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { getAthleteActivities, getActivityPhotos, StravaActivity } from '@/lib/strava'
+import { getAthleteActivities } from '@/lib/strava'
 import { generateSmartDraft } from '@/lib/curator'
 import { BookDocument } from '@/components/templates/BookDocument'
 import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
-
-/**
- * Fetch photos for a single activity and merge into the activity object.
- * Structures the photo data to match the expected format: activity.photos.primary.urls['600']
- */
-async function enrichActivityWithPhotos(
-    activity: StravaActivity,
-    accessToken: string
-): Promise<StravaActivity> {
-    try {
-        const photos = await getActivityPhotos(accessToken, activity.id.toString())
-
-        if (photos.length > 0) {
-            // Find the primary photo (first one) and structure it correctly
-            const primaryPhoto = photos[0]
-
-            // Get the best available URL - prefer 5000, fallback to other sizes
-            const photoUrl = primaryPhoto.urls?.['5000']
-                || primaryPhoto.urls?.['600']
-                || Object.values(primaryPhoto.urls || {})[0]
-
-            return {
-                ...activity,
-                photos: {
-                    primary: {
-                        urls: photoUrl ? { '600': photoUrl } : undefined
-                    },
-                    count: photos.length
-                },
-                allPhotos: photos
-            }
-        }
-    } catch (error) {
-        console.error(`[Book PDF] Failed to fetch photos for activity ${activity.id}:`, error)
-    }
-
-    return activity
-}
-
-/**
- * Fetch photos for multiple activities with rate limiting.
- * Uses batched concurrent requests to balance speed vs API limits.
- */
-async function enrichActivitiesWithPhotos(
-    activities: StravaActivity[],
-    accessToken: string,
-    batchSize: number = 5
-): Promise<StravaActivity[]> {
-    const enrichedActivities: StravaActivity[] = []
-
-    for (let i = 0; i < activities.length; i += batchSize) {
-        const batch = activities.slice(i, i + batchSize)
-        const enrichedBatch = await Promise.all(
-            batch.map(activity => enrichActivityWithPhotos(activity, accessToken))
-        )
-        enrichedActivities.push(...enrichedBatch)
-
-        // Small delay between batches to respect rate limits
-        if (i + batchSize < activities.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-        }
-    }
-
-    return enrichedActivities
-}
+import { enrichActivitiesWithPhotos } from '@/lib/photo-utils'
 
 export async function GET() {
     // Check authentication

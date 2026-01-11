@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { StravaActivity } from '@/lib/strava'
+import { getSingleActivityTemplateVariants } from '@/lib/template-specs/registry'
+
+// Get available template+variant combinations from registry
+const availableVariants = getSingleActivityTemplateVariants()
+const defaultSelection = availableVariants.find(v => v.templateId === 'race_2p') || availableVariants[0]
 
 interface PDFGenerationModalProps {
     activity: StravaActivity
@@ -22,7 +27,8 @@ interface ComprehensiveActivityData {
 }
 
 interface DataSelection {
-    selectedTemplate: 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
+    selectedTemplateId: string
+    selectedVariantId: string
     pageCount: 1 | 2 | 3
     includePhotos: boolean
     selectedPhotoIds: string[]
@@ -37,7 +43,8 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
     const [fetchingData, setFetchingData] = useState(false)
     const [comprehensiveData, setComprehensiveData] = useState<ComprehensiveActivityData | null>(null)
     const [dataSelection, setDataSelection] = useState<DataSelection>({
-        selectedTemplate: 'race_2p',
+        selectedTemplateId: defaultSelection?.templateId || 'race_1p',
+        selectedVariantId: defaultSelection?.variantId || 'photo-hero',
         pageCount: 1,
         includePhotos: true,
         selectedPhotoIds: [],
@@ -85,8 +92,9 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
 
     const handleGeneratePreview = () => {
         // Build URL with user selections as query parameters
-        const template = dataSelection.selectedTemplate
+        const template = dataSelection.selectedTemplateId
         const params = new URLSearchParams({
+            variant: dataSelection.selectedVariantId,
             includePhotos: dataSelection.includePhotos.toString(),
             includeComments: dataSelection.includeComments.toString(),
             includeSplits: dataSelection.includeSplits.toString(),
@@ -177,16 +185,25 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                     Select Template
                                 </label>
                                 <select
-                                    value={dataSelection.selectedTemplate}
-                                    onChange={(e) => setDataSelection(prev => ({
-                                        ...prev,
-                                        selectedTemplate: e.target.value as DataSelection['selectedTemplate']
-                                    }))}
+                                    value={`${dataSelection.selectedTemplateId}:${dataSelection.selectedVariantId}`}
+                                    onChange={(e) => {
+                                        const [templateId, variantId] = e.target.value.split(':')
+                                        setDataSelection(prev => ({
+                                            ...prev,
+                                            selectedTemplateId: templateId,
+                                            selectedVariantId: variantId
+                                        }))
+                                    }}
                                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 >
-                                    <option value="race_1p">Race (1 Page)</option>
-                                    <option value="race_2p">Race (2 Pages)</option>
-                                    <option value="race_1p_scrapbook">Race (1 Page - Scrapbook)</option>
+                                    {availableVariants.map(variant => (
+                                        <option
+                                            key={`${variant.templateId}:${variant.variantId}`}
+                                            value={`${variant.templateId}:${variant.variantId}`}
+                                        >
+                                            {variant.displayName}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 

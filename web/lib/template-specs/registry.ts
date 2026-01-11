@@ -16,12 +16,14 @@ import {
   forewordSpec,
   tableOfContentsSpec,
   aiRaceSpec,
+  race1pScrapbookSpec,
 } from './additional-templates'
 
 // All registered template specs
 const templateSpecs: Map<string, TemplateSpec> = new Map([
   ['race_1p', race1pSpec],
   ['race_2p', race2pSpec],
+  ['race_1p_scrapbook', race1pScrapbookSpec],
   ['cover', coverSpec],
   ['year_stats', yearStatsSpec],
   ['monthly_divider', monthlyDividerSpec],
@@ -149,4 +151,64 @@ export function validateOutputSpec(
   }
 
   return { valid: errors.length === 0, errors }
+}
+
+/**
+ * Get templates designed for single-activity pages (race pages, etc.)
+ * These are suitable for the "Generate PDF pages" dropdown
+ */
+export function getSingleActivityTemplates(): { id: string; name: string; description: string }[] {
+  const singleActivityPageTypes: BookPageType[] = ['RACE_PAGE', 'RACE_SPREAD']
+
+  return Array.from(templateSpecs.entries())
+    .filter(([, spec]) => singleActivityPageTypes.includes(spec.pageType))
+    .map(([id, spec]) => ({
+      id,
+      name: spec.name,
+      description: spec.description,
+    }))
+}
+
+/**
+ * Get all template+variant combinations for single-activity pages.
+ * Returns a flat list where each entry is a specific template variant.
+ */
+export function getSingleActivityTemplateVariants(): {
+  templateId: string
+  variantId: string
+  displayName: string
+  description: string
+}[] {
+  const singleActivityPageTypes: BookPageType[] = ['RACE_PAGE', 'RACE_SPREAD']
+  const results: {
+    templateId: string
+    variantId: string
+    displayName: string
+    description: string
+  }[] = []
+
+  for (const [, spec] of templateSpecs.entries()) {
+    if (!singleActivityPageTypes.includes(spec.pageType)) continue
+
+    const variants = spec.outputOptions.variants
+    const variantGuidelines = spec.guidelines?.variants || []
+
+    for (const variantId of variants) {
+      // Find the variant guideline for description
+      const guideline = variantGuidelines.find(v => v.name === variantId)
+      const variantLabel = variantId
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+
+      results.push({
+        templateId: spec.id,
+        variantId,
+        displayName: `${spec.name} - ${variantLabel}`,
+        description: guideline?.description || spec.description,
+      })
+    }
+  }
+
+  return results
 }

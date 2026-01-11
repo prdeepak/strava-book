@@ -506,3 +506,77 @@ export const aiRaceSpec: TemplateSpec = {
 
   guidelines: aiRaceGuidelines,
 }
+
+// ============================================================================
+// Race 1p Scrapbook Template
+// ============================================================================
+
+const race1pScrapbookVariants: VariantGuideline[] = [
+  {
+    name: 'collage',
+    description: 'Creative collage with rotated photos and handwritten-style text',
+    bestFor: [
+      'Memorable races with photos',
+      'Fun, casual aesthetic',
+      'Personal milestone races',
+    ],
+    avoid: [
+      'Formal presentation style',
+      'Activities without photos',
+    ],
+    photoRequirements: {
+      minCount: 1,
+      preferredAspect: 'any',
+    },
+  },
+]
+
+const race1pScrapbookGuidelines: TemplateGuidelines = {
+  templateId: 'race_1p_scrapbook',
+  selectionCriteria: [
+    'Races with photos and personal significance',
+    'Casual, fun presentation style',
+    'Activities with memorable moments',
+  ],
+  variants: race1pScrapbookVariants,
+  contentPriority: [
+    'activity-title',
+    'photos',
+    'key-stats',
+    'splits',
+    'best-efforts',
+  ],
+  constraints: {
+    maxPhotos: 4,
+    minPhotos: 0,
+    requiresMap: false,
+    requiresChart: true,
+  },
+}
+
+export const race1pScrapbookSpec: TemplateSpec = {
+  id: 'race_1p_scrapbook',
+  name: 'Race (Scrapbook)',
+  description: 'Single-page scrapbook-style race layout with collage photos and handwritten fonts',
+  pageType: 'RACE_PAGE',
+
+  inputSchema: {
+    requiresActivity: true,
+    minPhotos: 0,
+    maxPhotos: 4,
+    requiredStats: ['distance', 'moving_time', 'pace'],
+    optionalStats: ['total_elevation_gain', 'average_heartrate'],
+    requiredGraphics: [],
+    optionalGraphics: ['splitsChart', 'routeMap'],
+  },
+
+  outputOptions: {
+    variants: ['collage'],
+    titlePositions: ['top', 'overlay'],
+    alignments: ['left', 'center'],
+    photoTreatments: ['collage', 'grid'],
+    backgroundTypes: ['solid', 'photo-fade'],
+  },
+
+  guidelines: race1pScrapbookGuidelines,
+}

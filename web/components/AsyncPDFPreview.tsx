@@ -5,12 +5,10 @@ import { StravaActivity } from '@/lib/strava'
 
 // Dynamically import PDFPreview to avoid SSR issues with react-pdf
 
-type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
-
 interface AsyncPDFPreviewProps {
     activity: StravaActivity
     mapboxToken?: string
-    template?: RaceTemplate
+    template?: string
 }
 
 const PDFPreview = dynamic(() => import('./PDFPreview'), {

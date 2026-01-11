@@ -4,11 +4,12 @@ import { redirect } from "next/navigation"
 import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
 import { enrichActivityWithGeocoding } from "@/lib/activity-utils"
-import { getActivity, getActivityComments, getActivityPhotos } from "@/lib/strava"
+import { enrichActivityWithPhotos, convertPhotosToBase64 } from "@/lib/photo-utils"
+import { getActivity, getActivityComments } from "@/lib/strava"
+import { getSingleActivityTemplates } from "@/lib/template-specs/registry"
 
-type RaceTemplate = 'race_1p' | 'race_2p' | 'race_1p_scrapbook'
-
-const VALID_TEMPLATES: RaceTemplate[] = ['race_1p', 'race_2p', 'race_1p_scrapbook']
+// Get valid templates from registry
+const VALID_TEMPLATES = getSingleActivityTemplates().map(t => t.id)
 
 export const metadata: Metadata = {
     title: "Strava Book - Page Preview",
@@ -25,8 +26,8 @@ export default async function PreviewPage(props: {
         redirect("/api/auth/signin")
     }
 
-    // Validate template parameter
-    if (!VALID_TEMPLATES.includes(params.template as RaceTemplate)) {
+    // Validate template parameter against registry
+    if (!VALID_TEMPLATES.includes(params.template)) {
         return (
             <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold mb-4">Invalid Template</h1>
@@ -36,7 +37,7 @@ export default async function PreviewPage(props: {
         )
     }
 
-    const template = params.template as RaceTemplate
+    const template = params.template
     const accessToken = session.accessToken
 
     // Fetch comprehensive activity data (same as comprehensive-activity-data API)
@@ -44,19 +45,19 @@ export default async function PreviewPage(props: {
     let error = null
 
     try {
-        const [activityData, photos, comments] = await Promise.all([
+        const [activityData, comments] = await Promise.all([
             getActivity(accessToken, params.id),
-            getActivityPhotos(accessToken, params.id),
             getActivityComments(accessToken, params.id),
         ])
 
         if (!activityData) {
             error = 'not_found'
         } else {
-            // Attach fetched data to activity object
-            activityData.allPhotos = photos
-            activityData.comments = comments
-            activity = activityData
+            // Enrich activity with photos using shared utility
+            // This properly structures photos.primary.urls for templates
+            const enrichedActivity = await enrichActivityWithPhotos(activityData, accessToken)
+            enrichedActivity.comments = comments
+            activity = enrichedActivity
         }
     } catch (err) {
         console.error('Error fetching activity:', err)
@@ -118,6 +119,12 @@ export default async function PreviewPage(props: {
     console.log("[Server] User selections:", { includePhotos, includeComments, includeSplits, includeLaps, includeBestEfforts, includeElevation, photoCount: photoIds.length })
 
     await enrichActivityWithGeocoding(activity!, mapboxToken)
+
+    // Convert photo URLs to base64 for client-side PDF rendering
+    // This is needed because PDFViewer runs in the browser and Strava URLs have CORS restrictions
+    if (includePhotos) {
+        activity = await convertPhotosToBase64(activity!)
+    }
 
     return <AsyncPDFPreview activity={activity!} mapboxToken={mapboxToken} template={template} />
 }
