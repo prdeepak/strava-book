@@ -657,3 +657,277 @@ export const Race_1p = ({
         </Document>
     )
 }
+
+/**
+ * Race_1pPages - Returns just the page without Document wrapper
+ * Use this when embedding inside another Document (like ConcatAllPDF)
+ */
+export const Race_1pPages = ({
+    activity,
+    mapboxToken,
+    format = FORMATS['10x10'],
+    theme = DEFAULT_THEME,
+    layoutVariant
+}: Race_1pProps) => {
+    const styles = createStyles(format, theme)
+    const location = resolveActivityLocation(activity)
+
+    // Get Strava photo if available
+    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+
+    // Get satellite map URL if token and polyline available
+    const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
+        ? getMapboxSatelliteUrl(activity.map.summary_polyline, mapboxToken)
+        : null
+
+    // Determine variant: use provided or auto-detect
+    let variant: Race1pVariant = layoutVariant || 'photo-hero'
+    if (!layoutVariant) {
+        if (stravaPhoto) {
+            variant = 'photo-hero'
+        } else if (satelliteMapUrl) {
+            variant = 'map-hero'
+        } else if (activity.map?.summary_polyline) {
+            variant = 'polyline-minimal'
+        } else {
+            variant = 'stats-focus'
+        }
+    }
+
+    // =========================================================================
+    // Data processing (shared across variants)
+    // =========================================================================
+    const localDateStr = activity.start_date_local.replace('Z', '')
+    const localDate = new Date(localDateStr)
+    const dateString = localDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    })
+
+    const durationHrs = Math.floor(activity.moving_time / 3600)
+    const durationMins = Math.floor((activity.moving_time % 3600) / 60)
+    const durationSecs = activity.moving_time % 60
+
+    const distanceMiles = (activity.distance / 1609.34).toFixed(2)
+    const elevationFt = Math.round(activity.total_elevation_gain * 3.28084)
+
+    // Prepare splits and best efforts (limit to 6 for single page)
+    const displaySplits = processSplits(activity, 6)
+    const bestEfforts = processBestEfforts(activity, 6)
+    const hasDescription = activity.description && activity.description.trim().length > 0
+
+    // Decode polyline for SVG rendering
+    let polylinePoints: { lat: number; lng: number }[] = []
+    if (activity.map?.summary_polyline) {
+        const decoded = mapboxPolyline.decode(activity.map.summary_polyline)
+        polylinePoints = decoded.map(([lat, lng]: [number, number]) => ({ lat, lng }))
+    }
+
+    // =========================================================================
+    // Shared sub-components
+    // =========================================================================
+    const TitleSection = () => (
+        <View style={styles.titleSection}>
+            <Text style={styles.raceDate}>{dateString}</Text>
+            <Text style={styles.raceTitle}>{activity.name}</Text>
+            {location && <Text style={styles.raceLocation}>{location}</Text>}
+        </View>
+    )
+
+    const HeroStats = () => (
+        <View style={styles.heroStatsRow}>
+            <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>{distanceMiles}</Text>
+                <Text style={styles.heroStatLabel}>MILES</Text>
+            </View>
+            <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>
+                    {durationHrs > 0 ? `${durationHrs}:` : ''}{String(durationMins).padStart(2, '0')}:{String(durationSecs).padStart(2, '0')}
+                </Text>
+                <Text style={styles.heroStatLabel}>TIME</Text>
+            </View>
+            <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>{elevationFt}</Text>
+                <Text style={styles.heroStatLabel}>FEET</Text>
+            </View>
+        </View>
+    )
+
+    const DataSections = () => (
+        <View style={styles.dataSections}>
+            {displaySplits.length > 0 && (
+                <View style={styles.dataColumn}>
+                    <Text style={styles.sectionTitle}>Splits</Text>
+                    <View style={styles.splitsTable}>
+                        {displaySplits.map((split, idx) => (
+                            <View key={idx} style={styles.splitRow}>
+                                <Text style={styles.splitLabel}>{split.label}</Text>
+                                <Text style={styles.splitValue}>{split.pace}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+            )}
+
+            {bestEfforts.length > 0 && (
+                <View style={styles.dataColumn}>
+                    <Text style={styles.sectionTitle}>Best Efforts</Text>
+                    <View style={styles.splitsTable}>
+                        {bestEfforts.map((effort, idx) => {
+                            const isPR = effort.pr_rank && effort.pr_rank <= 3
+                            return (
+                                <View key={idx} style={styles.effortRow}>
+                                    <Text style={styles.effortLabel}>{effort.name}</Text>
+                                    <Text style={styles.effortValue}>{effort.pace}</Text>
+                                    {isPR && (
+                                        <View style={styles.prBadge}>
+                                            <Text style={styles.prBadgeText}>PR{effort.pr_rank}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )
+                        })}
+                    </View>
+                </View>
+            )}
+        </View>
+    )
+
+    const PolylineSvg = ({ width, height }: { width: number; height: number }) => {
+        if (polylinePoints.length === 0) return null
+
+        const minLat = Math.min(...polylinePoints.map(p => p.lat))
+        const maxLat = Math.max(...polylinePoints.map(p => p.lat))
+        const minLng = Math.min(...polylinePoints.map(p => p.lng))
+        const maxLng = Math.max(...polylinePoints.map(p => p.lng))
+
+        const padding = 10
+        const scaleX = (width - 2 * padding) / (maxLng - minLng || 1)
+        const scaleY = (height - 2 * padding) / (maxLat - minLat || 1)
+        const scale = Math.min(scaleX, scaleY)
+
+        const points = polylinePoints.map(p => {
+            const x = padding + (p.lng - minLng) * scale
+            const y = padding + (maxLat - p.lat) * scale
+            return `${x},${y}`
+        }).join(' ')
+
+        return (
+            <Svg width={width} height={height}>
+                <Polyline
+                    points={points}
+                    stroke={theme.accentColor}
+                    strokeWidth={2}
+                    fill="none"
+                />
+            </Svg>
+        )
+    }
+
+    // =========================================================================
+    // Variant: Photo Hero (default when photo available)
+    // =========================================================================
+    const renderPhotoHero = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            {stravaPhoto && (
+                <View style={styles.heroPhotoContainer}>
+                    <Image src={stravaPhoto} style={styles.heroPhoto} />
+                    <View style={styles.photoOverlay} />
+                </View>
+            )}
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // =========================================================================
+    // Variant: Map Hero (default when no photo but map available)
+    // =========================================================================
+    const renderMapHero = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            {satelliteMapUrl && (
+                <View style={styles.heroPhotoContainer}>
+                    <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                    <View style={styles.photoOverlay} />
+                </View>
+            )}
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // =========================================================================
+    // Variant: Dual Image (photo + map side by side)
+    // =========================================================================
+    const renderDualImage = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
+            <View style={styles.dualImageRow}>
+                {satelliteMapUrl && (
+                    <View style={styles.dualImageHalf}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                        <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                    </View>
+                )}
+                {stravaPhoto && (
+                    <View style={styles.dualImageHalf}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                        <Image src={stravaPhoto} style={styles.heroPhoto} />
+                    </View>
+                )}
+            </View>
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // =========================================================================
+    // Variant: Stats Focus (minimal visuals, data-heavy)
+    // =========================================================================
+    const renderStatsFocus = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // =========================================================================
+    // Variant: Polyline Minimal (SVG polyline, clean design)
+    // =========================================================================
+    const renderPolylineMinimal = () => (
+        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
+            <View style={styles.heroPhotoContainer}>
+                <PolylineSvg width={format.dimensions.width - 40} height={180 * format.scaleFactor} />
+            </View>
+            <View style={styles.contentArea}>
+                <TitleSection />
+                <HeroStats />
+                <DataSections />
+            </View>
+        </Page>
+    )
+
+    // Return just the page(s) without Document wrapper
+    return (
+        <>
+            {variant === 'photo-hero' && renderPhotoHero()}
+            {variant === 'map-hero' && renderMapHero()}
+            {variant === 'dual-image' && renderDualImage()}
+            {variant === 'stats-focus' && renderStatsFocus()}
+            {variant === 'polyline-minimal' && renderPolylineMinimal()}
+        </>
+    )
+}

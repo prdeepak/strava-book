@@ -8,6 +8,14 @@ import { getSingleActivityTemplateVariants } from '@/lib/template-specs/registry
 const availableVariants = getSingleActivityTemplateVariants()
 const defaultSelection = availableVariants.find(v => v.templateId === 'race_2p') || availableVariants[0]
 
+// Special "Concat All" option that generates all templates in one PDF
+const CONCAT_ALL_OPTION = {
+    templateId: 'concat_all',
+    variantId: 'all',
+    displayName: 'All Templates (Concatenated)',
+    description: 'Generate all template variants in a single PDF for comparison'
+}
+
 interface PDFGenerationModalProps {
     activity: StravaActivity
     isOpen: boolean
@@ -196,6 +204,14 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
                                     }}
                                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 >
+                                    {/* Concat All option at the top */}
+                                    <option
+                                        key={`${CONCAT_ALL_OPTION.templateId}:${CONCAT_ALL_OPTION.variantId}`}
+                                        value={`${CONCAT_ALL_OPTION.templateId}:${CONCAT_ALL_OPTION.variantId}`}
+                                    >
+                                        {CONCAT_ALL_OPTION.displayName}
+                                    </option>
+                                    <option disabled>──────────</option>
                                     {availableVariants.map(variant => (
                                         <option
                                             key={`${variant.templateId}:${variant.variantId}`}

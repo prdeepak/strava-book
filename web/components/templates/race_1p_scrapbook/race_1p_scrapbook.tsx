@@ -566,4 +566,186 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
   return <ScrapbookPDFInternal {...scrapbookProps} />;
 };
 
+/**
+ * ScrapbookPDFPages - Returns just the page without Document wrapper
+ * Use this when embedding inside another Document (like ConcatAllPDF)
+ */
+export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) => {
+  // Transform StravaActivity to ScrapbookPageProps (same as ScrapbookPDF)
+  const location = resolveActivityLocation(activity);
+  const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600']) || '/assets/placeholder-photo.jpg';
+
+  let satelliteMap = '/assets/placeholder-map.jpg';
+  if (mapboxToken && activity.map.summary_polyline) {
+    const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`;
+    const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/800x400?access_token=${mapboxToken}&logo=false&attrib=false`;
+    satelliteMap = resolveImageForPdf(rawUrl) || '/assets/placeholder-map.jpg';
+  }
+
+  const distanceKm = (activity.distance / 1000).toFixed(2);
+  const movingTime = formatDuration(activity.moving_time);
+  const avgPace = formatPace(activity.moving_time, activity.distance, 'metric');
+  const elevation = `${activity.total_elevation_gain}m`;
+
+  const date = new Date(activity.start_date).toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const bestEfforts = getFormattedBestEfforts(activity, 6).map(effort => ({
+    label: effort.name,
+    value: effort.pace
+  }));
+
+  const displaySplits = processSplits(activity).map(split => ({
+    split: split.split_index,
+    label: split.label,
+    moving_time: split.moving_time,
+    distance: split.distance,
+    elevation_difference: split.elevation_difference || 0
+  }));
+
+  const morePhotosUrls: string[] = (activity.allPhotos || [])
+    .slice(1, 5)
+    .map(photo => {
+      const photoUrl = photo.urls['600'] || photo.urls['5000'] || Object.values(photo.urls)[0]
+      return photoUrl ? resolveImageForPdf(photoUrl) : null
+    })
+    .filter((url): url is string => url !== null)
+
+  const comments = (activity.comments || []).slice(0, 3);
+  const moreComments = comments.map(c => `${c.athlete.firstname}: ${c.text}`).join('\n\n');
+
+  const titleLength = activity.name.length;
+  let titleFontSize = 28;
+  if (titleLength > 20) {
+    const excess = titleLength - 20;
+    titleFontSize = Math.max(14, 28 - Math.floor(excess / 5) * 2);
+  }
+
+  // Use variables directly instead of complex destructuring
+  const title = activity.name;
+  const formattedDate = date;
+  const loc = location;
+  const description = activity.description || 'A memorable run';
+  const trainingLoad = `${activity.type} • Training`;
+  const mainPhotoUrl = stravaPhoto;
+  const mapPhotoUrl = satelliteMap;
+  const stats = {
+    distance: distanceKm,
+    time: movingTime,
+    avgPace,
+    elevation
+  };
+  const splits = displaySplits;
+  const totalTime = activity.moving_time;
+  const efforts = bestEfforts;
+  const kudosCount = activity.kudos_count || 0;
+  const photos = morePhotosUrls;
+
+  const renderEffortRow = (label: string, value: string, index: number) => (
+    <View style={styles.effortRow} key={index}>
+      <Text style={styles.effortText}>{label}</Text>
+      <Text style={styles.effortText}>{value}</Text>
+    </View>
+  );
+
+  // Return just the page without Document wrapper
+  return (
+    <Page size="LETTER" style={styles.page}>
+      <Image src="/assets/scrapbook-bg.png" style={styles.backgroundImage} fixed />
+      <View style={styles.container}>
+        <View style={styles.headerWrapper}>
+          <Image src="/assets/banner.png" style={styles.bannerBg} />
+          <Text style={[styles.bannerText, { fontSize: titleFontSize }]}>{title}</Text>
+        </View>
+
+        <View style={styles.mainPhotosRow}>
+          <View style={styles.photoContainer}>
+            <Image src={mainPhotoUrl} style={styles.mainPhotoImage} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomRight]} />
+          </View>
+          <View style={[styles.photoContainer, { transform: 'rotate(2deg)' }]}>
+            <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
+            <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomRight]} />
+          </View>
+        </View>
+
+        <View style={styles.noteSection}>
+          <Image src="/assets/torn-paper-wide.png" style={styles.noteBg} />
+          <Text style={styles.noteTitle}>{formattedDate}</Text>
+          <Text style={styles.noteSubtitle}>{loc}</Text>
+          <Text style={styles.noteBody}>{description}</Text>
+          <Text style={styles.noteFooter}>{trainingLoad}</Text>
+        </View>
+
+        <View style={styles.statsRow}>
+          <WashiItem value={stats.distance} label="KILOMETERS" color="coral" />
+          <WashiItem value={stats.time} label="TIME" color="mint" />
+          <WashiItem value={stats.avgPace} label="AVG PACE" color="yellow" />
+          <WashiItem value={stats.elevation} label="ELEVATION" color="blue" />
+        </View>
+
+        {photos.filter(url => url).length > 0 && (() => {
+          const polaroidWidth = 165;
+          const polaroidHeight = polaroidWidth * 1.2;
+          return (
+            <View style={styles.polaroidRow}>
+              {photos.filter(url => url).map((photoUrl, index) => {
+                const rotation = index % 2 === 0 ? -3 : 2;
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.polaroidContainer,
+                      { transform: `rotate(${rotation}deg)`, width: polaroidWidth, height: polaroidHeight }
+                    ]}
+                  >
+                    <Image src={photoUrl} style={styles.polaroidImage} />
+                    <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
+
+        <View style={styles.dataRow}>
+          {splits.length > 0 && (
+            <View style={[styles.paperContainer, styles.splitsContainer]}>
+              <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
+              <Text style={styles.sectionTitle}>SPLITS</Text>
+              <SplitsChartSVG splits={splits} totalTime={totalTime} width={180} height={100} />
+            </View>
+          )}
+
+          {efforts.length > 0 && (
+            <View style={[styles.paperContainer, styles.bestEffortsContainer]}>
+              <Image src="/assets/torn-paper-wide.png" style={styles.tornPaperBg} />
+              <Text style={styles.sectionTitle}>BEST EFFORTS</Text>
+              <View>
+                {efforts.map((effort, i) => renderEffortRow(effort.label, effort.value, i))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.kudosContainer}>
+            <Image src="/assets/tag-brown.png" style={styles.kudosBg} />
+            <Image src="/assets/thumbs-up.png" style={styles.thumbsUpIcon} />
+            <Text style={styles.kudosValue}>{kudosCount}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  );
+};
+
 export default ScrapbookPDF;
