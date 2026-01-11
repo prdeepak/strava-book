@@ -36,6 +36,29 @@ make sync msg="..."  # Commit & push (always confirm message with user first)
 
 4. **Run e2e tests before marking code ready.** Before telling the user that code is ready for review or creating a PR, run `make test-e2e-ci` and ensure all tests pass.
 
+## Temporary Files
+
+Always create temporary files inside the current workspace directory (e.g., `./tmp/` or `./.scratch/`), never in `/tmp` or other system directories. This ensures:
+- Cleanup when workspace is destroyed
+- Isolation between parallel workspaces
+
+## Command Usage
+
+**Use allowed commands individually.** Avoid chaining commands (e.g., `cd && ls && grep`) when the individual commands are already permitted. Chained commands may trigger permission prompts even when their components wouldn't.
+
+Prefer:
+```bash
+# Separate calls - each uses allowed command
+ls /path/to/dir
+grep "pattern" file.txt
+```
+
+Avoid:
+```bash
+# Chained - may trigger permission prompt
+cd /path && ls && grep "pattern" file.txt
+```
+
 ## Git Sync Protocol
 
 When user says "Sync", "Save", or "Push":
