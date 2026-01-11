@@ -49,6 +49,13 @@ export function getRunOutputDir(baseDir: string, runId: string): string {
 // Types
 // ============================================================================
 
+export interface PageDimension {
+    page: number
+    width: number
+    height: number
+    matchesFormat: boolean
+}
+
 export interface TestResult {
     templateName: string
     fixtureName: string
@@ -59,6 +66,10 @@ export interface TestResult {
     averageScore: number
     duration: number  // ms
     error?: string
+    // Page dimension validation
+    pageDimensions?: PageDimension[]
+    expectedDimensions?: { width: number; height: number }
+    dimensionErrors?: string[]
 }
 
 export interface TestConfig {
@@ -119,6 +130,86 @@ export function pdfToImages(pdfPath: string, outputDir: string, verbose = false)
         }
         return []
     }
+}
+
+/**
+ * Validate PDF page dimensions match expected format
+ * Uses pdfinfo to extract per-page dimensions
+ */
+export function validatePageDimensions(
+    pdfPath: string,
+    expectedWidth: number,
+    expectedHeight: number,
+    verbose = false
+): { dimensions: PageDimension[]; errors: string[] } {
+    const dimensions: PageDimension[] = []
+    const errors: string[] = []
+
+    // Tolerance for dimension comparison (in points, ~0.5pt)
+    const TOLERANCE = 1
+
+    try {
+        // Check if pdfinfo is available
+        execSync('which pdfinfo', { stdio: 'pipe' })
+    } catch {
+        if (verbose) {
+            console.log('[Test Harness] pdfinfo not found, skipping dimension validation')
+        }
+        return { dimensions, errors: ['pdfinfo not available'] }
+    }
+
+    try {
+        // Get detailed page info using pdfinfo -f -l to get all pages
+        const output = execSync(`pdfinfo -f 1 -l 100 "${pdfPath}"`, { encoding: 'utf-8' })
+
+        // Parse page count
+        const pageCountMatch = output.match(/Pages:\s+(\d+)/)
+        const pageCount = pageCountMatch ? parseInt(pageCountMatch[1], 10) : 0
+
+        // Parse overall page size (default for all pages)
+        const defaultSizeMatch = output.match(/Page size:\s+([\d.]+)\s*x\s*([\d.]+)/)
+        const defaultWidth = defaultSizeMatch ? parseFloat(defaultSizeMatch[1]) : 0
+        const defaultHeight = defaultSizeMatch ? parseFloat(defaultSizeMatch[2]) : 0
+
+        // For each page, check if there's a specific size or use default
+        for (let i = 1; i <= pageCount; i++) {
+            const pageSizeMatch = output.match(new RegExp(`Page\\s+${i}\\s+size:\\s+([\\d.]+)\\s*x\\s*([\\d.]+)`))
+            const pageWidth = pageSizeMatch ? parseFloat(pageSizeMatch[1]) : defaultWidth
+            const pageHeight = pageSizeMatch ? parseFloat(pageSizeMatch[2]) : defaultHeight
+
+            const widthMatches = Math.abs(pageWidth - expectedWidth) <= TOLERANCE
+            const heightMatches = Math.abs(pageHeight - expectedHeight) <= TOLERANCE
+            const matchesFormat = widthMatches && heightMatches
+
+            dimensions.push({
+                page: i,
+                width: pageWidth,
+                height: pageHeight,
+                matchesFormat
+            })
+
+            if (!matchesFormat) {
+                errors.push(
+                    `Page ${i}: ${pageWidth}x${pageHeight} (expected ${expectedWidth}x${expectedHeight})`
+                )
+            }
+        }
+
+        if (verbose && errors.length > 0) {
+            console.log(`[Test Harness] Dimension errors found:`)
+            errors.forEach(e => console.log(`  - ${e}`))
+        } else if (verbose && dimensions.length > 0) {
+            console.log(`[Test Harness] All ${dimensions.length} pages match expected dimensions`)
+        }
+
+    } catch (error) {
+        if (verbose) {
+            console.log('[Test Harness] Dimension validation failed:', error)
+        }
+        errors.push(`Validation failed: ${error}`)
+    }
+
+    return { dimensions, errors }
 }
 
 // ============================================================================
@@ -292,6 +383,9 @@ export async function testTemplate(
 
         // Get mapbox token from environment for satellite maps
         const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_TOKEN
+        if (verbose) {
+            console.log(`[Test Harness] Mapbox token: ${mapboxToken ? 'present' : 'missing'}`)
+        }
 
         const templateProps: Record<string, unknown> = {
             activity: fixture,
@@ -320,6 +414,21 @@ export async function testTemplate(
         if (verbose) {
             console.log(`[Test Harness] PDF saved: ${pdfPath}`)
         }
+
+        // Validate page dimensions
+        const format = FORMATS['10x10']
+        result.expectedDimensions = {
+            width: format.dimensions.width,
+            height: format.dimensions.height
+        }
+        const { dimensions, errors } = validatePageDimensions(
+            pdfPath,
+            format.dimensions.width,
+            format.dimensions.height,
+            verbose
+        )
+        result.pageDimensions = dimensions
+        result.dimensionErrors = errors
 
         // Convert to images
         if (verbose) {
