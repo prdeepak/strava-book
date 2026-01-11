@@ -8,8 +8,8 @@ import { enrichActivityWithPhotos, convertPhotosToBase64 } from "@/lib/photo-uti
 import { getActivity, getActivityComments } from "@/lib/strava"
 import { getSingleActivityTemplates } from "@/lib/template-specs/registry"
 
-// Get valid templates from registry
-const VALID_TEMPLATES = getSingleActivityTemplates().map(t => t.id)
+// Get valid templates from registry + concat_all special option
+const VALID_TEMPLATES = [...getSingleActivityTemplates().map(t => t.id), 'concat_all']
 
 export const metadata: Metadata = {
     title: "Strava Book - Page Preview",

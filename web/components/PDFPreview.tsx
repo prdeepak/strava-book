@@ -4,6 +4,7 @@ import { PDFViewer } from '@react-pdf/renderer'
 import { Race_2p } from '@/components/templates/Race_2p'
 import { Race_1p } from '@/components/templates/Race_1p'
 import ScrapbookPDF from '@/components/templates/race_1p_scrapbook/race_1p_scrapbook'
+import ConcatAllPDF from '@/components/templates/ConcatAllPDF'
 import { StravaActivity } from '@/lib/strava'
 import { getSingleActivityTemplates } from '@/lib/template-specs/registry'
 
@@ -14,10 +15,11 @@ const templateComponents: Record<string, React.ComponentType<{ activity: StravaA
     'race_2p': Race_2p,
     'race_1p_scrapbook': ScrapbookPDF,
     'ai_race': Race_1p, // AI Race uses Race_1p as base for now
+    'concat_all': ConcatAllPDF, // Concatenate all templates into one PDF
 }
 
-// Get valid template IDs from registry
-const validTemplateIds = getSingleActivityTemplates().map(t => t.id)
+// Get valid template IDs from registry + concat_all
+const validTemplateIds = [...getSingleActivityTemplates().map(t => t.id), 'concat_all']
 
 interface PDFPreviewProps {
     activity: StravaActivity
@@ -26,7 +28,7 @@ interface PDFPreviewProps {
 }
 
 const PDFPreview = ({ activity, mapboxToken, template = 'race_2p' }: PDFPreviewProps) => {
-    // Validate template exists in registry, fall back to race_2p
+    // Validate template exists in registry or is concat_all, fall back to race_2p
     const templateId = validTemplateIds.includes(template) ? template : 'race_2p'
     const TemplateComponent = templateComponents[templateId] || Race_2p
 
