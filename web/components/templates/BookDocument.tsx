@@ -419,7 +419,6 @@ export const BookDocument = ({
                             theme={theme}
                             mapboxToken={mapboxToken}
                             highlightLabel={entry.highlightLabel}
-                            mapboxToken={mapboxToken}
                         />
                     )
                 }

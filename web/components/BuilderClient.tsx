@@ -8,6 +8,7 @@ import BookGenerationModal from '@/components/BookGenerationModal'
 interface BuilderClientProps {
     initialActivities: StravaActivity[]
     accessToken: string
+    athleteName: string
 }
 
 // Workout type mapping based on Strava API
@@ -18,7 +19,7 @@ const WORKOUT_TYPES: Record<number, string> = {
     3: 'Workout'
 }
 
-export default function BuilderClient({ initialActivities }: BuilderClientProps) {
+export default function BuilderClient({ initialActivities, athleteName }: BuilderClientProps) {
     // Calculate default date range
     const now = new Date()
     const currentYear = now.getFullYear()
@@ -272,6 +273,7 @@ export default function BuilderClient({ initialActivities }: BuilderClientProps)
                 activities={activities}
                 isOpen={bookModalOpen}
                 onClose={() => setBookModalOpen(false)}
+                athleteName={athleteName}
             />
         </main>
     )
