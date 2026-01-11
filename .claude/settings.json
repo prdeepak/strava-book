@@ -4,9 +4,23 @@
       "WebSearch",
       "Bash(make:*)",
       "Bash(npm:*)",
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ls:*)",
+      "Bash(pwd)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep"
     ]
   },
   "hooks": {
