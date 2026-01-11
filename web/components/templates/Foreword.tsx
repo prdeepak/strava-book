@@ -1,4 +1,4 @@
-import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 
 export interface ForewordProps {
@@ -57,7 +57,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
 })
 
-export const Foreword = ({
+// Page-only version for use in BookDocument (no Document wrapper)
+export const ForewordPage = ({
   title,
   body,
   author,
@@ -84,3 +85,10 @@ export const Foreword = ({
     </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const Foreword = (props: ForewordProps) => (
+  <Document>
+    <ForewordPage {...props} />
+  </Document>
+)

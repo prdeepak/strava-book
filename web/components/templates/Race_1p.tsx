@@ -24,6 +24,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         width: format.dimensions.width,
         height: format.dimensions.height,
         backgroundColor: '#1a1a1a', // Dark background for dramatic race pages
+    },
+    // Full-page wrapper to ensure page dimensions are respected
+    pageWrapper: {
+        width: '100%',
+        height: '100%',
         position: 'relative',
     },
 
@@ -560,85 +565,95 @@ export const Race_1p = ({
 
     const renderPhotoHero = () => (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
-            <HeroPhoto height={280} />
-            <View style={styles.contentArea}>
-                <TitleSection />
-                <Description />
-                <View style={styles.thumbnailRow}>
-                    <SmallMap />
+            <View style={styles.pageWrapper}>
+                <HeroPhoto height={280} />
+                <View style={styles.contentArea}>
+                    <TitleSection />
+                    <Description />
+                    <View style={styles.thumbnailRow}>
+                        <SmallMap />
+                    </View>
+                    <HeroStats />
+                    <DataSections />
                 </View>
-                <HeroStats />
-                <DataSections />
             </View>
         </Page>
     )
 
     const renderMapHero = () => (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
-            <HeroMap height={280} />
-            <View style={styles.contentArea}>
-                <TitleSection />
-                <Description />
-                <View style={styles.thumbnailRow}>
-                    <SmallPhoto />
+            <View style={styles.pageWrapper}>
+                <HeroMap height={280} />
+                <View style={styles.contentArea}>
+                    <TitleSection />
+                    <Description />
+                    <View style={styles.thumbnailRow}>
+                        <SmallPhoto />
+                    </View>
+                    <HeroStats />
+                    <DataSections />
                 </View>
-                <HeroStats />
-                <DataSections />
             </View>
         </Page>
     )
 
     const renderDualImage = () => (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
-            <View style={styles.dualImageRow}>
-                {satelliteMapUrl && (
-                    <View style={styles.dualImageHalf}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={satelliteMapUrl} style={styles.heroPhoto} />
-                    </View>
-                )}
-                {stravaPhoto && (
-                    <View style={styles.dualImageHalf}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={stravaPhoto} style={styles.heroPhoto} />
-                    </View>
-                )}
-            </View>
-            <View style={styles.contentArea}>
-                <TitleSection />
-                <Description />
-                <HeroStats />
-                <DataSections />
+            <View style={styles.pageWrapper}>
+                <View style={styles.dualImageRow}>
+                    {satelliteMapUrl && (
+                        <View style={styles.dualImageHalf}>
+                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                            <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                        </View>
+                    )}
+                    {stravaPhoto && (
+                        <View style={styles.dualImageHalf}>
+                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                            <Image src={stravaPhoto} style={styles.heroPhoto} />
+                        </View>
+                    )}
+                </View>
+                <View style={styles.contentArea}>
+                    <TitleSection />
+                    <Description />
+                    <HeroStats />
+                    <DataSections />
+                </View>
             </View>
         </Page>
     )
 
     const renderStatsFocus = () => (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
-            <View style={styles.contentArea}>
-                <TitleSection />
-                <HeroStats giant={true} />
-                <View style={styles.thumbnailRow}>
-                    <SmallPhoto />
-                    <SmallMap />
+            <View style={styles.pageWrapper}>
+                <View style={styles.contentArea}>
+                    <TitleSection />
+                    <HeroStats giant={true} />
+                    <View style={styles.thumbnailRow}>
+                        <SmallPhoto />
+                        <SmallMap />
+                    </View>
+                    <Description />
+                    <DataSections />
                 </View>
-                <Description />
-                <DataSections />
             </View>
         </Page>
     )
 
     const renderPolylineMinimal = () => (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page} wrap={false}>
-            <PolylineHero height={220} />
-            <View style={styles.contentArea}>
-                <TitleSection />
-                <View style={styles.thumbnailRow}>
-                    <SmallPhoto />
+            <View style={styles.pageWrapper}>
+                <PolylineHero height={220} />
+                <View style={styles.contentArea}>
+                    <TitleSection />
+                    <View style={styles.thumbnailRow}>
+                        <SmallPhoto />
+                    </View>
+                    <Description />
+                    <HeroStats />
+                    <DataSections />
                 </View>
-                <Description />
-                <HeroStats />
-                <DataSections />
             </View>
         </Page>
     )
