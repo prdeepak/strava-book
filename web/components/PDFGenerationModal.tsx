@@ -51,8 +51,8 @@ export default function PDFGenerationModal({ activity, isOpen, onClose }: PDFGen
     const [fetchingData, setFetchingData] = useState(false)
     const [comprehensiveData, setComprehensiveData] = useState<ComprehensiveActivityData | null>(null)
     const [dataSelection, setDataSelection] = useState<DataSelection>({
-        selectedTemplateId: defaultSelection?.templateId || 'race_1p',
-        selectedVariantId: defaultSelection?.variantId || 'photo-hero',
+        selectedTemplateId: CONCAT_ALL_OPTION.templateId,
+        selectedVariantId: CONCAT_ALL_OPTION.variantId,
         pageCount: 1,
         includePhotos: true,
         selectedPhotoIds: [],
