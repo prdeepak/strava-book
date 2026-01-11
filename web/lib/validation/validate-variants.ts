@@ -79,10 +79,10 @@ const templateRegistry: TemplateRegistry[] = [
     fixtureType: 'activity',
   },
   {
-    templateId: 'race_2p',
+    templateId: 'race_section',
     loader: async () => {
-      const mod = await import('../../components/templates/Race_2p')
-      return mod.Race_2pSpread as TemplateComponent
+      const mod = await import('../../components/templates/RaceSection')
+      return mod.RaceSection as TemplateComponent
     },
     fixtureType: 'activity',
   },

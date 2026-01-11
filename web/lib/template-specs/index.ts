@@ -9,7 +9,7 @@ export * from './types'
 
 // Individual template specs
 export { race1pSpec } from './race-1p'
-export { race2pSpec } from './race-2p'
+export { raceSectionSpec } from './race-section'
 export { coverSpec, yearStatsSpec, monthlyDividerSpec, yearCalendarSpec } from './book-templates'
 export {
   activityLogSpec,

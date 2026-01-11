@@ -226,8 +226,12 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         return mod.Race_1p
     },
     'Race_2p': async () => {
-        const mod = await import('../../components/templates/Race_2p')
-        return mod.Race_2pSpread
+        const mod = await import('../../components/templates/RaceSection')
+        return mod.RaceSection
+    },
+    'RaceSection': async () => {
+        const mod = await import('../../components/templates/RaceSection')
+        return mod.RaceSection
     },
 
     // Other templates - add as needed

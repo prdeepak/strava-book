@@ -6,7 +6,7 @@ import { getSingleActivityTemplateVariants } from '@/lib/template-specs/registry
 
 // Get available template+variant combinations from registry
 const availableVariants = getSingleActivityTemplateVariants()
-const defaultSelection = availableVariants.find(v => v.templateId === 'race_2p') || availableVariants[0]
+const defaultSelection = availableVariants.find(v => v.templateId === 'race_section') || availableVariants[0]
 
 // Special "Concat All" option that generates all templates in one PDF
 const CONCAT_ALL_OPTION = {
