@@ -1,8 +1,7 @@
 import { Page, View, Text, Svg, Path, StyleSheet, Document, Image } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { formatDistance, formatTime, formatPace } from '@/lib/activity-log-utils'
-import { resolveActivityLocation } from '@/lib/activity-utils'
+import { formatDistance, formatTime, formatPace, resolveActivityLocation } from '@/lib/activity-utils'
 import polyline from '@mapbox/polyline'
 
 interface ActivityLogProps {

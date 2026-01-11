@@ -1,4 +1,132 @@
 import { StravaActivity } from './strava'
+import { BookFormat } from './book-types'
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+export interface SplitData {
+    label: string
+    time: string
+    pace: string
+    distance: number
+    moving_time: number
+    elevation_difference?: number
+    split_index: number
+}
+
+export interface BestEffortData {
+    name: string
+    time: string
+    pace: string
+    pr_rank?: number | null
+}
+
+// ============================================================================
+// TIME / DURATION FORMATTING
+// ============================================================================
+
+/**
+ * Format time as HH:MM:SS or MM:SS
+ */
+export function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+// Alias for backward compatibility
+export const formatDuration = formatTime
+
+// ============================================================================
+// PACE FORMATTING
+// ============================================================================
+
+/**
+ * Format pace as min:sec/unit (e.g., "5:23/km" or "8:42/mi")
+ */
+export function formatPace(
+    movingTime: number,  // in seconds
+    distance: number,    // in meters
+    units: 'metric' | 'imperial' = 'metric'
+): string {
+    if (!distance || distance === 0) return '--'
+
+    // Convert distance to km or miles
+    const distanceInUnits = units === 'metric'
+        ? distance / 1000
+        : distance / 1609.34
+
+    // Calculate pace in seconds per unit
+    const paceSeconds = movingTime / distanceInUnits
+
+    // Convert to min:sec format
+    const paceMin = Math.floor(paceSeconds / 60)
+    const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
+
+    const unitLabel = units === 'metric' ? 'km' : 'mi'
+    return `${paceMin}:${paceSec}/${unitLabel}`
+}
+
+// ============================================================================
+// DISTANCE FORMATTING
+// ============================================================================
+
+/**
+ * Format distance in km or miles
+ */
+export function formatDistance(
+    distance: number,  // in meters
+    units: 'metric' | 'imperial'
+): string {
+    if (units === 'metric') {
+        return `${(distance / 1000).toFixed(2)} km`
+    } else {
+        return `${(distance / 1609.34).toFixed(2)} mi`
+    }
+}
+
+// ============================================================================
+// DATE / MONTH UTILITIES
+// ============================================================================
+
+/**
+ * Get month name from month index (0-11)
+ */
+export function getMonthName(month: number): string {
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    return months[month] || 'Unknown'
+}
+
+// ============================================================================
+// ACTIVITY LOG UTILITIES
+// ============================================================================
+
+/**
+ * Calculate how many activities can fit on one page based on format size
+ */
+export function calculateActivitiesPerPage(format: BookFormat): number {
+    // Base calculation: 10x10 format has ~20 activities per page
+    const baseActivitiesPerPage = 20
+
+    // Scale based on format
+    const scaledCount = Math.floor(baseActivitiesPerPage * format.scaleFactor)
+
+    // Ensure reasonable bounds
+    return Math.max(10, Math.min(30, scaledCount))
+}
+
+// ============================================================================
+// LOCATION UTILITIES
+// ============================================================================
 
 /**
  * Resolves the location string for an activity.
@@ -45,4 +173,83 @@ export async function enrichActivityWithGeocoding(
     }
 
     return activity
+}
+
+// ============================================================================
+// RACE DATA UTILITIES
+// ============================================================================
+
+/**
+ * Process activity laps or splits into formatted split data
+ */
+export function processSplits(activity: StravaActivity, limit: number = 6): SplitData[] {
+    const rawLaps = activity.laps || []
+    const rawSplits = activity.splits_metric || []
+
+    if (rawLaps.length > 0) {
+        // Use laps if available (race laps)
+        return rawLaps.slice(0, limit).map((lap, idx) => ({
+            label: lap.name || `Lap ${idx + 1}`,
+            time: formatTime(lap.moving_time),
+            pace: formatPace(lap.moving_time, lap.distance, 'metric'),
+            distance: lap.distance,
+            moving_time: lap.moving_time,
+            elevation_difference: lap.total_elevation_gain,
+            split_index: lap.lap_index || idx + 1
+        }))
+    } else if (rawSplits.length > 0) {
+        // Fall back to splits
+        return rawSplits.slice(0, limit).map((s, idx) => ({
+            label: `${idx + 1} km`,
+            time: formatTime(s.moving_time),
+            pace: formatPace(s.moving_time, s.distance, 'metric'),
+            distance: s.distance,
+            moving_time: s.moving_time,
+            split_index: s.split || idx + 1,
+            elevation_difference: s.elevation_difference
+        }))
+    }
+    return []
+}
+
+/**
+ * Process best effort segments, filtered by PR rank
+ */
+export function processBestEfforts(activity: StravaActivity, limit: number = 6): BestEffortData[] {
+    return (activity.best_efforts || [])
+        .filter(e => e.pr_rank && e.pr_rank <= 10)
+        .sort((a, b) => (a.pr_rank || 999) - (b.pr_rank || 999))
+        .slice(0, limit)
+        .map(effort => ({
+            name: effort.name,
+            time: formatTime(effort.elapsed_time),
+            pace: formatPace(effort.elapsed_time, effort.distance, 'metric'),
+            pr_rank: effort.pr_rank
+        }))
+}
+
+/**
+ * Get top best efforts without strict PR rank filtering
+ */
+export function getFormattedBestEfforts(activity: StravaActivity, limit: number = 6): BestEffortData[] {
+    return (activity.best_efforts || [])
+        .slice(0, limit)
+        .map(effort => ({
+            name: effort.name,
+            time: formatTime(effort.elapsed_time),
+            pace: formatPace(effort.elapsed_time, effort.distance, 'metric'),
+            pr_rank: effort.pr_rank
+        }))
+}
+
+/**
+ * Generate a Mapbox static satellite map URL for an activity route
+ */
+export function getMapboxSatelliteUrl(
+    polyline: string,
+    mapboxToken: string,
+    width: number = 800,
+    height: number = 400
+): string {
+    return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${width}x${height}@2x?access_token=${mapboxToken}&logo=false`
 }

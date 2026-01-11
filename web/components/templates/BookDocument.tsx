@@ -11,7 +11,7 @@ import { YearStats } from './YearStats'
 import { MonthlyDivider } from './MonthlyDivider'
 import { ActivityLog } from './ActivityLog'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
-import { calculateActivitiesPerPage } from '@/lib/activity-log-utils'
+import { calculateActivitiesPerPage } from '@/lib/activity-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
