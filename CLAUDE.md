@@ -20,6 +20,14 @@ make test          # Run pytest inside Docker container
 make sync msg="..."  # Commit & push (always confirm message with user first)
 ```
 
+## Mandatory Workflow
+
+**These rules are non-negotiable:**
+
+1. **Always use workspaces for code changes.** Before making ANY code changes, run `make workspace-new name=<feature>` and work in that workspace. Never edit code directly in the main repo.
+
+2. **Run e2e tests before marking code ready.** Before telling the user that code is ready for review or creating a PR, run `make test-e2e-ci` and ensure all tests pass.
+
 ## Git Sync Protocol
 
 When user says "Sync", "Save", or "Push":
