@@ -1,7 +1,7 @@
 import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
-import { Race_2pSpreadPages } from './Race_2p'
+import { RaceSectionPages } from './RaceSection'
 import { TableOfContents, TOCEntry } from './TableOfContents'
 import { CoverPage } from './Cover'
 import { Foreword } from './Foreword'
@@ -275,7 +275,7 @@ export function generateBookEntries(
                 highlightLabel: race.name,
                 pageNumber: currentPage,
             })
-            // Race_2p uses 2 pages (spread)
+            // RaceSection uses 2 pages (spread) for compact variant
             currentPage += 2
         })
 
@@ -412,7 +412,7 @@ export const BookDocument = ({
                         return null // Skip if activity not found
                     }
                     return (
-                        <Race_2pSpreadPages
+                        <RaceSectionPages
                             key={index}
                             activity={activity}
                             format={format}

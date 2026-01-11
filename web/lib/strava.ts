@@ -129,11 +129,13 @@ export type StravaComment = {
     activity_id: number
     text: string
     athlete: {
-        id: number
+        id?: number
         firstname: string
         lastname: string
     }
     created_at: string
+    reaction_count?: number
+    has_reacted?: boolean
 }
 
 export type StravaActivity = {
@@ -197,4 +199,9 @@ export type StravaActivity = {
     }>
     comments?: StravaComment[] // Added for convenience when fetched
     allPhotos?: StravaPhoto[] // All photos from getActivityPhotos API
+    comprehensiveData?: {
+        photos?: StravaPhoto[]
+        comments?: StravaComment[]
+        streams?: StravaStreams
+    }
 }

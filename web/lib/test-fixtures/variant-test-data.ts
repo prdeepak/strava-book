@@ -297,10 +297,10 @@ const race1pPolylineMinimal: TestFixture = {
 }
 
 // ============================================================================
-// Race_2p Variant Fixtures
+// Race Section Variant Fixtures
 // ============================================================================
 
-const race2pHeroLeftMapRight: TestFixture = {
+const raceSectionCompact: TestFixture = {
   description: 'NYC Marathon with dramatic finish photo and 5-borough route.',
   activity: {
     id: 20000001,
@@ -332,8 +332,8 @@ const race2pHeroLeftMapRight: TestFixture = {
   ],
 }
 
-const race2pPhotoCollageSpread: TestFixture = {
-  description: 'Ironman Kona with 6 diverse race photos. Perfect for photo-collage-spread.',
+const raceSectionStandard: TestFixture = {
+  description: 'Ironman Kona with 6 diverse race photos. Perfect for standard variant.',
   activity: {
     id: 20000002,
     name: 'Ironman World Championship Kona',
@@ -366,8 +366,8 @@ const race2pPhotoCollageSpread: TestFixture = {
   ],
 }
 
-const race2pNarrativeSpread: TestFixture = {
-  description: 'First marathon with emotional 6-paragraph story. Ideal for narrative-spread.',
+const raceSectionFull: TestFixture = {
+  description: 'First marathon with emotional 6-paragraph story. Ideal for full variant.',
   activity: {
     id: 20000003,
     name: 'My First Marathon - Chicago',
@@ -506,10 +506,10 @@ export const VARIANT_TEST_FIXTURES: Record<string, Record<string, TestFixture>> 
     'stats-focus': race1pStatsFocus,
     'polyline-minimal': race1pPolylineMinimal,
   },
-  race_2p: {
-    'hero-left-map-right': race2pHeroLeftMapRight,
-    'photo-collage-spread': race2pPhotoCollageSpread,
-    'narrative-spread': race2pNarrativeSpread,
+  race_section: {
+    'compact': raceSectionCompact,
+    'standard': raceSectionStandard,
+    'full': raceSectionFull,
   },
   cover: {
     'photo-hero': coverPhotoHero,

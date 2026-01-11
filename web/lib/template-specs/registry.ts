@@ -8,7 +8,7 @@
 
 import { TemplateSpec, BookPageType } from './types'
 import { race1pSpec } from './race-1p'
-import { race2pSpec } from './race-2p'
+import { raceSectionSpec } from './race-section'
 import { coverSpec, yearStatsSpec, monthlyDividerSpec, yearCalendarSpec } from './book-templates'
 import {
   activityLogSpec,
@@ -22,7 +22,7 @@ import {
 // All registered template specs
 const templateSpecs: Map<string, TemplateSpec> = new Map([
   ['race_1p', race1pSpec],
-  ['race_2p', race2pSpec],
+  ['race_section', raceSectionSpec],
   ['race_1p_scrapbook', race1pScrapbookSpec],
   ['cover', coverSpec],
   ['year_stats', yearStatsSpec],
@@ -95,9 +95,9 @@ export function suggestTemplate(
   const templates = getTemplatesByPageType(pageType)
 
   if (pageType === 'RACE_PAGE' || pageType === 'RACE_SPREAD') {
-    // For races, choose between 1p and 2p based on importance
+    // For races, choose between 1p and section based on importance
     if (context.isHighlight || context.distance > 21097) { // Half marathon+
-      return 'race_2p'
+      return 'race_section'
     }
     return 'race_1p'
   }
