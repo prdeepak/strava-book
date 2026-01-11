@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup
+.PHONY: up down build shell run test logs clean help sync pr-merge web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,7 @@ help:
 	@echo "  make run     - Run main.py inside the container"
 	@echo "  make test    - Run the test suite (pytest)"
 	@echo "  make sync    - Commit & Push to GitHub (usage: make sync msg=\"Your message\")"
+	@echo "  make pr-merge - Commit, push, create PR & merge (usage: make pr-merge msg=\"...\")"
 	@echo "  make web-dev - Start the Next.js dev server"
 	@echo ""
 	@echo "Testing commands:"
@@ -80,6 +81,18 @@ sync:
 	@echo "📦 Committing with message: '$(msg)'"
 	git commit -m "$(msg)"
 	git push origin main
+
+# Quick PR workflow: commit, push, create PR, merge
+pr-merge:
+	@if [ -z "$(msg)" ]; then echo "Usage: make pr-merge msg='commit message'"; exit 1; fi
+	@echo "📦 Committing with message: '$(msg)'"
+	git commit -m "$(msg)"
+	git push -u origin $$(git branch --show-current)
+	gh pr create --title "$(msg)" --body "$(msg)"
+	gh pr merge --merge
+	@echo "✅ PR merged! Switching back to main..."
+	git checkout main
+	git pull origin main
 
 
 # --- Web App Commands ---
