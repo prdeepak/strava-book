@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { authOptions } from "../../../api/auth/[...nextauth]/route"
 import AsyncPDFPreview from "@/components/AsyncPDFPreview"
 import { enrichActivityWithGeocoding } from "@/lib/activity-utils"
-import { enrichActivityWithPhotos } from "@/lib/photo-utils"
+import { enrichActivityWithPhotos, convertPhotosToBase64 } from "@/lib/photo-utils"
 import { getActivity, getActivityComments } from "@/lib/strava"
 import { getSingleActivityTemplates } from "@/lib/template-specs/registry"
 
@@ -119,6 +119,12 @@ export default async function PreviewPage(props: {
     console.log("[Server] User selections:", { includePhotos, includeComments, includeSplits, includeLaps, includeBestEfforts, includeElevation, photoCount: photoIds.length })
 
     await enrichActivityWithGeocoding(activity!, mapboxToken)
+
+    // Convert photo URLs to base64 for client-side PDF rendering
+    // This is needed because PDFViewer runs in the browser and Strava URLs have CORS restrictions
+    if (includePhotos) {
+        activity = await convertPhotosToBase64(activity!)
+    }
 
     return <AsyncPDFPreview activity={activity!} mapboxToken={mapboxToken} template={template} />
 }
