@@ -103,5 +103,7 @@ export default async function BuilderPage() {
         )
     }
 
-    return <BuilderClient initialActivities={activities} accessToken={accessToken} />
+    const athleteName = session?.user?.name || 'Athlete'
+
+    return <BuilderClient initialActivities={activities} accessToken={accessToken} athleteName={athleteName} />
 }
