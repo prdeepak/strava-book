@@ -294,7 +294,21 @@ export function getFormattedBestEfforts(activity: StravaActivity, limit: number 
 }
 
 /**
+ * Generate a Mapbox static map URL for an activity route
+ * Uses light style for better print readability
+ */
+export function getMapboxLightUrl(
+    polyline: string,
+    mapboxToken: string,
+    width: number = 800,
+    height: number = 400
+): string {
+    return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${width}x${height}@2x?access_token=${mapboxToken}&logo=false`
+}
+
+/**
  * Generate a Mapbox static satellite map URL for an activity route
+ * @deprecated Use getMapboxLightUrl for better print quality
  */
 export function getMapboxSatelliteUrl(
     polyline: string,

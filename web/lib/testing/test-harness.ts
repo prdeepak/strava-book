@@ -227,12 +227,26 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         return mod.Race_1p
     },
     'Race_2p': async () => {
-        const mod = await import('../../components/templates/RaceSection')
-        return mod.RaceSection
+        const mod = await import('../../components/templates/Race_2p')
+        return mod.Race_2p
     },
     'RaceSection': async () => {
         const mod = await import('../../components/templates/RaceSection')
         return mod.RaceSection
+    },
+    'PhotoGallery': async () => {
+        const mod = await import('../../components/templates/PhotoGallery')
+        return mod.PhotoGallery
+    },
+    'ActivityLog_concise': async () => {
+        const mod = await import('../../components/templates/ActivityLog')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (props: Record<string, unknown>) => mod.ActivityLog({ ...props, variant: 'concise' } as any)
+    },
+    'ActivityLog_full': async () => {
+        const mod = await import('../../components/templates/ActivityLog')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (props: Record<string, unknown>) => mod.ActivityLog({ ...props, variant: 'full' } as any)
     },
 
     // Other templates - add as needed
@@ -330,14 +344,39 @@ export function loadFixture(fixtureName: string): unknown {
         }
     }
 
-    // Resolve relative photo paths to absolute paths
-    const json = JSON.stringify(fixture)
-    const resolved = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
+    // Resolve photo URLs to local files when available
+    let json = JSON.stringify(fixture)
+
+    // First: resolve relative paths (photos/...) to absolute paths
+    json = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
         const absolutePath = path.join(fixturesDir, relativePath)
         return `"${absolutePath}"`
     })
 
-    return JSON.parse(resolved)
+    // Second: map cloudfront URLs to local fixture photos if available
+    // Extract the image signature from cloudfront URL and check if local file exists
+    json = json.replace(/"https:\/\/dgtzuqphqg23d\.cloudfront\.net\/([^"]+)"/g, (_match, cloudPath) => {
+        // cloudPath is like: "onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-1536x2048.jpg"
+        // Extract the signature (before the dimensions)
+        const sigMatch = cloudPath.match(/^([A-Za-z0-9_-]+)-\d+x\d+\.jpg$/)
+        if (sigMatch) {
+            const signature = sigMatch[1]
+            // Look for local file with this signature
+            const photosDir = path.join(fixturesDir, 'photos')
+            if (fs.existsSync(photosDir)) {
+                const files = fs.readdirSync(photosDir)
+                const localFile = files.find(f => f.startsWith(signature))
+                if (localFile) {
+                    const localPath = path.join(photosDir, localFile)
+                    return `"${localPath}"`
+                }
+            }
+        }
+        // Return original URL if no local file found
+        return `"https://dgtzuqphqg23d.cloudfront.net/${cloudPath}"`
+    })
+
+    return JSON.parse(json)
 }
 
 export function getAvailableFixtures(): string[] {
@@ -590,6 +629,9 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
         'YearCalendar': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
         'MonthlyDivider': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('race_')),
         'ActivityLog': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('training_')),
+        'ActivityLog_concise': fixtures.filter(f => f.startsWith('race_') || f === 'rich_full_content'),
+        'ActivityLog_full': fixtures.filter(f => f === 'rich_full_content' || f.startsWith('race_')),
+        'PhotoGallery': fixtures.filter(f => f === 'rich_full_content' || f.startsWith('race_')),
         'BackCover': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
         'TableOfContents': ['toc_sections'].filter(f => fixtures.includes(f)),
         'CalendarIconView': ['calendar_views'].filter(f => fixtures.includes(f)),
