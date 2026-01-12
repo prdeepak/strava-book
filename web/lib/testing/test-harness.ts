@@ -268,6 +268,10 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         const mod = await import('../../components/templates/AllMonthlyDividers')
         return mod.AllMonthlyDividers
     },
+    'TableOfContents': async () => {
+        const mod = await import('../../components/templates/TableOfContents')
+        return mod.TableOfContents
+    },
 
     // Calendar view templates
     'CalendarIconView': async () => {

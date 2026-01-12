@@ -1,0 +1,93 @@
+{
+  "id": 0,
+  "name": "TOC Sections Fixture",
+  "type": "toc_sections",
+  "bookTitle": "2025 Year In Running",
+  "athleteName": "John Runner",
+  "sections": [
+    {
+      "title": "Year Overview",
+      "category": "Overview",
+      "pageNumber": 3,
+      "type": "year_stats"
+    },
+    {
+      "title": "Activity Calendar",
+      "category": "Overview",
+      "pageNumber": 4,
+      "type": "year_calendar"
+    },
+    {
+      "title": "January",
+      "category": "Monthly",
+      "pageNumber": 6,
+      "type": "monthly_divider",
+      "activityCount": 18
+    },
+    {
+      "title": "February",
+      "category": "Monthly",
+      "pageNumber": 12,
+      "type": "monthly_divider",
+      "activityCount": 20
+    },
+    {
+      "title": "March",
+      "category": "Monthly",
+      "pageNumber": 18,
+      "type": "monthly_divider",
+      "activityCount": 24
+    },
+    {
+      "title": "Boston Marathon",
+      "category": "Races",
+      "pageNumber": 24,
+      "type": "race_section",
+      "date": "April 21, 2025",
+      "distance": "42.2 km"
+    },
+    {
+      "title": "Brooklyn Half Marathon",
+      "category": "Races",
+      "pageNumber": 30,
+      "type": "race_section",
+      "date": "May 17, 2025",
+      "distance": "21.1 km"
+    },
+    {
+      "title": "Comrades Ultra Marathon",
+      "category": "Races",
+      "pageNumber": 36,
+      "type": "race_section",
+      "date": "June 8, 2025",
+      "distance": "89 km",
+      "isARace": true
+    },
+    {
+      "title": "Chicago Marathon",
+      "category": "Races",
+      "pageNumber": 44,
+      "type": "race_section",
+      "date": "October 12, 2025",
+      "distance": "42.2 km"
+    },
+    {
+      "title": "Philadelphia Half Marathon",
+      "category": "Races",
+      "pageNumber": 50,
+      "type": "race_section",
+      "date": "November 22, 2025",
+      "distance": "21.1 km"
+    },
+    {
+      "title": "Activity Log",
+      "category": "Appendix",
+      "pageNumber": 56,
+      "type": "activity_log"
+    }
+  ],
+  "format": {
+    "size": "10x10",
+    "dimensions": { "width": 720, "height": 720 }
+  }
+}
