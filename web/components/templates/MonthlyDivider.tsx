@@ -38,74 +38,70 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   container: {
     width: '100%',
     height: '100%',
-    flexDirection: 'row',
+    flexDirection: 'column',
   },
-  // Left side - dramatic month name and year
-  leftPanel: {
-    width: '35%',
+  // Top header section - dramatic month name with full width
+  headerSection: {
+    height: '45%',
     backgroundColor: theme.primaryColor,
     padding: format.safeMargin,
+    paddingTop: format.safeMargin * 1.5,
     flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  monthSection: {
-    flex: 1,
+    justifyContent: 'flex-end',
   },
   dateLabel: {
     fontSize: 14 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: theme.backgroundColor,
-    opacity: 0.7,
-    letterSpacing: 2,
+    opacity: 0.6,
+    letterSpacing: 3,
     marginBottom: 8 * format.scaleFactor,
+    textTransform: 'uppercase',
   },
   monthName: {
-    fontSize: 84 * format.scaleFactor,
+    fontSize: 96 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.backgroundColor,
-    lineHeight: 0.9,
-    letterSpacing: -1,
-    marginBottom: 12 * format.scaleFactor,
+    lineHeight: 1,
+    letterSpacing: -2,
+    marginBottom: 8 * format.scaleFactor,
+  },
+  yearLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8 * format.scaleFactor,
   },
   year: {
-    fontSize: 28 * format.scaleFactor,
+    fontSize: 32 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
     letterSpacing: 4,
   },
   decorativeBar: {
-    width: 60 * format.scaleFactor,
+    width: 80 * format.scaleFactor,
     height: 4 * format.scaleFactor,
     backgroundColor: theme.accentColor,
-    marginTop: 20 * format.scaleFactor,
+    marginLeft: 20 * format.scaleFactor,
   },
-  bottomAccent: {
-    width: '100%',
-    height: 2,
-    backgroundColor: theme.accentColor,
-    opacity: 0.3,
-  },
-  // Right side - stats and content
-  rightPanel: {
-    width: '65%',
+  // Bottom content section - stats and highlights
+  contentSection: {
+    height: '55%',
     padding: format.safeMargin,
-    paddingLeft: format.safeMargin * 1.5,
+    paddingTop: format.safeMargin * 1.2,
     flexDirection: 'column',
-    justifyContent: 'center',
   },
   statsGrid: {
-    marginBottom: 40 * format.scaleFactor,
-  },
-  statsRow: {
     flexDirection: 'row',
-    marginBottom: 24 * format.scaleFactor,
+    flexWrap: 'wrap',
+    marginBottom: 30 * format.scaleFactor,
   },
   statBox: {
-    flex: 1,
+    width: '33.33%',
     paddingRight: 10 * format.scaleFactor,
+    marginBottom: 24 * format.scaleFactor,
   },
   statValue: {
-    fontSize: 36 * format.scaleFactor,
+    fontSize: 42 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.primaryColor,
     lineHeight: 1,
@@ -115,44 +111,46 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     fontSize: 10 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
-    opacity: 0.6,
-    letterSpacing: 1.2,
+    opacity: 0.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   statValueSmall: {
-    fontSize: 28 * format.scaleFactor,
+    fontSize: 32 * format.scaleFactor,
   },
   divider: {
     width: '100%',
     height: 1,
     backgroundColor: theme.primaryColor,
-    opacity: 0.15,
-    marginTop: 30 * format.scaleFactor,
-    marginBottom: 30 * format.scaleFactor,
+    opacity: 0.12,
+    marginTop: 10 * format.scaleFactor,
+    marginBottom: 24 * format.scaleFactor,
   },
   highlightsSection: {
-    marginTop: 10 * format.scaleFactor,
+    flex: 1,
   },
   highlightLabel: {
-    fontSize: 9 * format.scaleFactor,
+    fontSize: 10 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
-    opacity: 0.5,
-    letterSpacing: 1.5,
-    marginBottom: 12 * format.scaleFactor,
+    opacity: 0.4,
+    letterSpacing: 2,
+    marginBottom: 16 * format.scaleFactor,
+    textTransform: 'uppercase',
   },
   quote: {
-    fontSize: 14 * format.scaleFactor,
+    fontSize: 15 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     fontStyle: 'italic',
-    lineHeight: 1.5,
-    marginBottom: 6 * format.scaleFactor,
+    lineHeight: 1.6,
+    marginBottom: 8 * format.scaleFactor,
   },
   quoteAuthor: {
     fontSize: 11 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: theme.accentColor,
-    marginBottom: 16 * format.scaleFactor,
+    marginBottom: 20 * format.scaleFactor,
   },
 })
 
@@ -206,8 +204,8 @@ export const MonthlyDivider = ({
       activitiesWithDesc.slice(0, 2).forEach(a => {
         const quoteText = a.description || ''
         highlights!.push({
-          quote: quoteText.length > 180 ? quoteText.substring(0, 180) + '...' : quoteText,
-          author: a.name?.substring(0, 50) || 'Activity'
+          quote: quoteText.length > 150 ? quoteText.substring(0, 150) + '...' : quoteText,
+          author: a.name?.substring(0, 40) || 'Activity'
         })
       })
     }
@@ -245,8 +243,8 @@ export const MonthlyDivider = ({
       if (highlights.length === 0) {
         const quoteText = activity.description || activity.name
         highlights.push({
-          quote: quoteText.length > 180 ? quoteText.substring(0, 180) + '...' : quoteText,
-          author: activity.name.substring(0, 50)
+          quote: quoteText.length > 150 ? quoteText.substring(0, 150) + '...' : quoteText,
+          author: activity.name.substring(0, 40)
         })
       }
     }
@@ -275,59 +273,53 @@ export const MonthlyDivider = ({
   return (
       <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
         <View style={styles.container}>
-          {/* Left Panel - Dramatic Month Display */}
-          <View style={styles.leftPanel}>
-            <View style={styles.monthSection}>
-              <Text style={styles.dateLabel}>{monthStr}.{year}</Text>
-              <Text style={styles.monthName}>{monthName}</Text>
+          {/* Header Section - Full-width Month Display */}
+          <View style={styles.headerSection}>
+            <Text style={styles.dateLabel}>{monthStr} / {year}</Text>
+            <Text style={styles.monthName}>{monthName}</Text>
+            <View style={styles.yearLine}>
               <Text style={styles.year}>{year}</Text>
               <View style={styles.decorativeBar} />
             </View>
-
-            <View style={styles.bottomAccent} />
           </View>
 
-          {/* Right Panel - Statistics and Highlights */}
-          <View style={styles.rightPanel}>
+          {/* Content Section - Stats and Highlights */}
+          <View style={styles.contentSection}>
             <View style={styles.statsGrid}>
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{stats.activityCount}</Text>
-                  <Text style={styles.statLabel}>
-                    {stats.activityCount === 1 ? 'ACTIVITY' : 'ACTIVITIES'}
-                  </Text>
-                </View>
-                {stats.activeDays !== undefined && (
-                  <View style={styles.statBox}>
-                    <Text style={styles.statValue}>{stats.activeDays}</Text>
-                    <Text style={styles.statLabel}>ACTIVE DAYS</Text>
-                  </View>
-                )}
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{stats.activityCount}</Text>
+                <Text style={styles.statLabel}>
+                  {stats.activityCount === 1 ? 'Activity' : 'Activities'}
+                </Text>
               </View>
 
-              <View style={styles.statsRow}>
+              {stats.activeDays !== undefined && (
                 <View style={styles.statBox}>
-                  <Text style={[styles.statValue, styles.statValueSmall]}>
-                    {formatDistance(stats.totalDistance, units)}
-                  </Text>
-                  <Text style={styles.statLabel}>TOTAL DISTANCE</Text>
+                  <Text style={styles.statValue}>{stats.activeDays}</Text>
+                  <Text style={styles.statLabel}>Active Days</Text>
                 </View>
-                <View style={styles.statBox}>
-                  <Text style={[styles.statValue, styles.statValueSmall]}>
-                    {formatTime(stats.totalTime)}
-                  </Text>
-                  <Text style={styles.statLabel}>TOTAL TIME</Text>
-                </View>
+              )}
+
+              <View style={styles.statBox}>
+                <Text style={[styles.statValue, styles.statValueSmall]}>
+                  {formatDistance(stats.totalDistance, units)}
+                </Text>
+                <Text style={styles.statLabel}>Distance</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <Text style={[styles.statValue, styles.statValueSmall]}>
+                  {formatTime(stats.totalTime)}
+                </Text>
+                <Text style={styles.statLabel}>Moving Time</Text>
               </View>
 
               {stats.totalElevation !== undefined && stats.totalElevation > 0 && (
-                <View style={styles.statsRow}>
-                  <View style={styles.statBox}>
-                    <Text style={[styles.statValue, styles.statValueSmall]}>
-                      {formatLargeNumber(stats.totalElevation)} m
-                    </Text>
-                    <Text style={styles.statLabel}>TOTAL ELEVATION</Text>
-                  </View>
+                <View style={styles.statBox}>
+                  <Text style={[styles.statValue, styles.statValueSmall]}>
+                    {formatLargeNumber(stats.totalElevation)} m
+                  </Text>
+                  <Text style={styles.statLabel}>Elevation</Text>
                 </View>
               )}
             </View>
@@ -336,7 +328,7 @@ export const MonthlyDivider = ({
               <>
                 <View style={styles.divider} />
                 <View style={styles.highlightsSection}>
-                  <Text style={styles.highlightLabel}>MONTH HIGHLIGHTS</Text>
+                  <Text style={styles.highlightLabel}>Month Highlights</Text>
                   {highlights.slice(0, 2).map((highlight, idx) => (
                     <View key={idx}>
                       {highlight.quote && (
