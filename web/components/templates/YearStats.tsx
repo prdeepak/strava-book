@@ -1,12 +1,19 @@
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS, MonthlyStats } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
+import { formatPeriodRange } from '@/lib/activity-utils'
 
 interface YearStatsProps {
+  // Primary input: array of activities for the period
+  activities?: StravaActivity[]
+  // Legacy: single activity wrapper
   activity?: {
     yearSummary?: YearSummary | null
   }
   yearSummary?: YearSummary
+  periodName?: string  // Display text for time period
+  startDate?: string   // ISO date string for period start
+  endDate?: string     // ISO date string for period end
   format?: BookFormat
   theme?: BookTheme
 }
@@ -43,6 +50,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     opacity: 0.6,
     textTransform: 'uppercase',
     letterSpacing: 2,
+  },
+  periodRangeText: {
+    fontSize: Math.max(11, 14 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: theme.primaryColor,
+    textAlign: 'center',
+    marginBottom: 8 * format.scaleFactor,
+    opacity: 0.5,
+    letterSpacing: 1,
   },
 
   // Hero stats - Big Three
@@ -197,7 +213,7 @@ const calculateAveragePace = (totalDistance: number, totalTime: number): string 
 }
 
 // Helper to generate synthetic year summary for testing/single activities
-const generateSyntheticYearSummary = (activity?: any): YearSummary => {
+const generateSyntheticYearSummary = (activity?: Partial<StravaActivity>): YearSummary => {
   const year = activity?.start_date_local
     ? new Date(activity.start_date_local).getFullYear()
     : new Date().getFullYear()
@@ -212,7 +228,7 @@ const generateSyntheticYearSummary = (activity?: any): YearSummary => {
     { name: '10k', elapsed_time: 2280, moving_time: 2280, distance: 10000, start_index: 0, end_index: 2000, pr_rank: null },
   ]
 
-  const activityWithEfforts = activity?.best_efforts?.length > 0
+  const activityWithEfforts = (activity?.best_efforts?.length ?? 0) > 0
     ? activity
     : { ...activity, best_efforts: syntheticBestEfforts }
 
@@ -222,11 +238,11 @@ const generateSyntheticYearSummary = (activity?: any): YearSummary => {
     totalTime: activity?.moving_time || 900000, // 250 hours for testing
     totalElevation: activity?.total_elevation_gain || 50000, // 50000m for testing
     activityCount: activity ? 1 : 250,
-    longestActivity: activity || ({} as StravaActivity),
-    fastestActivity: activityWithEfforts || ({} as StravaActivity),
+    longestActivity: (activity || {}) as StravaActivity,
+    fastestActivity: (activityWithEfforts || {}) as StravaActivity,
     activeDays: new Set(['2024-01-01']), // Placeholder
     monthlyStats: generateMonthlyStats(year),
-    races: activity?.workout_type === 1 ? [activity] : [],
+    races: activity?.workout_type === 1 ? [activity as StravaActivity] : [],
   }
 }
 
@@ -244,16 +260,128 @@ const generateMonthlyStats = (year: number): MonthlyStats[] => {
   }))
 }
 
+// Derive YearSummary from activities array
+const deriveYearSummaryFromActivities = (activities: StravaActivity[]): YearSummary => {
+  if (activities.length === 0) {
+    return generateSyntheticYearSummary()
+  }
+
+  // Determine year from activities
+  const years = activities.map(a => new Date(a.start_date_local || a.start_date).getFullYear())
+  const year = Math.max(...years) // Use most recent year
+
+  // Calculate totals
+  const totalDistance = activities.reduce((sum, a) => sum + (a.distance || 0), 0)
+  const totalTime = activities.reduce((sum, a) => sum + (a.moving_time || 0), 0)
+  const totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
+
+  // Calculate active days
+  const activeDaysSet = new Set<string>()
+  activities.forEach(a => {
+    const date = new Date(a.start_date_local || a.start_date)
+    activeDaysSet.add(date.toISOString().split('T')[0])
+  })
+
+  // Find longest activity by distance
+  const longestActivity = activities.reduce((longest, a) =>
+    (a.distance || 0) > (longest?.distance || 0) ? a : longest, activities[0])
+
+  // Find fastest activity (one with best efforts)
+  const fastestActivity = activities.find(a => a.best_efforts && a.best_efforts.length > 0) || activities[0]
+
+  // Find races (workout_type === 1)
+  const races = activities.filter(a => a.workout_type === 1)
+
+  // Group by month for monthly stats
+  const byMonth = new Map<number, StravaActivity[]>()
+  activities.forEach(a => {
+    const date = new Date(a.start_date_local || a.start_date)
+    const month = date.getMonth()
+    if (!byMonth.has(month)) byMonth.set(month, [])
+    byMonth.get(month)!.push(a)
+  })
+
+  const monthlyStats: MonthlyStats[] = Array.from({ length: 12 }, (_, month) => {
+    const monthActivities = byMonth.get(month) || []
+    const monthDays = new Set<string>()
+    monthActivities.forEach(a => {
+      const date = new Date(a.start_date_local || a.start_date)
+      monthDays.add(date.toISOString().split('T')[0])
+    })
+    return {
+      month,
+      year,
+      activityCount: monthActivities.length,
+      totalDistance: monthActivities.reduce((sum, a) => sum + (a.distance || 0), 0),
+      totalTime: monthActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+      totalElevation: monthActivities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0),
+      activeDays: monthDays.size,
+      activities: monthActivities,
+    }
+  })
+
+  return {
+    year,
+    totalDistance,
+    totalTime,
+    totalElevation,
+    activityCount: activities.length,
+    longestActivity,
+    fastestActivity,
+    activeDays: activeDaysSet,
+    monthlyStats,
+    races,
+  }
+}
+
 export const YearStats = ({
+  activities,
   activity,
   yearSummary: propYearSummary,
+  periodName: propPeriodName,
+  startDate: propStartDate,
+  endDate: propEndDate,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME
 }: YearStatsProps) => {
   const styles = createStyles(format, theme)
 
-  // Get year summary from props or activity or generate synthetic
-  const yearSummary = propYearSummary || activity?.yearSummary || generateSyntheticYearSummary(activity)
+  // Get year summary: prefer activities array, then explicit prop, then legacy activity wrapper, then synthetic
+  let yearSummary: YearSummary
+  if (activities && activities.length > 0) {
+    yearSummary = deriveYearSummaryFromActivities(activities)
+  } else if (propYearSummary) {
+    yearSummary = propYearSummary
+  } else if (activity?.yearSummary) {
+    yearSummary = activity.yearSummary
+  } else {
+    yearSummary = generateSyntheticYearSummary()
+  }
+
+  // Calculate period range display
+  let periodRangeDisplay: string | null = null
+  if (propStartDate && propEndDate) {
+    const start = new Date(propStartDate)
+    const end = new Date(propEndDate)
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      periodRangeDisplay = formatPeriodRange(start, end)
+    }
+  }
+
+  // Determine what to display as main period text
+  let mainPeriodDisplay: string
+  let showPeriodRangeBelow: boolean
+
+  if (propPeriodName) {
+    mainPeriodDisplay = propPeriodName
+    showPeriodRangeBelow = periodRangeDisplay !== null && periodRangeDisplay !== propPeriodName
+  } else if (periodRangeDisplay) {
+    mainPeriodDisplay = periodRangeDisplay
+    showPeriodRangeBelow = false
+  } else {
+    mainPeriodDisplay = String(yearSummary.year)
+    showPeriodRangeBelow = false
+  }
 
   const distance = formatDistance(yearSummary.totalDistance)
   const time = formatTime(yearSummary.totalTime)
@@ -281,10 +409,13 @@ export const YearStats = ({
   return (
     <Document>
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-        {/* Year Title */}
+        {/* Period Title */}
         <View style={styles.header}>
-          <Text style={styles.yearTitle}>{yearSummary.year}</Text>
-          <Text style={styles.subtitle}>Year in Review</Text>
+          <Text style={styles.yearTitle}>{mainPeriodDisplay}</Text>
+          {showPeriodRangeBelow && periodRangeDisplay && (
+            <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
+          )}
+          <Text style={styles.subtitle}>In Review</Text>
         </View>
 
         {/* Hero Stats - Big Three in a row */}

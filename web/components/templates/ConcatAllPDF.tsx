@@ -2,7 +2,7 @@ import { Document } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { Race_1pPages, Race1pVariant } from './Race_1p'
-import { Race_2pSpreadPages } from './Race_2p'
+import { Race_2pSpreadPages } from './RaceSection'
 import { ScrapbookPDFPages } from './race_1p_scrapbook/race_1p_scrapbook'
 
 /**

@@ -13,6 +13,7 @@ export type BookPageType =
     | 'ROUTE_HEATMAP'
     | 'STATS_SUMMARY'
     | 'BACK_COVER'
+    | 'BLANK_PAGE'
 
 export interface BookEntry {
     type: BookPageType
@@ -26,6 +27,7 @@ export interface BookEntry {
     activityIds?: number[]  // For ACTIVITY_LOG (multiple activities per page)
     forewordText?: string   // For FOREWORD
     pageNumber?: number     // For TABLE_OF_CONTENTS, ACTIVITY_LOG (pagination)
+    heroImage?: string      // For COVER (background image URL)
 }
 
 /**

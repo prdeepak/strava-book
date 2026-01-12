@@ -1,5 +1,7 @@
 import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary, FORMATS } from '@/lib/book-types'
+import { formatPeriodRange } from '@/lib/activity-utils'
+import { StravaActivity } from '@/lib/strava'
 
 export interface BackCoverProps {
   activity?: {
@@ -8,6 +10,9 @@ export interface BackCoverProps {
     start_date_local?: string
   }
   yearSummary?: YearSummary
+  periodName?: string  // Display text for time period
+  startDate?: string   // ISO date string for period start
+  endDate?: string     // ISO date string for period end
   format?: BookFormat
   theme?: BookTheme
 }
@@ -42,10 +47,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     fontSize: Math.max(80, 100 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
-    marginBottom: 40 * format.scaleFactor,
+    marginBottom: 10 * format.scaleFactor,
     textAlign: 'center',
     letterSpacing: 6,
     fontWeight: 'bold',
+  },
+  periodRangeText: {
+    fontSize: Math.max(12, 15 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: '#cccccc',
+    marginBottom: 30 * format.scaleFactor,
+    textAlign: 'center',
+    letterSpacing: 1,
   },
   statsGrid: {
     flexDirection: 'column',
@@ -138,7 +151,7 @@ const formatElevation = (meters: number): string => {
 }
 
 // Generate mock year summary from activity if not provided
-const generateMockYearSummary = (activity?: any): YearSummary => {
+const generateMockYearSummary = (activity?: Partial<StravaActivity>): YearSummary => {
   const year = activity?.start_date_local
     ? new Date(activity.start_date_local).getFullYear()
     : new Date().getFullYear()
@@ -156,8 +169,8 @@ const generateMockYearSummary = (activity?: any): YearSummary => {
     totalElevation: activity?.total_elevation_gain ? activity.total_elevation_gain * 10 : 25000,
     activityCount: 156,
     activeDays: mockActiveDays,
-    longestActivity: activity || {} as any,
-    fastestActivity: activity || {} as any,
+    longestActivity: (activity || {}) as StravaActivity,
+    fastestActivity: (activity || {}) as StravaActivity,
     monthlyStats: [],
     races: [],
   }
@@ -166,6 +179,9 @@ const generateMockYearSummary = (activity?: any): YearSummary => {
 export const BackCover = ({
   activity,
   yearSummary: directYearSummary,
+  periodName: propPeriodName,
+  startDate: propStartDate,
+  endDate: propEndDate,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: BackCoverProps) => {
@@ -173,6 +189,31 @@ export const BackCover = ({
   const yearSummary = directYearSummary
     || activity?.yearSummary
     || generateMockYearSummary(activity)
+
+  // Calculate period range display
+  let periodRangeDisplay: string | null = null
+  if (propStartDate && propEndDate) {
+    const start = new Date(propStartDate)
+    const end = new Date(propEndDate)
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      periodRangeDisplay = formatPeriodRange(start, end)
+    }
+  }
+
+  // Determine what to display as main period text
+  let mainPeriodDisplay: string
+  let showPeriodRangeBelow: boolean
+
+  if (propPeriodName) {
+    mainPeriodDisplay = propPeriodName
+    showPeriodRangeBelow = periodRangeDisplay !== null && periodRangeDisplay !== propPeriodName
+  } else if (periodRangeDisplay) {
+    mainPeriodDisplay = periodRangeDisplay
+    showPeriodRangeBelow = false
+  } else {
+    mainPeriodDisplay = String(yearSummary.year)
+    showPeriodRangeBelow = false
+  }
 
   const styles = createStyles(format, theme)
 
@@ -185,9 +226,12 @@ export const BackCover = ({
     <Document>
       <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
         <View style={styles.contentContainer}>
-          {/* Top section with year and stats */}
+          {/* Top section with period and stats */}
           <View style={styles.topSection}>
-            <Text style={styles.yearText}>{yearSummary.year}</Text>
+            <Text style={styles.yearText}>{mainPeriodDisplay}</Text>
+            {showPeriodRangeBelow && periodRangeDisplay && (
+              <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
+            )}
 
             <View style={styles.divider} />
 
@@ -223,7 +267,7 @@ export const BackCover = ({
             {/* Optional inspirational quote */}
             <View style={styles.quoteSection}>
               <Text style={styles.quoteText}>
-                "Every mile is a memory, every step a story worth telling."
+                &ldquo;Every mile is a memory, every step a story worth telling.&rdquo;
               </Text>
             </View>
           </View>

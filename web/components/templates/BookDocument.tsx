@@ -4,12 +4,13 @@ import { BookEntry } from '@/lib/curator'
 import { RaceSectionPages } from './RaceSection'
 import { TableOfContents, TOCEntry } from './TableOfContents'
 import { CoverPage } from './Cover'
-import { Foreword } from './Foreword'
+import { ForewordPage } from './Foreword'
 import { BackCover } from './BackCover'
 import { YearCalendar } from './YearCalendar'
 import { YearStats } from './YearStats'
 import { MonthlyDivider } from './MonthlyDivider'
 import { ActivityLog } from './ActivityLog'
+import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
 
@@ -144,14 +145,79 @@ export function computeYearSummary(activities: StravaActivity[], year: number): 
 }
 
 // ============================================================================
+// PRINT SPREAD UTILITIES
+// ============================================================================
+
+/**
+ * Page types that should start on right-hand pages (recto).
+ * In print books, odd page numbers are right-hand pages.
+ */
+const RECTO_PAGE_TYPES: BookEntry['type'][] = [
+    'COVER',
+    'MONTHLY_DIVIDER',
+    'RACE_PAGE',
+    'YEAR_STATS',
+    'YEAR_AT_A_GLANCE',
+]
+
+/**
+ * Insert blank pages where needed to ensure proper print spreads.
+ *
+ * In professional print books:
+ * - Page 1 is always a right-hand page (recto)
+ * - Odd-numbered pages are right (recto), even are left (verso)
+ * - Key sections (chapters, monthly dividers) should start on right pages
+ *
+ * @param entries - Original book entries
+ * @returns New array with blank pages inserted where needed
+ */
+export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
+    const result: BookEntry[] = []
+    let currentPage = 1
+
+    for (const entry of entries) {
+        // Check if this entry type should start on a right-hand page
+        const shouldBeRecto = RECTO_PAGE_TYPES.includes(entry.type)
+
+        // Right-hand pages are odd-numbered (1, 3, 5...)
+        // If we're on an even page and need to be on odd, insert a blank
+        if (shouldBeRecto && currentPage % 2 === 0) {
+            result.push({
+                type: 'BLANK_PAGE',
+                pageNumber: currentPage,
+                title: 'This page intentionally left blank',
+            })
+            currentPage++
+        }
+
+        // Add the entry with updated page number
+        result.push({
+            ...entry,
+            pageNumber: currentPage,
+        })
+
+        // Update page count based on entry type
+        // Most entries are 1 page, but some (like race spreads) are multiple pages
+        if (entry.type === 'RACE_PAGE') {
+            currentPage += 2 // Race pages use 2-page spreads
+        } else {
+            currentPage += 1
+        }
+    }
+
+    return result
+}
+
+// ============================================================================
 // BOOK ENTRY GENERATION
 // ============================================================================
 
 export interface BookGenerationConfig {
     title?: string
     subtitle?: string
+    periodName?: string  // e.g., "2024", "Summer 2024", "Jan-Jun 2024"
     athleteName: string
-    year: number
+    year: number         // Still needed for date calculations
     forewordText?: string
     format: BookFormat
     activitiesPerLogPage?: number
@@ -181,11 +247,22 @@ export function generateBookEntries(
     // Track page numbers for TOC
     let currentPage = 1
 
+    // Find best photo for cover (prefer A-race, then any activity with photos)
+    const races = activities.filter(a => a.workout_type === 1)
+    const aRace = races.length > 0
+        ? races.sort((a, b) => (b.distance || 0) - (a.distance || 0))[0]
+        : undefined
+
+    // Try A-race photo first, then any activity with a photo
+    const coverPhotoSource = aRace?.photos?.primary?.urls?.['600']
+        || activities.find(a => a.photos?.primary?.urls?.['600'])?.photos?.primary?.urls?.['600']
+
     // 1. COVER (page 1)
     entries.push({
         type: 'COVER',
         title: config.title || `${year} Year in Review`,
         pageNumber: currentPage++,
+        heroImage: coverPhotoSource,
     })
 
     // 2. FOREWORD (optional)
@@ -231,72 +308,79 @@ export function generateBookEntries(
         pageNumber: currentPage++,
     })
 
-    // Group activities by month
-    const activitiesByMonth = new Map<number, StravaActivity[]>()
-    for (let month = 0; month < 12; month++) {
-        activitiesByMonth.set(month, [])
-    }
+    // Group activities by year-month (to handle activities spanning multiple years)
+    // Key format: "YYYY-MM" for proper chronological sorting
+    const activitiesByYearMonth = new Map<string, StravaActivity[]>()
 
     activities.forEach(activity => {
         const date = new Date(activity.start_date_local || activity.start_date)
+        const activityYear = date.getFullYear()
         const month = date.getMonth()
-        activitiesByMonth.get(month)?.push(activity)
+        const key = `${activityYear}-${String(month).padStart(2, '0')}`
+
+        if (!activitiesByYearMonth.has(key)) {
+            activitiesByYearMonth.set(key, [])
+        }
+        activitiesByYearMonth.get(key)?.push(activity)
     })
 
-    // Track races added and non-race activities for activity log
-    const nonRaceActivities: StravaActivity[] = []
+    // Sort year-month keys chronologically
+    const sortedYearMonths = Array.from(activitiesByYearMonth.keys()).sort()
 
-    // 6. FOR EACH ACTIVE MONTH: Monthly Divider + Race pages
-    for (let month = 0; month < 12; month++) {
-        const monthActivities = activitiesByMonth.get(month) || []
+    // 6. ALL RACE PAGES (grouped together, no monthly dividers)
+    const allRaces = activities.filter(a => a.workout_type === 1)
+    allRaces.forEach(race => {
+        entries.push({
+            type: 'RACE_PAGE',
+            activityId: race.id,
+            title: race.name,
+            highlightLabel: race.name,
+            pageNumber: currentPage,
+        })
+        // RaceSection uses 2 pages (spread) for compact variant
+        currentPage += 2
+    })
 
-        // Skip months with no activities
-        if (monthActivities.length === 0) {
+    // 7. ACTIVITY LOG with Monthly Dividers
+    // For each year-month with non-race activities: Monthly Divider → that month's activities
+    // Sorted chronologically (Dec 2025 before Jan 2026)
+    for (const yearMonthKey of sortedYearMonths) {
+        const [yearStr, monthStr] = yearMonthKey.split('-')
+        const entryYear = parseInt(yearStr, 10)
+        const month = parseInt(monthStr, 10)
+
+        const monthActivities = activitiesByYearMonth.get(yearMonthKey) || []
+        const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
+
+        // Skip months with no non-race activities
+        if (monthNonRaces.length === 0) {
             continue
         }
 
-        // 6a. MONTHLY DIVIDER
+        // 7a. MONTHLY DIVIDER
         entries.push({
             type: 'MONTHLY_DIVIDER',
             month,
-            year,
+            year: entryYear,
             title: MONTH_NAMES[month],
-            highlightLabel: `${monthActivities.length} ${monthActivities.length === 1 ? 'activity' : 'activities'}`,
+            highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
         })
 
-        // 6b. RACE PAGES for this month
-        const monthRaces = monthActivities.filter(a => a.workout_type === 1)
-        monthRaces.forEach(race => {
-            entries.push({
-                type: 'RACE_PAGE',
-                activityId: race.id,
-                title: race.name,
-                highlightLabel: race.name,
-                pageNumber: currentPage,
-            })
-            // RaceSection uses 2 pages (spread) for compact variant
-            currentPage += 2
-        })
-
-        // Collect non-race activities for activity log
-        const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
-        nonRaceActivities.push(...monthNonRaces)
-    }
-
-    // 7. ACTIVITY LOG PAGES (paginated)
-    if (nonRaceActivities.length > 0) {
-        const totalLogPages = Math.ceil(nonRaceActivities.length / activitiesPerPage)
+        // 7b. ACTIVITY LOG PAGES for this month
+        const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
 
         for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
             const startIdx = pageNum * activitiesPerPage
-            const pageActivities = nonRaceActivities.slice(startIdx, startIdx + activitiesPerPage)
+            const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
 
             entries.push({
                 type: 'ACTIVITY_LOG',
                 activityIds: pageActivities.map(a => a.id),
                 pageNumber: currentPage++,
-                title: `Training Journal${totalLogPages > 1 ? ` (${pageNum + 1}/${totalLogPages})` : ''}`,
+                title: totalLogPages > 1
+                    ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
+                    : `${MONTH_NAMES[month]} ${entryYear}`,
             })
         }
     }
@@ -340,9 +424,14 @@ interface BookDocumentProps {
     format?: BookFormat
     theme?: BookTheme
     athleteName?: string
-    year?: number
+    periodName?: string  // Display name for time period
+    year?: number        // Still needed for date calculations
+    startDate?: string   // ISO date string for period start
+    endDate?: string     // ISO date string for period end
     yearSummary?: YearSummary
     mapboxToken?: string
+    /** Insert blank pages to ensure proper print spreads (sections on right pages) */
+    printReady?: boolean
 }
 
 /**
@@ -355,13 +444,22 @@ export const BookDocument = ({
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
     athleteName = 'Athlete',
+    periodName,
     year = new Date().getFullYear(),
+    startDate,
+    endDate,
     yearSummary,
     mapboxToken,
+    printReady = false,
 }: BookDocumentProps) => {
+    // Use periodName for display, fallback to year
+    const displayPeriod = periodName || String(year)
     // Calculate year summary from activities if not provided
     // Uses the comprehensive computeYearSummary function for proper monthly stats
     const computedYearSummary: YearSummary = yearSummary || computeYearSummary(activities, year)
+
+    // Insert blank pages for print-ready output if requested
+    const processedEntries = printReady ? insertBlankPagesForPrint(entries) : entries
 
     // Build TOC entries from draft entries
     const tocEntries: TOCEntry[] = entries
@@ -375,15 +473,18 @@ export const BookDocument = ({
 
     return (
         <Document>
-            {entries.map((entry, index) => {
+            {processedEntries.map((entry, index) => {
                 // COVER
                 if (entry.type === 'COVER') {
                     return (
                         <CoverPage
                             key={index}
                             title={entry.title || 'My Year in Review'}
-                            year={year}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             athleteName={athleteName}
+                            backgroundImage={entry.heroImage}
                             format={format}
                             theme={theme}
                         />
@@ -425,20 +526,19 @@ export const BookDocument = ({
 
                 // MONTHLY_DIVIDER
                 if (entry.type === 'MONTHLY_DIVIDER') {
+                    // Filter activities for this month+year
                     const monthActivities = activities.filter(a => {
-                        const activityMonth = new Date(a.start_date_local).getMonth()
-                        return activityMonth === entry.month
+                        const activityDate = new Date(a.start_date_local || a.start_date)
+                        const activityMonth = activityDate.getMonth()
+                        const activityYear = activityDate.getFullYear()
+                        return activityMonth === entry.month && activityYear === entry.year
                     })
+
+                    // Pass activities - MonthlyDivider derives everything it needs
                     return (
                         <MonthlyDivider
                             key={index}
-                            month={entry.month ?? 0}
-                            year={entry.year ?? year}
-                            stats={{
-                                activityCount: monthActivities.length,
-                                totalDistance: monthActivities.reduce((sum, a) => sum + a.distance, 0),
-                                totalTime: monthActivities.reduce((sum, a) => sum + a.moving_time, 0),
-                            }}
+                            activities={monthActivities}
                             format={format}
                             theme={theme}
                         />
@@ -465,6 +565,9 @@ export const BookDocument = ({
                         <YearStats
                             key={index}
                             yearSummary={computedYearSummary}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             format={format}
                             theme={theme}
                         />
@@ -497,7 +600,7 @@ export const BookDocument = ({
                 // FOREWORD
                 if (entry.type === 'FOREWORD') {
                     return (
-                        <Foreword
+                        <ForewordPage
                             key={index}
                             title={entry.title || 'Foreword'}
                             body={entry.forewordText || 'Your story here...'}
@@ -537,12 +640,26 @@ export const BookDocument = ({
                     )
                 }
 
+                // BLANK_PAGE (for print spreads)
+                if (entry.type === 'BLANK_PAGE') {
+                    return (
+                        <BlankPageComponent
+                            key={index}
+                            format={format}
+                            theme={theme}
+                        />
+                    )
+                }
+
                 // BACK_COVER
                 if (entry.type === 'BACK_COVER') {
                     return (
                         <BackCover
                             key={index}
                             yearSummary={computedYearSummary}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             format={format}
                             theme={theme}
                         />
@@ -580,6 +697,7 @@ function getCategoryForType(type: BookEntry['type']): string {
         case 'ROUTE_HEATMAP':
             return 'Highlights'
         case 'BACK_COVER':
+        case 'BLANK_PAGE':
             return 'Back Matter'
         default:
             return 'Other'
@@ -609,6 +727,8 @@ function getDefaultTitle(entry: BookEntry): string {
             return 'Stats Summary'
         case 'BACK_COVER':
             return 'Back Cover'
+        case 'BLANK_PAGE':
+            return '' // Blank pages don't need titles
         default:
             return entry.type
     }
@@ -622,12 +742,17 @@ interface FullBookDocumentProps {
     activities: StravaActivity[]
     title?: string
     subtitle?: string
+    periodName?: string  // Display name for time period (e.g., "Summer 2024", "Jan-Jun 2024")
     athleteName: string
-    year: number
+    year: number         // Still needed for date calculations
+    startDate?: string   // ISO date string for period start
+    endDate?: string     // ISO date string for period end
     forewordText?: string
     format?: BookFormat
     theme?: BookTheme
     mapboxToken?: string
+    /** Insert blank pages to ensure proper print spreads (sections on right pages) */
+    printReady?: boolean
 }
 
 /**
@@ -650,17 +775,25 @@ export const FullBookDocument = ({
     activities,
     title,
     subtitle,
+    periodName,
     athleteName,
     year,
+    startDate,
+    endDate,
     forewordText,
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
     mapboxToken,
+    printReady = false,
 }: FullBookDocumentProps) => {
+    // Use periodName for display, fallback to year
+    const displayPeriod = periodName || String(year)
+
     // Generate book entries from activities
     const entries = generateBookEntries(activities, {
         title,
         subtitle,
+        periodName: displayPeriod,
         athleteName,
         year,
         forewordText,
@@ -677,9 +810,13 @@ export const FullBookDocument = ({
             format={format}
             theme={theme}
             athleteName={athleteName}
+            periodName={displayPeriod}
             year={year}
+            startDate={startDate}
+            endDate={endDate}
             yearSummary={yearSummary}
             mapboxToken={mapboxToken}
+            printReady={printReady}
         />
     )
 }
