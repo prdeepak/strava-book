@@ -2,6 +2,7 @@ import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS, MonthlyStats } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatPeriodRange } from '@/lib/activity-utils'
+import { MONTH_NAMES_SHORT } from '@/lib/heatmap-utils'
 
 interface YearStatsProps {
   // Primary input: array of activities for the period
@@ -168,19 +169,130 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
 
   // Monthly graph section
   graphSection: {
-    marginTop: 10 * format.scaleFactor,
-    marginBottom: 0,
+    marginTop: 12 * format.scaleFactor,
+    marginBottom: 8 * format.scaleFactor,
   },
   graphTitle: {
-    fontSize: Math.max(7, 9 * format.scaleFactor),
+    fontSize: Math.max(8, 10 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.primaryColor,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 5 * format.scaleFactor,
+    marginBottom: 8 * format.scaleFactor,
+    opacity: 0.7,
+  },
+  chartContainer: {
+    height: 80 * format.scaleFactor,
+    width: '100%',
+  },
+
+  // Sport breakdown section
+  sportSection: {
+    marginTop: 12 * format.scaleFactor,
+    paddingTop: 10 * format.scaleFactor,
+    borderTopWidth: 1,
+    borderTopColor: theme.primaryColor,
+    borderTopStyle: 'solid',
+    opacity: 0.9,
+  },
+  sportRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  sportItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  sportIcon: {
+    width: 24 * format.scaleFactor,
+    height: 24 * format.scaleFactor,
+    marginBottom: 4 * format.scaleFactor,
+  },
+  sportValue: {
+    fontSize: Math.max(16, 20 * format.scaleFactor),
+    fontFamily: 'Courier-Bold',
+    color: theme.accentColor,
+    marginBottom: 2 * format.scaleFactor,
+  },
+  sportLabel: {
+    fontSize: Math.max(7, 8 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: theme.primaryColor,
     opacity: 0.6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 })
+
+/**
+ * Inline MonthlyBarChart component for YearStats
+ * Renders a simple bar chart using View components (no SVG Text issues)
+ */
+interface MonthlyBarChartProps {
+  monthlyStats: MonthlyStats[]
+  theme: BookTheme
+  format: BookFormat
+}
+
+const MonthlyBarChart = ({ monthlyStats, theme, format }: MonthlyBarChartProps) => {
+  const maxDistance = Math.max(...monthlyStats.map(m => m.totalDistance), 1)
+  const chartHeight = 60 * format.scaleFactor
+
+  return (
+    <View style={{ flexDirection: 'column' }}>
+      {/* Bars row */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        height: chartHeight,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.primaryColor,
+        borderBottomStyle: 'solid',
+        paddingBottom: 2,
+        marginBottom: 4 * format.scaleFactor,
+      }}>
+        {monthlyStats.map((month, index) => {
+          const barHeight = Math.max((month.totalDistance / maxDistance) * (chartHeight - 4), 4)
+          return (
+            <View
+              key={index}
+              style={{
+                width: `${100 / 12 - 1}%`,
+                height: barHeight,
+                backgroundColor: theme.accentColor,
+                borderTopLeftRadius: 2,
+                borderTopRightRadius: 2,
+              }}
+            />
+          )
+        })}
+      </View>
+      {/* Labels row */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+      }}>
+        {MONTH_NAMES_SHORT.map((month, index) => (
+          <Text
+            key={index}
+            style={{
+              width: `${100 / 12}%`,
+              fontSize: Math.max(7, 8 * format.scaleFactor),
+              fontFamily: theme.fontPairing.body,
+              color: theme.primaryColor,
+              opacity: 0.6,
+              textAlign: 'center',
+            }}
+          >
+            {month.charAt(0)}
+          </Text>
+        ))}
+      </View>
+    </View>
+  )
+}
 
 // Helper to format time
 const formatTime = (seconds: number): { value: number; unit: string } => {
@@ -481,11 +593,23 @@ export const YearStats = ({
           </View>
         </View>
 
+        {/* Monthly Distance Chart */}
+        {yearSummary.monthlyStats && yearSummary.monthlyStats.length > 0 && (
+          <View style={styles.graphSection}>
+            <Text style={styles.graphTitle}>Monthly Distance</Text>
+            <MonthlyBarChart
+              monthlyStats={yearSummary.monthlyStats}
+              theme={theme}
+              format={format}
+            />
+          </View>
+        )}
+
         {/* Best Efforts Section */}
         {bestEfforts.length > 0 && (
           <View style={styles.bestEffortsSection}>
             <Text style={styles.sectionTitle}>Best Efforts</Text>
-            {bestEfforts.slice(0, 6).map((effort, i) => {
+            {bestEfforts.slice(0, 4).map((effort, i) => {
               const minutes = Math.floor(effort.elapsed_time / 60)
               const seconds = effort.elapsed_time % 60
               const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
