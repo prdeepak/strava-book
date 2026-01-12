@@ -4,7 +4,7 @@ import { BookEntry } from '@/lib/curator'
 import { RaceSectionPages } from './RaceSection'
 import { TableOfContents, TOCEntry } from './TableOfContents'
 import { CoverPage } from './Cover'
-import { Foreword } from './Foreword'
+import { ForewordPage } from './Foreword'
 import { BackCover } from './BackCover'
 import { YearCalendar } from './YearCalendar'
 import { YearStats } from './YearStats'
@@ -580,7 +580,7 @@ export const BookDocument = ({
                 // FOREWORD
                 if (entry.type === 'FOREWORD') {
                     return (
-                        <Foreword
+                        <ForewordPage
                             key={index}
                             title={entry.title || 'Foreword'}
                             body={entry.forewordText || 'Your story here...'}

@@ -267,6 +267,7 @@ export default function BookGenerationModal({
                         title: config.title,
                         periodName: config.periodName,
                         athleteName: config.athleteName,
+                        year: new Date(config.endDate).getFullYear(),
                         startDate: config.startDate,
                         endDate: config.endDate,
                         forewordText: config.forewordText || undefined,
