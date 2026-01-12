@@ -591,6 +591,10 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
         'MonthlyDivider': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('race_')),
         'ActivityLog': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('training_')),
         'BackCover': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'TableOfContents': ['toc_sections'].filter(f => fixtures.includes(f)),
+        'CalendarIconView': ['calendar_views'].filter(f => fixtures.includes(f)),
+        'CalendarHeatmapView': ['calendar_views'].filter(f => fixtures.includes(f)),
+        'CalendarBubbleView': ['calendar_views'].filter(f => fixtures.includes(f)),
     }
 
     for (const template of templates) {
