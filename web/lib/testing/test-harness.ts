@@ -395,11 +395,57 @@ export async function testTemplate(
             console.log(`[Test Harness] Mapbox token: ${mapboxToken ? 'present' : 'missing'}`)
         }
 
+        // Build template props - some templates need special handling
         const templateProps: Record<string, unknown> = {
-            activity: fixture,
             format: FORMATS['10x10'],
             theme: DEFAULT_THEME,
             mapboxToken
+        }
+
+        // Check if this is a year/period fixture (has activities array)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fixtureObj = fixture as any
+        const isYearFixture = fixtureObj?.fixtureType === 'year' || Array.isArray(fixtureObj?.activities)
+        const activities = isYearFixture ? fixtureObj.activities : null
+
+        // Templates that work with activities arrays
+        const periodTemplates = ['MonthlyDivider', 'YearStats', 'YearCalendar', 'ActivityLog']
+
+        if (periodTemplates.includes(templateName) && activities) {
+            templateProps.activities = activities
+
+            // MonthlyDivider needs a specific month - pick one with good activity count
+            if (templateName === 'MonthlyDivider') {
+                // Group by year-month and pick one with multiple activities
+                const byMonth = new Map<string, typeof activities>()
+                for (const a of activities) {
+                    const date = new Date(a.start_date_local || a.start_date)
+                    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`
+                    if (!byMonth.has(key)) byMonth.set(key, [])
+                    byMonth.get(key)!.push(a)
+                }
+                // Pick month with most activities
+                let bestMonth = ''
+                let bestCount = 0
+                for (const [key, monthActivities] of byMonth) {
+                    if (monthActivities.length > bestCount) {
+                        bestCount = monthActivities.length
+                        bestMonth = key
+                    }
+                }
+                if (bestMonth && byMonth.has(bestMonth)) {
+                    templateProps.activities = byMonth.get(bestMonth)
+                    if (verbose) {
+                        console.log(`[Test Harness] MonthlyDivider using ${bestMonth} with ${bestCount} activities`)
+                    }
+                }
+            }
+        } else if (periodTemplates.includes(templateName) && !activities) {
+            // Single activity fixture - wrap in array for period templates
+            templateProps.activities = [fixture]
+        } else {
+            // Single activity templates (Race_1p, Cover, etc.)
+            templateProps.activity = fixture
         }
 
         // Add variant if specified
@@ -508,16 +554,18 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
     const results: TestResult[] = []
 
     // Map templates to appropriate fixtures
+    // Period templates prefer year fixtures; single-activity templates use individual fixtures
+    const yearFixtures = fixtures.filter(f => f.startsWith('year_'))
     const templateFixtureMap: Record<string, string[]> = {
         'Race_1p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Race_2p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Cover': ['race_ultramarathon', 'race_marathon'].filter(f => fixtures.includes(f)),
         'Foreword': ['race_marathon', 'rich_full_content'].filter(f => fixtures.includes(f)),
-        'YearStats': ['race_ultramarathon'].filter(f => fixtures.includes(f)),  // Needs year data
-        'YearCalendar': ['race_ultramarathon'].filter(f => fixtures.includes(f)),
-        'MonthlyDivider': fixtures.filter(f => f.startsWith('race_') || f.startsWith('training_')),
-        'ActivityLog': fixtures.filter(f => f.startsWith('training_') || f.startsWith('other_')),
-        'BackCover': ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'YearStats': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'YearCalendar': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'MonthlyDivider': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('race_')),
+        'ActivityLog': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('training_')),
+        'BackCover': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
     }
 
     for (const template of templates) {

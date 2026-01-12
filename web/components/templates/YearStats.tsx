@@ -4,6 +4,9 @@ import { StravaActivity } from '@/lib/strava'
 import { formatPeriodRange } from '@/lib/activity-utils'
 
 interface YearStatsProps {
+  // Primary input: array of activities for the period
+  activities?: StravaActivity[]
+  // Legacy: single activity wrapper
   activity?: {
     yearSummary?: YearSummary | null
   }
@@ -257,7 +260,82 @@ const generateMonthlyStats = (year: number): MonthlyStats[] => {
   }))
 }
 
+// Derive YearSummary from activities array
+const deriveYearSummaryFromActivities = (activities: StravaActivity[]): YearSummary => {
+  if (activities.length === 0) {
+    return generateSyntheticYearSummary()
+  }
+
+  // Determine year from activities
+  const years = activities.map(a => new Date(a.start_date_local || a.start_date).getFullYear())
+  const year = Math.max(...years) // Use most recent year
+
+  // Calculate totals
+  const totalDistance = activities.reduce((sum, a) => sum + (a.distance || 0), 0)
+  const totalTime = activities.reduce((sum, a) => sum + (a.moving_time || 0), 0)
+  const totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
+
+  // Calculate active days
+  const activeDaysSet = new Set<string>()
+  activities.forEach(a => {
+    const date = new Date(a.start_date_local || a.start_date)
+    activeDaysSet.add(date.toISOString().split('T')[0])
+  })
+
+  // Find longest activity by distance
+  const longestActivity = activities.reduce((longest, a) =>
+    (a.distance || 0) > (longest?.distance || 0) ? a : longest, activities[0])
+
+  // Find fastest activity (one with best efforts)
+  const fastestActivity = activities.find(a => a.best_efforts && a.best_efforts.length > 0) || activities[0]
+
+  // Find races (workout_type === 1)
+  const races = activities.filter(a => a.workout_type === 1)
+
+  // Group by month for monthly stats
+  const byMonth = new Map<number, StravaActivity[]>()
+  activities.forEach(a => {
+    const date = new Date(a.start_date_local || a.start_date)
+    const month = date.getMonth()
+    if (!byMonth.has(month)) byMonth.set(month, [])
+    byMonth.get(month)!.push(a)
+  })
+
+  const monthlyStats: MonthlyStats[] = Array.from({ length: 12 }, (_, month) => {
+    const monthActivities = byMonth.get(month) || []
+    const monthDays = new Set<string>()
+    monthActivities.forEach(a => {
+      const date = new Date(a.start_date_local || a.start_date)
+      monthDays.add(date.toISOString().split('T')[0])
+    })
+    return {
+      month,
+      year,
+      activityCount: monthActivities.length,
+      totalDistance: monthActivities.reduce((sum, a) => sum + (a.distance || 0), 0),
+      totalTime: monthActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+      totalElevation: monthActivities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0),
+      activeDays: monthDays.size,
+      activities: monthActivities,
+    }
+  })
+
+  return {
+    year,
+    totalDistance,
+    totalTime,
+    totalElevation,
+    activityCount: activities.length,
+    longestActivity,
+    fastestActivity,
+    activeDays: activeDaysSet,
+    monthlyStats,
+    races,
+  }
+}
+
 export const YearStats = ({
+  activities,
   activity,
   yearSummary: propYearSummary,
   periodName: propPeriodName,
@@ -268,8 +346,17 @@ export const YearStats = ({
 }: YearStatsProps) => {
   const styles = createStyles(format, theme)
 
-  // Get year summary from props or activity or generate synthetic
-  const yearSummary = propYearSummary || activity?.yearSummary || generateSyntheticYearSummary()
+  // Get year summary: prefer activities array, then explicit prop, then legacy activity wrapper, then synthetic
+  let yearSummary: YearSummary
+  if (activities && activities.length > 0) {
+    yearSummary = deriveYearSummaryFromActivities(activities)
+  } else if (propYearSummary) {
+    yearSummary = propYearSummary
+  } else if (activity?.yearSummary) {
+    yearSummary = activity.yearSummary
+  } else {
+    yearSummary = generateSyntheticYearSummary()
+  }
 
   // Calculate period range display
   let periodRangeDisplay: string | null = null

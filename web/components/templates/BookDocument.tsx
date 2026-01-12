@@ -308,17 +308,24 @@ export function generateBookEntries(
         pageNumber: currentPage++,
     })
 
-    // Group activities by month
-    const activitiesByMonth = new Map<number, StravaActivity[]>()
-    for (let month = 0; month < 12; month++) {
-        activitiesByMonth.set(month, [])
-    }
+    // Group activities by year-month (to handle activities spanning multiple years)
+    // Key format: "YYYY-MM" for proper chronological sorting
+    const activitiesByYearMonth = new Map<string, StravaActivity[]>()
 
     activities.forEach(activity => {
         const date = new Date(activity.start_date_local || activity.start_date)
+        const activityYear = date.getFullYear()
         const month = date.getMonth()
-        activitiesByMonth.get(month)?.push(activity)
+        const key = `${activityYear}-${String(month).padStart(2, '0')}`
+
+        if (!activitiesByYearMonth.has(key)) {
+            activitiesByYearMonth.set(key, [])
+        }
+        activitiesByYearMonth.get(key)?.push(activity)
     })
+
+    // Sort year-month keys chronologically
+    const sortedYearMonths = Array.from(activitiesByYearMonth.keys()).sort()
 
     // 6. ALL RACE PAGES (grouped together, no monthly dividers)
     const allRaces = activities.filter(a => a.workout_type === 1)
@@ -335,9 +342,14 @@ export function generateBookEntries(
     })
 
     // 7. ACTIVITY LOG with Monthly Dividers
-    // For each month with non-race activities: Monthly Divider → that month's activities
-    for (let month = 0; month < 12; month++) {
-        const monthActivities = activitiesByMonth.get(month) || []
+    // For each year-month with non-race activities: Monthly Divider → that month's activities
+    // Sorted chronologically (Dec 2025 before Jan 2026)
+    for (const yearMonthKey of sortedYearMonths) {
+        const [yearStr, monthStr] = yearMonthKey.split('-')
+        const entryYear = parseInt(yearStr, 10)
+        const month = parseInt(monthStr, 10)
+
+        const monthActivities = activitiesByYearMonth.get(yearMonthKey) || []
         const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
 
         // Skip months with no non-race activities
@@ -349,7 +361,7 @@ export function generateBookEntries(
         entries.push({
             type: 'MONTHLY_DIVIDER',
             month,
-            year,
+            year: entryYear,
             title: MONTH_NAMES[month],
             highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
@@ -367,8 +379,8 @@ export function generateBookEntries(
                 activityIds: pageActivities.map(a => a.id),
                 pageNumber: currentPage++,
                 title: totalLogPages > 1
-                    ? `${MONTH_NAMES[month]} (${pageNum + 1}/${totalLogPages})`
-                    : MONTH_NAMES[month],
+                    ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
+                    : `${MONTH_NAMES[month]} ${entryYear}`,
             })
         }
     }
@@ -514,20 +526,19 @@ export const BookDocument = ({
 
                 // MONTHLY_DIVIDER
                 if (entry.type === 'MONTHLY_DIVIDER') {
+                    // Filter activities for this month+year
                     const monthActivities = activities.filter(a => {
-                        const activityMonth = new Date(a.start_date_local).getMonth()
-                        return activityMonth === entry.month
+                        const activityDate = new Date(a.start_date_local || a.start_date)
+                        const activityMonth = activityDate.getMonth()
+                        const activityYear = activityDate.getFullYear()
+                        return activityMonth === entry.month && activityYear === entry.year
                     })
+
+                    // Pass activities - MonthlyDivider derives everything it needs
                     return (
                         <MonthlyDivider
                             key={index}
-                            month={entry.month ?? 0}
-                            year={entry.year ?? year}
-                            stats={{
-                                activityCount: monthActivities.length,
-                                totalDistance: monthActivities.reduce((sum, a) => sum + a.distance, 0),
-                                totalTime: monthActivities.reduce((sum, a) => sum + a.moving_time, 0),
-                            }}
+                            activities={monthActivities}
                             format={format}
                             theme={theme}
                         />

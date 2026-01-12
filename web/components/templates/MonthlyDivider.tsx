@@ -4,6 +4,9 @@ import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 
 interface MonthlyDividerProps {
+  // Primary input: array of activities for this month
+  activities?: StravaActivity[]
+  // Explicit props (used if activities not provided)
   month?: number  // 0-11
   year?: number
   stats?: {
@@ -21,7 +24,7 @@ interface MonthlyDividerProps {
   format?: BookFormat
   theme?: BookTheme
   units?: 'metric' | 'imperial'
-  // For test harness compatibility
+  // For test harness compatibility (single activity)
   activity?: StravaActivity
 }
 
@@ -154,23 +157,77 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
 })
 
 export const MonthlyDivider = ({
+  activities,
   month: propMonth,
   year: propYear,
   stats: propStats,
-  highlights,
+  highlights: propHighlights,
+  heroImage: propHeroImage,
   format: propFormat,
   theme = DEFAULT_THEME,
   units = 'metric',
   activity
 }: MonthlyDividerProps) => {
-  // Handle test harness case: derive props from activity if provided
+  const format = propFormat || FORMATS['10x10']
+
   let month = propMonth
   let year = propYear
   let stats = propStats
-  const format = propFormat || FORMATS['10x10']
+  let highlights = propHighlights
+  let heroImage = propHeroImage
 
-  if (activity && !propMonth) {
-    // Derive from activity for testing
+  // CASE 1: activities array provided (from BookDocument)
+  if (activities && activities.length > 0) {
+    // Derive month/year from first activity
+    const firstActivity = activities[0]
+    const firstDate = new Date(firstActivity.start_date_local || firstActivity.start_date)
+    month = firstDate.getMonth()
+    year = firstDate.getFullYear()
+
+    // Calculate stats from all activities
+    const activeDaysSet = new Set<string>()
+    activities.forEach(a => {
+      const date = new Date(a.start_date_local || a.start_date)
+      activeDaysSet.add(date.toISOString().split('T')[0])
+    })
+
+    stats = {
+      activityCount: activities.length,
+      totalDistance: activities.reduce((sum, a) => sum + (a.distance || 0), 0),
+      totalTime: activities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+      activeDays: activeDaysSet.size,
+      totalElevation: activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0),
+    }
+
+    // Extract highlights from activities with descriptions
+    if (!highlights || highlights.length === 0) {
+      highlights = []
+      const activitiesWithDesc = activities.filter(a => a.description && a.description.trim().length > 0)
+      activitiesWithDesc.slice(0, 2).forEach(a => {
+        const quoteText = a.description || ''
+        highlights!.push({
+          quote: quoteText.length > 180 ? quoteText.substring(0, 180) + '...' : quoteText,
+          author: a.name?.substring(0, 50) || 'Activity'
+        })
+      })
+    }
+
+    // Find hero image from activities with photos
+    if (!heroImage) {
+      for (const a of activities) {
+        const photoUrls = a.photos?.primary?.urls as Record<string, string> | undefined
+        if (photoUrls) {
+          const sizes = Object.keys(photoUrls).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
+          if (sizes.length > 0) {
+            heroImage = photoUrls[String(sizes[0])]
+            break
+          }
+        }
+      }
+    }
+  }
+  // CASE 2: single activity provided (test harness)
+  else if (activity && propMonth === undefined) {
     const activityDate = new Date(activity.start_date || activity.start_date_local || new Date())
     month = activityDate.getMonth()
     year = activityDate.getFullYear()
@@ -195,7 +252,7 @@ export const MonthlyDivider = ({
     }
   }
 
-  // Ensure we have required values
+  // Ensure we have required values (CASE 3: explicit props or defaults)
   if (month === undefined) month = new Date().getMonth()
   if (year === undefined) year = new Date().getFullYear()
   if (!stats) {
