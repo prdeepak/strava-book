@@ -33,23 +33,32 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     padding: 0,
     position: 'relative',
   },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    opacity: 0.35,
-    objectFit: 'cover',
-  },
-  gradientOverlay: {
+  // Solid color base layer (behind image)
+  colorBase: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
     backgroundColor: theme.primaryColor,
-    opacity: 0.85,
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.6,
+    objectFit: 'cover',
+  },
+  // Semi-transparent overlay for text readability
+  textOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   contentContainer: {
     position: 'absolute',
@@ -192,23 +201,17 @@ export const CoverPage = ({
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Background layer */}
-      {bgImage ? (
+      {/* Layer 1: Solid color base */}
+      <View style={styles.colorBase} />
+
+      {/* Layer 2: Background image (on top of color, visible) */}
+      {bgImage && (
         <>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={bgImage} style={styles.backgroundImage} />
-          <View style={styles.gradientOverlay} />
+          {/* Layer 3: Semi-transparent overlay for text readability */}
+          <View style={styles.textOverlay} />
         </>
-      ) : (
-        // Fallback solid color when no image provided (react-pdf doesn't support gradients)
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: theme.primaryColor,
-        }} />
       )}
 
       {/* Top decorative accent */}
