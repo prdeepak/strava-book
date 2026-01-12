@@ -27,6 +27,7 @@ interface BookConfig {
     format: BookFormat
     theme: BookTheme
     stylePreference: StylePreference
+    printReady: boolean // Insert blank pages for proper print spreads
 }
 
 // Preset themes users can choose from
@@ -113,6 +114,7 @@ export default function BookGenerationModal({
         format: FORMATS['10x10'],
         theme: PRESET_THEMES.classic,
         stylePreference: 'classic',
+        printReady: false,
     })
 
     // Update config when activities change
@@ -273,6 +275,7 @@ export default function BookGenerationModal({
                         forewordText: config.forewordText || undefined,
                         format: config.format,
                         theme: config.theme,
+                        printReady: config.printReady,
                     },
                 }),
             })
@@ -574,6 +577,24 @@ export default function BookGenerationModal({
                                         No activities in selected date range. Adjust the dates above.
                                     </p>
                                 )}
+                            </div>
+
+                            {/* Print-Ready Option */}
+                            <div className="bg-stone-50 rounded-xl p-4">
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.printReady}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, printReady: e.target.checked }))}
+                                        className="mt-1 w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div>
+                                        <span className="font-semibold text-stone-800">Print-Ready</span>
+                                        <p className="text-xs text-stone-500 mt-0.5">
+                                            Insert blank pages so sections start on right-hand pages (for professional printing)
+                                        </p>
+                                    </div>
+                                </label>
                             </div>
 
                             {/* Generate Buttons */}

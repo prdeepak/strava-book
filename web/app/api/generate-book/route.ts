@@ -45,6 +45,7 @@ interface BookGenerationRequest {
         forewordText?: string
         format: BookFormat
         theme: BookTheme
+        printReady?: boolean
     }
 }
 
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
                 format,
                 theme,
                 mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+                printReady: config.printReady ?? false,
             })
         )
 
