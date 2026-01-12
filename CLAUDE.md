@@ -150,14 +150,29 @@ make workspace-start id=X   # Start a stopped workspace
 make workspace-stop id=X    # Stop a workspace container
 make workspace-destroy id=X # Remove workspace completely
 make workspace-cleanup      # Remove stale workspaces (inactive >24h)
+make workspace-info         # Show current workspace context
 ```
 
 ### How It Works
 - Each workspace is a git worktree with its own branch
 - Each workspace runs in a dedicated Docker container on a unique port (3001-3020)
-- The `.env.local` is symlinked from the main repo (shared secrets)
+- The `.env.local` is copied from the main repo (shared secrets)
 - Workspaces are tracked in `~/bin/strava-workspaces/registry.json`
 - Workspaces inactive for >24h are marked "stale" and can be cleaned up
+- **Makefile is workspace-aware**: All `make` commands automatically detect workspace context
+  - `make web-dev` uses the correct port based on `.workspace.json`
+  - `make web-restart` stops/starts the correct container
+  - `make test-e2e-ci` runs tests against the workspace port
+
+### Workspace-Aware Commands
+The Makefile automatically detects if you're in a workspace and adjusts behavior:
+
+| Context | Port | Docker Compose File | Container Filter |
+|---------|------|---------------------|------------------|
+| Main repo | 3001 | docker-compose.yml | strava-book |
+| Workspace | Assigned (3001-3020) | docker-compose.workspace.yml | strava-ws-{id} |
+
+Run `make workspace-info` to see the current context.
 
 ### Workflow for Parallel Development
 1. Main repo (`~/bin/strava-book`) stays clean - never edit directly
@@ -166,3 +181,19 @@ make workspace-cleanup      # Remove stale workspaces (inactive >24h)
 4. When done, create PR from workspace branch to main
 5. Wait for user to approve and merge the PR
 6. Cleanup workspace after merge: `make workspace-destroy id=<workspace-id>`
+
+### Why Git Worktrees (Not Clones)
+The workspace system uses git worktrees rather than full clones. This is intentional:
+
+**Advantages of worktrees:**
+- Lightweight: Shares git objects, ~10x faster to create than clone
+- Branch coordination: All worktrees see each other's branches
+- Single remote: Push/pull affects all workspaces consistently
+- Easy cleanup: `git worktree remove` is cleaner than deleting clones
+
+**When clones would be better:**
+- Working on completely unrelated histories
+- Need to test against different remote branches simultaneously
+- Want complete isolation (worktrees share reflog, stash, etc.)
+
+For this use case (parallel agent development on features that merge to main), worktrees provide the right balance of isolation and coordination.

@@ -1,6 +1,32 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info
+
+# =============================================================================
+# Workspace Detection
+# =============================================================================
+# Automatically detect if running in a workspace and configure accordingly.
+# This allows the same Makefile to work in both main repo and workspaces.
+# =============================================================================
+
+WORKSPACE_FILE := .workspace.json
+IS_WORKSPACE := $(shell test -f $(WORKSPACE_FILE) && echo yes || echo no)
+
+ifeq ($(IS_WORKSPACE),yes)
+  # Running in a workspace - use workspace-specific configuration
+  WORKSPACE_ID := $(shell jq -r .id $(WORKSPACE_FILE) 2>/dev/null)
+  WEB_PORT := $(shell jq -r .port $(WORKSPACE_FILE) 2>/dev/null)
+  CONTAINER_NAME := strava-ws-$(WORKSPACE_ID)
+  COMPOSE_CMD := docker-compose -f docker-compose.workspace.yml
+  CONTAINER_FILTER := name=strava-ws-$(WORKSPACE_ID)
+else
+  # Running in main repo - use default configuration
+  WORKSPACE_ID := main
+  WEB_PORT := 3001
+  CONTAINER_NAME := strava-book-web
+  COMPOSE_CMD := docker-compose
+  CONTAINER_FILTER := name=strava-book
+endif
 
 help:
 	@echo "Available commands:"
@@ -28,6 +54,16 @@ help:
 	@echo "  make workspace-stop id=X    - Stop a workspace container"
 	@echo "  make workspace-destroy id=X - Remove a workspace completely"
 	@echo "  make workspace-cleanup      - Remove stale workspaces (inactive >24h)"
+	@echo "  make workspace-info         - Show current workspace context"
+ifeq ($(IS_WORKSPACE),yes)
+	@echo ""
+	@echo "Current context: WORKSPACE ($(WORKSPACE_ID))"
+	@echo "  Port: $(WEB_PORT) | Container: $(CONTAINER_NAME)"
+else
+	@echo ""
+	@echo "Current context: MAIN REPO"
+	@echo "  Port: $(WEB_PORT) | Using default docker-compose.yml"
+endif
 
 
 # --- The Smart Check ---
@@ -48,28 +84,28 @@ check-docker:
 	fi
 
 
-# ... (Standard Docker commands kept for reference) ...
+# --- Standard Docker Commands (workspace-aware) ---
 up:
 	make check-docker
-	docker-compose up -d
+	$(COMPOSE_CMD) up -d
 
 down:
-	@echo "🛑 Stopping all strava-book containers..."
-	@docker ps -q --filter "name=strava-book" | xargs -r docker stop
+	@echo "🛑 Stopping containers (context: $(WORKSPACE_ID))..."
+	@docker ps -q --filter "$(CONTAINER_FILTER)" | xargs -r docker stop
 	@echo "🧹 Cleaning up Docker Compose resources..."
-	docker-compose down
+	$(COMPOSE_CMD) down
 
 build:
-	docker-compose build
+	$(COMPOSE_CMD) build
 
 shell:
-	docker-compose exec app /bin/bash
+	$(COMPOSE_CMD) exec app /bin/bash
 
 run:
-	docker-compose exec app python main.py
+	$(COMPOSE_CMD) exec app python main.py
 
 test:
-	docker-compose exec app pytest
+	$(COMPOSE_CMD) exec app pytest
 
 # --- The Smart Sync Command ---
 # Default to timestamp if no 'msg' is provided
@@ -82,85 +118,95 @@ sync:
 	git push origin main
 
 
-# --- Web App Commands ---
+# --- Web App Commands (workspace-aware) ---
 web-shell:
-	docker-compose run --rm -w /app/web web /bin/sh
+	$(COMPOSE_CMD) run --rm -w /app/web web /bin/sh
 
 web-dev:
-	# Install dependencies (for Linux native modules) then run dev server
-	docker-compose run --rm --service-ports -w /app/web web sh -c "npm install --legacy-peer-deps && npm run dev"
+	@echo "Starting dev server (context: $(WORKSPACE_ID), port: $(WEB_PORT))..."
+	$(COMPOSE_CMD) run --rm --service-ports -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run dev"
 
 web-install:
-	docker-compose run --rm -w /app/web web npm install --legacy-peer-deps
+	$(COMPOSE_CMD) run --rm -w /app/web web npm install --legacy-peer-deps
 
 web-build:
-	docker-compose run --rm -w /app/web web sh -c "npm install --legacy-peer-deps && npm run build"
+	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run build"
 
 web-check:
-	docker-compose run --rm -w /app/web web sh -c "npm install --legacy-peer-deps && npm run lint && npm run build"
+	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run lint && npm run build"
 
 web-restart:
-	@echo "Stopping any running web containers..."
-	@docker ps -q --filter "name=strava-book-web" | xargs -r docker stop
-	@echo "Starting new web server..."
+	@echo "Stopping web containers (context: $(WORKSPACE_ID))..."
+	@docker ps -q --filter "$(CONTAINER_FILTER)" | xargs -r docker stop
+	@echo "Starting new web server on port $(WEB_PORT)..."
 	$(MAKE) web-dev
 
+# Show current workspace context
+workspace-info:
+	@echo "Workspace Detection:"
+	@echo "  IS_WORKSPACE: $(IS_WORKSPACE)"
+	@echo "  WORKSPACE_ID: $(WORKSPACE_ID)"
+	@echo "  WEB_PORT: $(WEB_PORT)"
+	@echo "  CONTAINER_NAME: $(CONTAINER_NAME)"
+	@echo "  COMPOSE_CMD: $(COMPOSE_CMD)"
+	@echo "  CONTAINER_FILTER: $(CONTAINER_FILTER)"
 
-# --- Testing Commands ---
+
+# --- Testing Commands (workspace-aware) ---
 test-visual:
 	@echo "🧪 Running visual template tests..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --all --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --all --verbose
 
 test-template:
 	@echo "🧪 Testing template $(template) with fixture $(fixture)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --verbose
 
 test-list:
 	@echo "📋 Available templates and fixtures:"
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --list
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --list
 
 test-pdf:
 	@echo "📄 Generating PDF only (no visual judge)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
 
 test-graphic:
 	@echo "🎨 Testing $(graphic) graphic with fixture $(fixture)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --graphic $(graphic) --fixture $(fixture) --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --graphic $(graphic) --fixture $(fixture) --verbose
 
 test-graphic-list:
 	@echo "🎨 Available graphics and fixtures:"
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --list
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --list
 
 test-integration:
 	@echo "📚 Running integration tests (full book generation)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --verbose
 
 test-integration-quick:
 	@echo "📚 Running integration tests (no visual judge)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
 
 test-book-generation:
 	@echo "📖 Running book generation tests..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/book-generation-tests.ts --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-generation-tests.ts --verbose
 
 test-api:
 	@echo "🔌 Running API-level tests (matches browser environment)..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/api-tests.ts --verbose
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/api-tests.ts --verbose
 
 test-ai:
 	@echo "🤖 Running AI output validation tests..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/ai-output-tests.ts
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/ai-output-tests.ts
 
 test-fonts:
 	@echo "🔤 Running font validation tests..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 
 test-e2e:
 	@echo "🔤 Running font validation..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running Playwright e2e tests (requires web dev server)"
 	@echo "Note: Start server with 'make web-dev' first"
-	docker-compose run --rm playwright npx playwright test --reporter=line
+	$(COMPOSE_CMD) run --rm playwright npx playwright test --reporter=line
 
 test-e2e-local:
 	@echo "🎭 Running Playwright e2e tests locally..."
@@ -169,10 +215,10 @@ test-e2e-local:
 
 test-e2e-ci:
 	@echo "🔤 Running font validation..."
-	docker-compose run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running self-contained e2e tests in Docker..."
 	@echo "This builds, starts server, and runs tests - fully isolated"
-	docker-compose run --rm e2e
+	$(COMPOSE_CMD) run --rm e2e
 
 
 # --- Start the day ---

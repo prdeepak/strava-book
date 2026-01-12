@@ -58,7 +58,7 @@ services:
         echo '📦 Installing system dependencies...' &&
         apt-get update && apt-get install -y poppler-utils &&
         echo '🔧 Installing npm dependencies...' &&
-        npm install --legacy-peer-deps &&
+        ./scripts/smart-npm-install.sh || npm install --legacy-peer-deps &&
         echo '🔨 Building Next.js app...' &&
         npm run build &&
         echo '🚀 Starting server on port 3001...' &&
