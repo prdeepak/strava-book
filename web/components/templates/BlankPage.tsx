@@ -10,11 +10,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   page: {
     width: format.dimensions.width,
     height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
+    backgroundColor: theme.primaryColor,
     padding: 0,
   },
   content: {
     flex: 1,
+    backgroundColor: theme.primaryColor,
   },
 })
 
