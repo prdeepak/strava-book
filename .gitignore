@@ -19,3 +19,4 @@ venv/
 /web/playwright/.cache/
 web/test-output/
 outputs/
+.claude/ralph-loop.local.md
