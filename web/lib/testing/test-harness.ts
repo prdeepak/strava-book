@@ -239,6 +239,10 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         const mod = await import('../../components/templates/Cover')
         return mod.Cover
     },
+    'Foreword': async () => {
+        const mod = await import('../../components/templates/Foreword')
+        return mod.Foreword
+    },
     'YearStats': async () => {
         const mod = await import('../../components/templates/YearStats')
         return mod.YearStats
@@ -508,6 +512,7 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
         'Race_1p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Race_2p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Cover': ['race_ultramarathon', 'race_marathon'].filter(f => fixtures.includes(f)),
+        'Foreword': ['race_marathon', 'rich_full_content'].filter(f => fixtures.includes(f)),
         'YearStats': ['race_ultramarathon'].filter(f => fixtures.includes(f)),  // Needs year data
         'YearCalendar': ['race_ultramarathon'].filter(f => fixtures.includes(f)),
         'MonthlyDivider': fixtures.filter(f => f.startsWith('race_') || f.startsWith('training_')),

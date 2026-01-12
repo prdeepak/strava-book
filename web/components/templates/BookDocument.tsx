@@ -10,6 +10,7 @@ import { YearCalendar } from './YearCalendar'
 import { YearStats } from './YearStats'
 import { MonthlyDivider } from './MonthlyDivider'
 import { ActivityLog } from './ActivityLog'
+import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
 
@@ -141,6 +142,70 @@ export function computeYearSummary(activities: StravaActivity[], year: number): 
         races,
         aRace,
     }
+}
+
+// ============================================================================
+// PRINT SPREAD UTILITIES
+// ============================================================================
+
+/**
+ * Page types that should start on right-hand pages (recto).
+ * In print books, odd page numbers are right-hand pages.
+ */
+const RECTO_PAGE_TYPES: BookEntry['type'][] = [
+    'COVER',
+    'MONTHLY_DIVIDER',
+    'RACE_PAGE',
+    'YEAR_STATS',
+    'YEAR_AT_A_GLANCE',
+]
+
+/**
+ * Insert blank pages where needed to ensure proper print spreads.
+ *
+ * In professional print books:
+ * - Page 1 is always a right-hand page (recto)
+ * - Odd-numbered pages are right (recto), even are left (verso)
+ * - Key sections (chapters, monthly dividers) should start on right pages
+ *
+ * @param entries - Original book entries
+ * @returns New array with blank pages inserted where needed
+ */
+export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
+    const result: BookEntry[] = []
+    let currentPage = 1
+
+    for (const entry of entries) {
+        // Check if this entry type should start on a right-hand page
+        const shouldBeRecto = RECTO_PAGE_TYPES.includes(entry.type)
+
+        // Right-hand pages are odd-numbered (1, 3, 5...)
+        // If we're on an even page and need to be on odd, insert a blank
+        if (shouldBeRecto && currentPage % 2 === 0) {
+            result.push({
+                type: 'BLANK_PAGE',
+                pageNumber: currentPage,
+                title: 'This page intentionally left blank',
+            })
+            currentPage++
+        }
+
+        // Add the entry with updated page number
+        result.push({
+            ...entry,
+            pageNumber: currentPage,
+        })
+
+        // Update page count based on entry type
+        // Most entries are 1 page, but some (like race spreads) are multiple pages
+        if (entry.type === 'RACE_PAGE') {
+            currentPage += 2 // Race pages use 2-page spreads
+        } else {
+            currentPage += 1
+        }
+    }
+
+    return result
 }
 
 // ============================================================================
@@ -343,6 +408,8 @@ interface BookDocumentProps {
     year?: number
     yearSummary?: YearSummary
     mapboxToken?: string
+    /** Insert blank pages to ensure proper print spreads (sections on right pages) */
+    printReady?: boolean
 }
 
 /**
@@ -358,10 +425,14 @@ export const BookDocument = ({
     year = new Date().getFullYear(),
     yearSummary,
     mapboxToken,
+    printReady = false,
 }: BookDocumentProps) => {
     // Calculate year summary from activities if not provided
     // Uses the comprehensive computeYearSummary function for proper monthly stats
     const computedYearSummary: YearSummary = yearSummary || computeYearSummary(activities, year)
+
+    // Insert blank pages for print-ready output if requested
+    const processedEntries = printReady ? insertBlankPagesForPrint(entries) : entries
 
     // Build TOC entries from draft entries
     const tocEntries: TOCEntry[] = entries
@@ -375,7 +446,7 @@ export const BookDocument = ({
 
     return (
         <Document>
-            {entries.map((entry, index) => {
+            {processedEntries.map((entry, index) => {
                 // COVER
                 if (entry.type === 'COVER') {
                     return (
@@ -537,6 +608,17 @@ export const BookDocument = ({
                     )
                 }
 
+                // BLANK_PAGE (for print spreads)
+                if (entry.type === 'BLANK_PAGE') {
+                    return (
+                        <BlankPageComponent
+                            key={index}
+                            format={format}
+                            theme={theme}
+                        />
+                    )
+                }
+
                 // BACK_COVER
                 if (entry.type === 'BACK_COVER') {
                     return (
@@ -580,6 +662,7 @@ function getCategoryForType(type: BookEntry['type']): string {
         case 'ROUTE_HEATMAP':
             return 'Highlights'
         case 'BACK_COVER':
+        case 'BLANK_PAGE':
             return 'Back Matter'
         default:
             return 'Other'
@@ -609,6 +692,8 @@ function getDefaultTitle(entry: BookEntry): string {
             return 'Stats Summary'
         case 'BACK_COVER':
             return 'Back Cover'
+        case 'BLANK_PAGE':
+            return '' // Blank pages don't need titles
         default:
             return entry.type
     }
@@ -628,6 +713,8 @@ interface FullBookDocumentProps {
     format?: BookFormat
     theme?: BookTheme
     mapboxToken?: string
+    /** Insert blank pages to ensure proper print spreads (sections on right pages) */
+    printReady?: boolean
 }
 
 /**
@@ -656,6 +743,7 @@ export const FullBookDocument = ({
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
     mapboxToken,
+    printReady = false,
 }: FullBookDocumentProps) => {
     // Generate book entries from activities
     const entries = generateBookEntries(activities, {
@@ -680,6 +768,7 @@ export const FullBookDocument = ({
             year={year}
             yearSummary={yearSummary}
             mapboxToken={mapboxToken}
+            printReady={printReady}
         />
     )
 }

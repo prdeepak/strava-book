@@ -744,7 +744,8 @@ function getTemplateForPageType(pageType: BookPageType): string {
     'BEST_EFFORTS': 'best_efforts',
     'ROUTE_HEATMAP': 'route_heatmap',
     'STATS_SUMMARY': 'stats_summary',
-    'BACK_COVER': 'back_cover'
+    'BACK_COVER': 'back_cover',
+    'BLANK_PAGE': 'blank_page'
   }
 
   return templateMap[pageType] || 'race_1p'

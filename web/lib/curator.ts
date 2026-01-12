@@ -13,6 +13,7 @@ export type BookPageType =
     | 'ROUTE_HEATMAP'
     | 'STATS_SUMMARY'
     | 'BACK_COVER'
+    | 'BLANK_PAGE'
 
 export interface BookEntry {
     type: BookPageType
