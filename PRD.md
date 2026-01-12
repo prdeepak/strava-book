@@ -14,9 +14,10 @@ MedalBook is a premium web application that transforms any user-selected period 
 2.  **Ink on Paper:** Every design decision must prioritize print fidelity. We use `React-PDF` to ensure pixel-perfect 300dpi output.
 3.  **Beautiful Design:** We use professional typography, high-quality images, and a clean layout to create a visually stunning book.
 4.  **Curation over Collection:** We do not print every 5k recovery run on its own page. We summarize the grind (Activity Logs) and celebrate the glory (Race Sections).
-5.  **Agentic Customization:** The agent should customize the book based on the data -- e.g., choose relevant colors, fonts, layouts; add web images or AI-generated images.  Each book should look as if it was bespoke, and not a carbon-copy of the others. 
-6.  **User Customization:** The user can customize the book, limited to high-impact choices (e.g., "Change Cover Photo," "Swap Theme Colors"). We avoid granular "move this pixel" editing to maintain design integrity.
-7.  **Agentic Polish:** We use AI agents (`overnight-agents.sh`) to iteratively refine layouts, ensuring text doesn't overlap and photos are optimally cropped.
+5. **Emphasize emotional content:** When curating, focus on the higher-emotion components -- e.g., races, group runs, activities with photos and comments when choosing activities; and within each activity, the descriptions, photos, kuddos + comments should stand out.  Also visual elements such as maps, elevation profiles, splits charts.
+6.  **Agentic Customization:** The agent should customize the book based on the data -- e.g., choose relevant colors, fonts, layouts; add web images or AI-generated images.  Each book should look as if it was bespoke, and not a carbon-copy of the others. 
+7.  **User Customization:** The user can customize the book, limited to high-impact choices (e.g., "Change Cover Photo," "Swap Theme Colors"). We avoid granular "move this pixel" editing to maintain design integrity.
+8.  **Agentic Polish:** We use AI agents (`overnight-agents.sh`) to iteratively refine layouts, ensuring text doesn't overlap and photos are optimally cropped.
 
 ## 3. User Flow
 ### Phase 1: Ingestion & Analysis
@@ -43,13 +44,13 @@ MedalBook is a premium web application that transforms any user-selected period 
 The book is generated as a linear sequence of `BookEntry` objects, rendered by `BookDocument.tsx`.
 
 ### A. Front Matter
--   **Cover:** Full-bleed hero image, Athlete Name, Year.
--   **Foreword:** Optional personal note.
--   **Table of Contents:** Auto-generated.
+-   **Cover:** Full-bleed hero image, Athlete Name, DateRange, Book title / theme.
+-   **Foreword:** Optional personal note and/or inspiring quote or dedication
+-   **Table of Contents:** Auto-generated; lists sections not individual pages (e.g., each month of activity journal entries is a section, not a page).
 
 ### B. The Year in Data
--   **Year Stats:** "Magazine style" dashboard. Big typography for Total Miles, Hours, Elevation.
--   **Year Calendar:** GitHub-style heatmap visualization of consistency.
+-   **Year Stats:** "Magazine style" dashboard. Big typography for Total Miles, Hours, Elevation.  Choose or generate an image for the background.
+-   **Year Calendar:** Strava-style heatmap visualization of consistency.  See outputs/strava-streaks or outputs/strava-training for examples of how the calendar might look; but group icons into months
 
 ### C. Race Sections ( The "Hero" Content)
 The heart of the book. We support dynamic variants defined in `RaceSection.tsx`:
@@ -63,6 +64,8 @@ The heart of the book. We support dynamic variants defined in `RaceSection.tsx`:
 **Key Visuals:**
 -   **Maps:** Mapbox Satellite style (dark mode) with bright polyline overlays.
 -   **Photos:** prioritized from Strava. Future: Upload high-res override.
+- **Split chart:** pre-formatted SVG
+- **Elevation profile:** pre-formatted SVG
 
 ### D. Activity Log (The "Grind")
 -   **Monthly Dividers:** Visually distinct chapter breaks for each active month.
