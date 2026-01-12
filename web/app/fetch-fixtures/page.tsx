@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 
 interface FetchResult {
     activities: unknown[]
@@ -82,7 +83,7 @@ export default function FetchFixturesPage() {
             <div className="p-8">
                 <h1 className="text-2xl font-bold mb-4">Fetch Strava Fixtures</h1>
                 <p className="text-red-600">You must be logged in to fetch activities.</p>
-                <a href="/" className="text-blue-600 underline">Go to home page to log in</a>
+                <Link href="/" className="text-blue-600 underline">Go to home page to log in</Link>
             </div>
         )
     }

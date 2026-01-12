@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
+import { StravaActivity } from '@/lib/strava'
 
 interface MonthlyDividerProps {
   month?: number  // 0-11
@@ -21,7 +22,7 @@ interface MonthlyDividerProps {
   theme?: BookTheme
   units?: 'metric' | 'imperial'
   // For test harness compatibility
-  activity?: any
+  activity?: StravaActivity
 }
 
 const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
@@ -166,7 +167,7 @@ export const MonthlyDivider = ({
   let month = propMonth
   let year = propYear
   let stats = propStats
-  let format = propFormat || FORMATS['10x10']
+  const format = propFormat || FORMATS['10x10']
 
   if (activity && !propMonth) {
     // Derive from activity for testing
@@ -282,7 +283,7 @@ export const MonthlyDivider = ({
                   {highlights.slice(0, 2).map((highlight, idx) => (
                     <View key={idx}>
                       {highlight.quote && (
-                        <Text style={styles.quote}>"{highlight.quote}"</Text>
+                        <Text style={styles.quote}>&ldquo;{highlight.quote}&rdquo;</Text>
                       )}
                       {highlight.author && (
                         <Text style={styles.quoteAuthor}>— {highlight.author}</Text>

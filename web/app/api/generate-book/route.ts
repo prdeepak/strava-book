@@ -40,8 +40,11 @@ interface BookGenerationRequest {
     activities: StravaActivity[]
     config: {
         title?: string
+        periodName?: string
         athleteName: string
         year: number
+        startDate?: string  // ISO date string
+        endDate?: string    // ISO date string
         forewordText?: string
         format: BookFormat
         theme: BookTheme
@@ -132,8 +135,11 @@ export async function POST(request: NextRequest) {
             FullBookDocument({
                 activities: enrichedActivities,
                 title: config.title,
+                periodName: config.periodName,
                 athleteName,
                 year: config.year,
+                startDate: config.startDate,
+                endDate: config.endDate,
                 forewordText: config.forewordText,
                 format,
                 theme,

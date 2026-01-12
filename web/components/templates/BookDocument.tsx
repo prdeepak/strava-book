@@ -215,8 +215,9 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
 export interface BookGenerationConfig {
     title?: string
     subtitle?: string
+    periodName?: string  // e.g., "2024", "Summer 2024", "Jan-Jun 2024"
     athleteName: string
-    year: number
+    year: number         // Still needed for date calculations
     forewordText?: string
     format: BookFormat
     activitiesPerLogPage?: number
@@ -411,7 +412,10 @@ interface BookDocumentProps {
     format?: BookFormat
     theme?: BookTheme
     athleteName?: string
-    year?: number
+    periodName?: string  // Display name for time period
+    year?: number        // Still needed for date calculations
+    startDate?: string   // ISO date string for period start
+    endDate?: string     // ISO date string for period end
     yearSummary?: YearSummary
     mapboxToken?: string
     /** Insert blank pages to ensure proper print spreads (sections on right pages) */
@@ -428,11 +432,16 @@ export const BookDocument = ({
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
     athleteName = 'Athlete',
+    periodName,
     year = new Date().getFullYear(),
+    startDate,
+    endDate,
     yearSummary,
     mapboxToken,
     printReady = false,
 }: BookDocumentProps) => {
+    // Use periodName for display, fallback to year
+    const displayPeriod = periodName || String(year)
     // Calculate year summary from activities if not provided
     // Uses the comprehensive computeYearSummary function for proper monthly stats
     const computedYearSummary: YearSummary = yearSummary || computeYearSummary(activities, year)
@@ -459,7 +468,9 @@ export const BookDocument = ({
                         <CoverPage
                             key={index}
                             title={entry.title || 'My Year in Review'}
-                            year={year}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             athleteName={athleteName}
                             backgroundImage={entry.heroImage}
                             format={format}
@@ -543,6 +554,9 @@ export const BookDocument = ({
                         <YearStats
                             key={index}
                             yearSummary={computedYearSummary}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             format={format}
                             theme={theme}
                         />
@@ -632,6 +646,9 @@ export const BookDocument = ({
                         <BackCover
                             key={index}
                             yearSummary={computedYearSummary}
+                            periodName={displayPeriod}
+                            startDate={startDate}
+                            endDate={endDate}
                             format={format}
                             theme={theme}
                         />
@@ -714,8 +731,11 @@ interface FullBookDocumentProps {
     activities: StravaActivity[]
     title?: string
     subtitle?: string
+    periodName?: string  // Display name for time period (e.g., "Summer 2024", "Jan-Jun 2024")
     athleteName: string
-    year: number
+    year: number         // Still needed for date calculations
+    startDate?: string   // ISO date string for period start
+    endDate?: string     // ISO date string for period end
     forewordText?: string
     format?: BookFormat
     theme?: BookTheme
@@ -744,18 +764,25 @@ export const FullBookDocument = ({
     activities,
     title,
     subtitle,
+    periodName,
     athleteName,
     year,
+    startDate,
+    endDate,
     forewordText,
     format = FORMATS['10x10'],
     theme = DEFAULT_THEME,
     mapboxToken,
     printReady = false,
 }: FullBookDocumentProps) => {
+    // Use periodName for display, fallback to year
+    const displayPeriod = periodName || String(year)
+
     // Generate book entries from activities
     const entries = generateBookEntries(activities, {
         title,
         subtitle,
+        periodName: displayPeriod,
         athleteName,
         year,
         forewordText,
@@ -772,7 +799,10 @@ export const FullBookDocument = ({
             format={format}
             theme={theme}
             athleteName={athleteName}
+            periodName={displayPeriod}
             year={year}
+            startDate={startDate}
+            endDate={endDate}
             yearSummary={yearSummary}
             mapboxToken={mapboxToken}
             printReady={printReady}

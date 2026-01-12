@@ -149,7 +149,7 @@ export const ForewordPage = ({
       {/* Centered content */}
       <View style={styles.contentWrapper}>
         {/* Decorative opening quote mark */}
-        <Text style={styles.quoteMarkTop}>"</Text>
+        <Text style={styles.quoteMarkTop}>&ldquo;</Text>
 
         {title && (
           <>
