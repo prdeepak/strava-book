@@ -64,6 +64,7 @@ export interface TestResult {
     judgments: VisualJudgment[]
     overallPass: boolean
     averageScore: number
+    minScore: number  // Lowest page score - use this for multi-page documents
     duration: number  // ms
     error?: string
     // Page dimension validation
@@ -263,6 +264,10 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         const mod = await import('../../components/templates/BackCover')
         return mod.BackCover
     },
+    'AllMonthlyDividers': async () => {
+        const mod = await import('../../components/templates/AllMonthlyDividers')
+        return mod.AllMonthlyDividers
+    },
 }
 
 export function getAvailableTemplates(): string[] {
@@ -358,6 +363,7 @@ export async function testTemplate(
         judgments: [],
         overallPass: false,
         averageScore: 0,
+        minScore: 0,
         duration: 0
     }
 
@@ -409,7 +415,7 @@ export async function testTemplate(
         const activities = isYearFixture ? fixtureObj.activities : null
 
         // Templates that work with activities arrays
-        const periodTemplates = ['MonthlyDivider', 'YearStats', 'YearCalendar', 'ActivityLog']
+        const periodTemplates = ['MonthlyDivider', 'YearStats', 'YearCalendar', 'ActivityLog', 'AllMonthlyDividers']
 
         if (periodTemplates.includes(templateName) && activities) {
             templateProps.activities = activities
@@ -512,6 +518,7 @@ export async function testTemplate(
             // Calculate overall results
             const scores = result.judgments.map(j => j.overallScore)
             result.averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            result.minScore = scores.length > 0 ? Math.min(...scores) : 0
             result.overallPass = result.judgments.every(j => j.pass)
         }
 
@@ -580,7 +587,7 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
             results.push(result)
 
             if (verbose) {
-                console.log(`Result: ${result.overallPass ? 'PASS' : 'FAIL'} (score: ${result.averageScore})`)
+                console.log(`Result: ${result.overallPass ? 'PASS' : 'FAIL'} (avg: ${result.averageScore}, min: ${result.minScore})`)
                 if (result.error) {
                     console.log(`Error: ${result.error}`)
                 }
@@ -608,6 +615,7 @@ export function generateReport(results: TestResult[]): string {
         `- **Failed:** ${results.filter(r => !r.overallPass && !r.error).length}`,
         `- **Errors:** ${results.filter(r => r.error).length}`,
         `- **Average Score:** ${Math.round(results.reduce((a, r) => a + r.averageScore, 0) / results.length)}`,
+        `- **Min Score:** ${Math.min(...results.map(r => r.minScore || r.averageScore))}`,
         '',
         '## Results',
         ''
@@ -618,7 +626,7 @@ export function generateReport(results: TestResult[]): string {
 
         lines.push(`### ${result.templateName} + ${result.fixtureName}`)
         lines.push(`- **Status:** ${status}`)
-        lines.push(`- **Score:** ${result.averageScore}/100`)
+        lines.push(`- **Score:** avg ${result.averageScore}/100, min ${result.minScore}/100`)
         lines.push(`- **Duration:** ${result.duration}ms`)
 
         if (result.error) {
