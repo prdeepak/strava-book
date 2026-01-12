@@ -319,60 +319,55 @@ export function generateBookEntries(
         activitiesByMonth.get(month)?.push(activity)
     })
 
-    // Track races added and non-race activities for activity log
-    const nonRaceActivities: StravaActivity[] = []
+    // 6. ALL RACE PAGES (grouped together, no monthly dividers)
+    const allRaces = activities.filter(a => a.workout_type === 1)
+    allRaces.forEach(race => {
+        entries.push({
+            type: 'RACE_PAGE',
+            activityId: race.id,
+            title: race.name,
+            highlightLabel: race.name,
+            pageNumber: currentPage,
+        })
+        // RaceSection uses 2 pages (spread) for compact variant
+        currentPage += 2
+    })
 
-    // 6. FOR EACH ACTIVE MONTH: Monthly Divider + Race pages
+    // 7. ACTIVITY LOG with Monthly Dividers
+    // For each month with non-race activities: Monthly Divider → that month's activities
     for (let month = 0; month < 12; month++) {
         const monthActivities = activitiesByMonth.get(month) || []
+        const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
 
-        // Skip months with no activities
-        if (monthActivities.length === 0) {
+        // Skip months with no non-race activities
+        if (monthNonRaces.length === 0) {
             continue
         }
 
-        // 6a. MONTHLY DIVIDER
+        // 7a. MONTHLY DIVIDER
         entries.push({
             type: 'MONTHLY_DIVIDER',
             month,
             year,
             title: MONTH_NAMES[month],
-            highlightLabel: `${monthActivities.length} ${monthActivities.length === 1 ? 'activity' : 'activities'}`,
+            highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
         })
 
-        // 6b. RACE PAGES for this month
-        const monthRaces = monthActivities.filter(a => a.workout_type === 1)
-        monthRaces.forEach(race => {
-            entries.push({
-                type: 'RACE_PAGE',
-                activityId: race.id,
-                title: race.name,
-                highlightLabel: race.name,
-                pageNumber: currentPage,
-            })
-            // RaceSection uses 2 pages (spread) for compact variant
-            currentPage += 2
-        })
-
-        // Collect non-race activities for activity log
-        const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
-        nonRaceActivities.push(...monthNonRaces)
-    }
-
-    // 7. ACTIVITY LOG PAGES (paginated)
-    if (nonRaceActivities.length > 0) {
-        const totalLogPages = Math.ceil(nonRaceActivities.length / activitiesPerPage)
+        // 7b. ACTIVITY LOG PAGES for this month
+        const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
 
         for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
             const startIdx = pageNum * activitiesPerPage
-            const pageActivities = nonRaceActivities.slice(startIdx, startIdx + activitiesPerPage)
+            const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
 
             entries.push({
                 type: 'ACTIVITY_LOG',
                 activityIds: pageActivities.map(a => a.id),
                 pageNumber: currentPage++,
-                title: `Training Journal${totalLogPages > 1 ? ` (${pageNum + 1}/${totalLogPages})` : ''}`,
+                title: totalLogPages > 1
+                    ? `${MONTH_NAMES[month]} (${pageNum + 1}/${totalLogPages})`
+                    : MONTH_NAMES[month],
             })
         }
     }
