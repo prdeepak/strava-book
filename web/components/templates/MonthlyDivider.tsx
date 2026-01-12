@@ -215,7 +215,6 @@ export const MonthlyDivider = ({
   }
 
   return (
-    <Document>
       <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
         <View style={styles.container}>
           {/* Left Panel - Dramatic Month Display */}
@@ -296,6 +295,12 @@ export const MonthlyDivider = ({
           </View>
         </View>
       </Page>
-    </Document>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const MonthlyDividerDocument = (props: MonthlyDividerProps) => (
+  <Document>
+    <MonthlyDivider {...props} />
+  </Document>
+)

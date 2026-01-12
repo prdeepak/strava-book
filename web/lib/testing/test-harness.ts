@@ -253,7 +253,7 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     },
     'MonthlyDivider': async () => {
         const mod = await import('../../components/templates/MonthlyDivider')
-        return mod.MonthlyDivider
+        return mod.MonthlyDividerDocument
     },
     'ActivityLog': async () => {
         const mod = await import('../../components/templates/ActivityLog')
