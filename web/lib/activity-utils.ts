@@ -106,6 +106,57 @@ export function getMonthName(month: number): string {
     return months[month] || 'Unknown'
 }
 
+/**
+ * Format a date range for display with smart formatting rules:
+ * - Same year, Jan 1 to Dec 31 → "2025"
+ * - < 90 days apart → "March 1-15, 2025" or "April 15 to June 30, 2025"
+ * - Same year, partial → "March to October 2025"
+ * - Different years → "July 2024 to June 2025"
+ */
+export function formatPeriodRange(startDate: Date, endDate: Date): string {
+    const startYear = startDate.getFullYear()
+    const endYear = endDate.getFullYear()
+    const startMonth = startDate.getMonth()
+    const endMonth = endDate.getMonth()
+    const startDay = startDate.getDate()
+    const endDay = endDate.getDate()
+
+    // Calculate days apart
+    const msPerDay = 24 * 60 * 60 * 1000
+    const daysApart = Math.round((endDate.getTime() - startDate.getTime()) / msPerDay)
+
+    // Check if full year (Jan 1 to Dec 31, same year)
+    const isFullYear = startYear === endYear &&
+        startMonth === 0 && startDay === 1 &&
+        endMonth === 11 && endDay === 31
+
+    if (isFullYear) {
+        return String(startYear)
+    }
+
+    // If < 90 days apart, show full dates
+    if (daysApart < 90) {
+        if (startMonth === endMonth && startYear === endYear) {
+            // Same month: "March 1-15, 2025"
+            return `${getMonthName(startMonth)} ${startDay}-${endDay}, ${startYear}`
+        } else if (startYear === endYear) {
+            // Different months, same year: "April 15 to June 30, 2025"
+            return `${getMonthName(startMonth)} ${startDay} to ${getMonthName(endMonth)} ${endDay}, ${endYear}`
+        } else {
+            // Different years: "December 15, 2024 to February 28, 2025"
+            return `${getMonthName(startMonth)} ${startDay}, ${startYear} to ${getMonthName(endMonth)} ${endDay}, ${endYear}`
+        }
+    }
+
+    // Same year, partial: "March to October 2025"
+    if (startYear === endYear) {
+        return `${getMonthName(startMonth)} to ${getMonthName(endMonth)} ${endYear}`
+    }
+
+    // Different years: "July 2024 to June 2025"
+    return `${getMonthName(startMonth)} ${startYear} to ${getMonthName(endMonth)} ${endYear}`
+}
+
 // ============================================================================
 // ACTIVITY LOG UTILITIES
 // ============================================================================

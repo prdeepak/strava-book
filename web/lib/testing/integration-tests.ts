@@ -126,7 +126,7 @@ export async function testBookGeneration(
     const theme = DEFAULT_THEME
 
     const pdfBuffer = await renderToBuffer(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // @ts-expect-error - React.createElement return type doesn't match renderToBuffer expectation
       React.createElement(BookDocument, {
         entries,
         activities: fixture.activities,
@@ -135,7 +135,7 @@ export async function testBookGeneration(
         athleteName: fixture.athleteName,
         year: fixture.year,
         yearSummary: fixture.yearSummary
-      }) as any
+      })
     )
 
     // Save PDF

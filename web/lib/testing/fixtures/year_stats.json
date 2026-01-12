@@ -1,0 +1,147 @@
+{
+  "id": 0,
+  "name": "Year Stats Fixture",
+  "type": "year_stats",
+  "yearSummary": {
+    "year": 2025,
+    "totalDistance": 3247000,
+    "totalTime": 1166520,
+    "totalElevation": 42350,
+    "activityCount": 267,
+    "activeDays": 198,
+    "longestActivity": {
+      "id": 1001,
+      "name": "Comrades Ultra Marathon",
+      "type": "Run",
+      "sport_type": "Run",
+      "distance": 89000,
+      "moving_time": 39600,
+      "total_elevation_gain": 1800,
+      "start_date": "2025-06-08T04:30:00Z",
+      "start_date_local": "2025-06-08T06:30:00Z",
+      "workout_type": 1
+    },
+    "fastestActivity": {
+      "id": 1002,
+      "name": "Boston Marathon",
+      "type": "Run",
+      "sport_type": "Run",
+      "distance": 42195,
+      "moving_time": 12600,
+      "total_elevation_gain": 280,
+      "start_date": "2025-04-21T14:30:00Z",
+      "start_date_local": "2025-04-21T10:30:00Z",
+      "workout_type": 1,
+      "best_efforts": [
+        { "name": "400m", "elapsed_time": 72, "distance": 400, "pr_rank": 1 },
+        { "name": "1k", "elapsed_time": 192, "distance": 1000, "pr_rank": 2 },
+        { "name": "1 mile", "elapsed_time": 316, "distance": 1609, "pr_rank": 1 },
+        { "name": "5k", "elapsed_time": 1020, "distance": 5000, "pr_rank": 3 },
+        { "name": "10k", "elapsed_time": 2100, "distance": 10000, "pr_rank": 2 },
+        { "name": "Half Marathon", "elapsed_time": 4800, "distance": 21097, "pr_rank": 1 }
+      ]
+    },
+    "races": [
+      {
+        "id": 1001,
+        "name": "Comrades Ultra Marathon",
+        "type": "Run",
+        "sport_type": "Run",
+        "distance": 89000,
+        "moving_time": 39600,
+        "total_elevation_gain": 1800,
+        "start_date": "2025-06-08T04:30:00Z",
+        "start_date_local": "2025-06-08T06:30:00Z",
+        "workout_type": 1,
+        "kudos_count": 485
+      },
+      {
+        "id": 1002,
+        "name": "Boston Marathon",
+        "type": "Run",
+        "sport_type": "Run",
+        "distance": 42195,
+        "moving_time": 12600,
+        "total_elevation_gain": 280,
+        "start_date": "2025-04-21T14:30:00Z",
+        "start_date_local": "2025-04-21T10:30:00Z",
+        "workout_type": 1,
+        "kudos_count": 324
+      },
+      {
+        "id": 1003,
+        "name": "Chicago Marathon",
+        "type": "Run",
+        "sport_type": "Run",
+        "distance": 42195,
+        "moving_time": 13200,
+        "total_elevation_gain": 185,
+        "start_date": "2025-10-12T13:30:00Z",
+        "start_date_local": "2025-10-12T08:30:00Z",
+        "workout_type": 1,
+        "kudos_count": 278
+      },
+      {
+        "id": 1004,
+        "name": "Brooklyn Half Marathon",
+        "type": "Run",
+        "sport_type": "Run",
+        "distance": 21097,
+        "moving_time": 5400,
+        "total_elevation_gain": 120,
+        "start_date": "2025-05-17T12:00:00Z",
+        "start_date_local": "2025-05-17T08:00:00Z",
+        "workout_type": 1,
+        "kudos_count": 156
+      },
+      {
+        "id": 1005,
+        "name": "Philadelphia Half Marathon",
+        "type": "Run",
+        "sport_type": "Run",
+        "distance": 21097,
+        "moving_time": 5280,
+        "total_elevation_gain": 95,
+        "start_date": "2025-11-22T13:30:00Z",
+        "start_date_local": "2025-11-22T08:30:00Z",
+        "workout_type": 1,
+        "kudos_count": 142
+      }
+    ],
+    "monthlyStats": [
+      { "month": 0, "year": 2025, "activityCount": 18, "totalDistance": 218500, "totalTime": 78300, "totalElevation": 2850, "activeDays": 14 },
+      { "month": 1, "year": 2025, "activityCount": 20, "totalDistance": 245000, "totalTime": 88200, "totalElevation": 3180, "activeDays": 16 },
+      { "month": 2, "year": 2025, "activityCount": 24, "totalDistance": 298000, "totalTime": 107280, "totalElevation": 3950, "activeDays": 19 },
+      { "month": 3, "year": 2025, "activityCount": 22, "totalDistance": 312000, "totalTime": 112320, "totalElevation": 3650, "activeDays": 17 },
+      { "month": 4, "year": 2025, "activityCount": 26, "totalDistance": 325000, "totalTime": 117000, "totalElevation": 4120, "activeDays": 20 },
+      { "month": 5, "year": 2025, "activityCount": 28, "totalDistance": 385000, "totalTime": 138600, "totalElevation": 5200, "activeDays": 22 },
+      { "month": 6, "year": 2025, "activityCount": 20, "totalDistance": 198000, "totalTime": 71280, "totalElevation": 2450, "activeDays": 15 },
+      { "month": 7, "year": 2025, "activityCount": 25, "totalDistance": 285000, "totalTime": 102600, "totalElevation": 3580, "activeDays": 18 },
+      { "month": 8, "year": 2025, "activityCount": 24, "totalDistance": 312000, "totalTime": 112320, "totalElevation": 3920, "activeDays": 19 },
+      { "month": 9, "year": 2025, "activityCount": 23, "totalDistance": 298000, "totalTime": 107280, "totalElevation": 3680, "activeDays": 17 },
+      { "month": 10, "year": 2025, "activityCount": 19, "totalDistance": 205000, "totalTime": 73800, "totalElevation": 2580, "activeDays": 14 },
+      { "month": 11, "year": 2025, "activityCount": 18, "totalDistance": 165500, "totalTime": 57540, "totalElevation": 3190, "activeDays": 12 }
+    ],
+    "sportBreakdown": [
+      { "sport": "Run", "count": 198, "distance": 2685000, "time": 966600, "icon": "runner" },
+      { "sport": "Ride", "count": 45, "distance": 485000, "time": 162000, "icon": "bike" },
+      { "sport": "Swim", "count": 24, "distance": 77000, "time": 37920, "icon": "swim" }
+    ],
+    "aRace": {
+      "id": 1001,
+      "name": "Comrades Ultra Marathon",
+      "type": "Run",
+      "sport_type": "Run",
+      "distance": 89000,
+      "moving_time": 39600,
+      "total_elevation_gain": 1800,
+      "start_date": "2025-06-08T04:30:00Z",
+      "start_date_local": "2025-06-08T06:30:00Z",
+      "workout_type": 1
+    }
+  },
+  "heroPhoto": {
+    "url": "photos/boston_marathon_finish.jpg",
+    "caption": "Crossing the finish line at Boston 2025"
+  }
+}

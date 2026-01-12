@@ -136,7 +136,7 @@ export const RaceSectionDescriptionPage = ({
             </View>
 
             <View style={styles.descriptionContainer}>
-                <Text style={styles.quoteDecoration}>"</Text>
+                <Text style={styles.quoteDecoration}>&ldquo;</Text>
                 <Text style={styles.description}>{description}</Text>
             </View>
 

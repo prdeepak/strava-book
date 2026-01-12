@@ -16,7 +16,7 @@ import { Race_1p } from '@/components/templates/Race_1p'
 import { Cover } from '@/components/templates/Cover'
 import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
-import { MonthlyDivider } from '@/components/templates/MonthlyDivider'
+import { MonthlyDividerDocument } from '@/components/templates/MonthlyDivider'
 import { ActivityLog } from '@/components/templates/ActivityLog'
 import { BackCover } from '@/components/templates/BackCover'
 import { Foreword } from '@/components/templates/Foreword'
@@ -181,9 +181,17 @@ const TEMPLATES: Record<string, {
     variants: ['github-style', 'monthly-bars'],
   },
   monthly_divider: {
-    component: MonthlyDivider,
+    component: MonthlyDividerDocument,
     getProps: () => ({
-      monthStats: TEST_MONTHLY_STATS,
+      month: TEST_MONTHLY_STATS.month,
+      year: TEST_MONTHLY_STATS.year,
+      stats: {
+        activityCount: TEST_MONTHLY_STATS.activityCount,
+        totalDistance: TEST_MONTHLY_STATS.totalDistance,
+        totalTime: TEST_MONTHLY_STATS.totalTime,
+        activeDays: TEST_MONTHLY_STATS.activeDays,
+        totalElevation: TEST_MONTHLY_STATS.totalElevation,
+      },
       format: FORMATS['10x10'],
       theme: DEFAULT_THEME,
     }),

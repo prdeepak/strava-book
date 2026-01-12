@@ -11,7 +11,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
-import { FullBookDocument, estimatePageCount } from '../../components/templates/BookDocument'
+import { FullBookDocument, estimatePageCount, generateBookEntries, BookGenerationConfig } from '../../components/templates/BookDocument'
+import { BookPageType } from '../curator'
 import { yearFixtures } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME, BookFormat, BookTheme } from '../book-types'
 import { StravaActivity } from '../strava'
@@ -491,6 +492,369 @@ function testApiRequestValidation(): BookGenerationTestResult {
 }
 
 // ============================================================================
+// Page Order & Structure Tests
+// ============================================================================
+
+/**
+ * Expected book structure:
+ * 1. COVER (always first)
+ * 2. FOREWORD (optional, if forewordText provided)
+ * 3. TABLE_OF_CONTENTS
+ * 4. YEAR_STATS
+ * 5. YEAR_AT_A_GLANCE
+ * 6. RACE_PAGE (all races grouped together)
+ * 7. [MONTHLY_DIVIDER + ACTIVITY_LOG]* (repeating for each month with non-race activities)
+ * 8. BACK_COVER (always last)
+ */
+const EXPECTED_PAGE_ORDER: BookPageType[] = [
+    'COVER',
+    'TABLE_OF_CONTENTS',
+    'YEAR_STATS',
+    'YEAR_AT_A_GLANCE',
+    // RACE_PAGEs come next (0 or more)
+    // Then MONTHLY_DIVIDER + ACTIVITY_LOG pairs
+    'BACK_COVER', // Always last
+]
+
+/**
+ * Test: Page order verification
+ * Ensures pages appear in the expected sequence
+ */
+function testPageOrder(): BookGenerationTestResult {
+    const startTime = Date.now()
+    const testName = 'Page Order Verification'
+
+    try {
+        const activities = createActivitiesForYear(2024, 30)
+        // Ensure we have races in different months
+        activities[2].workout_type = 1  // January race
+        activities[14].workout_type = 1 // February race
+        activities[26].workout_type = 1 // March race
+
+        const config: BookGenerationConfig = {
+            title: 'Test Book',
+            athleteName: 'Test Athlete',
+            year: 2024,
+            format: FORMATS['10x10'],
+        }
+
+        const entries = generateBookEntries(activities, config)
+        const pageTypes = entries.map(e => e.type)
+
+        const errors: string[] = []
+
+        // Rule 1: COVER must be first
+        if (pageTypes[0] !== 'COVER') {
+            errors.push(`First page should be COVER, got ${pageTypes[0]}`)
+        }
+
+        // Rule 2: BACK_COVER must be last
+        if (pageTypes[pageTypes.length - 1] !== 'BACK_COVER') {
+            errors.push(`Last page should be BACK_COVER, got ${pageTypes[pageTypes.length - 1]}`)
+        }
+
+        // Rule 3: TABLE_OF_CONTENTS should come early (within first 4 pages)
+        const tocIndex = pageTypes.indexOf('TABLE_OF_CONTENTS')
+        if (tocIndex === -1) {
+            errors.push('TABLE_OF_CONTENTS is missing')
+        } else if (tocIndex > 3) {
+            errors.push(`TABLE_OF_CONTENTS should be in first 4 pages, found at index ${tocIndex}`)
+        }
+
+        // Rule 4: YEAR_STATS should come before YEAR_AT_A_GLANCE
+        const yearStatsIndex = pageTypes.indexOf('YEAR_STATS')
+        const yearAtGlanceIndex = pageTypes.indexOf('YEAR_AT_A_GLANCE')
+        if (yearStatsIndex === -1) {
+            errors.push('YEAR_STATS is missing')
+        }
+        if (yearAtGlanceIndex === -1) {
+            errors.push('YEAR_AT_A_GLANCE is missing')
+        }
+        if (yearStatsIndex !== -1 && yearAtGlanceIndex !== -1 && yearStatsIndex > yearAtGlanceIndex) {
+            errors.push('YEAR_STATS should come before YEAR_AT_A_GLANCE')
+        }
+
+        // Rule 5: All RACE_PAGEs should be grouped together (before MONTHLY_DIVIDERs)
+        const raceIndices = pageTypes.map((t, i) => t === 'RACE_PAGE' ? i : -1).filter(i => i !== -1)
+        const dividerIndices = pageTypes.map((t, i) => t === 'MONTHLY_DIVIDER' ? i : -1).filter(i => i !== -1)
+
+        if (raceIndices.length > 0 && dividerIndices.length > 0) {
+            const lastRaceIndex = Math.max(...raceIndices)
+            const firstDividerIndex = Math.min(...dividerIndices)
+            if (lastRaceIndex > firstDividerIndex) {
+                errors.push(`All RACE_PAGEs should come before MONTHLY_DIVIDERs. Last race at ${lastRaceIndex}, first divider at ${firstDividerIndex}`)
+            }
+        }
+
+        // Rule 6: Each MONTHLY_DIVIDER should be followed by ACTIVITY_LOG(s)
+        for (let i = 0; i < pageTypes.length - 1; i++) {
+            if (pageTypes[i] === 'MONTHLY_DIVIDER') {
+                // Next page should be ACTIVITY_LOG or another MONTHLY_DIVIDER (empty month case shouldn't happen)
+                const nextType = pageTypes[i + 1]
+                if (nextType !== 'ACTIVITY_LOG' && nextType !== 'BACK_COVER') {
+                    errors.push(`MONTHLY_DIVIDER at index ${i} should be followed by ACTIVITY_LOG, got ${nextType}`)
+                }
+            }
+        }
+
+        // Rule 7: ACTIVITY_LOGs should only appear after MONTHLY_DIVIDERs (not standalone)
+        const activityLogIndices = pageTypes.map((t, i) => t === 'ACTIVITY_LOG' ? i : -1).filter(i => i !== -1)
+        for (const logIndex of activityLogIndices) {
+            // Look backwards for the nearest MONTHLY_DIVIDER
+            let foundDivider = false
+            for (let i = logIndex - 1; i >= 0; i--) {
+                if (pageTypes[i] === 'MONTHLY_DIVIDER') {
+                    foundDivider = true
+                    break
+                }
+                if (pageTypes[i] === 'RACE_PAGE' || pageTypes[i] === 'YEAR_AT_A_GLANCE') {
+                    break // Crossed into a different section
+                }
+            }
+            if (!foundDivider && dividerIndices.length > 0) {
+                errors.push(`ACTIVITY_LOG at index ${logIndex} should be preceded by a MONTHLY_DIVIDER`)
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new Error(errors.join('; '))
+        }
+
+        return {
+            testName,
+            success: true,
+            duration: Date.now() - startTime,
+            details: {
+                totalPages: entries.length,
+                pageSequence: pageTypes.join(' → '),
+                raceCount: raceIndices.length,
+                monthlyDividerCount: dividerIndices.length,
+            },
+        }
+    } catch (error) {
+        return {
+            testName,
+            success: false,
+            duration: Date.now() - startTime,
+            error: String(error),
+        }
+    }
+}
+
+/**
+ * Test: Page order with foreword
+ * Ensures FOREWORD appears in correct position when provided
+ */
+function testPageOrderWithForeword(): BookGenerationTestResult {
+    const startTime = Date.now()
+    const testName = 'Page Order with Foreword'
+
+    try {
+        const activities = createActivitiesForYear(2024, 10)
+
+        const config: BookGenerationConfig = {
+            title: 'Test Book',
+            athleteName: 'Test Athlete',
+            year: 2024,
+            forewordText: 'This is my foreword text for the book.',
+            format: FORMATS['10x10'],
+        }
+
+        const entries = generateBookEntries(activities, config)
+        const pageTypes = entries.map(e => e.type)
+
+        const errors: string[] = []
+
+        // FOREWORD should exist
+        const forewordIndex = pageTypes.indexOf('FOREWORD')
+        if (forewordIndex === -1) {
+            errors.push('FOREWORD is missing when forewordText is provided')
+        }
+
+        // FOREWORD should be right after COVER
+        if (forewordIndex !== 1) {
+            errors.push(`FOREWORD should be at index 1 (after COVER), found at ${forewordIndex}`)
+        }
+
+        // Order should be: COVER, FOREWORD, TABLE_OF_CONTENTS
+        if (pageTypes[0] !== 'COVER' || pageTypes[1] !== 'FOREWORD' || pageTypes[2] !== 'TABLE_OF_CONTENTS') {
+            errors.push(`Expected COVER → FOREWORD → TABLE_OF_CONTENTS, got ${pageTypes.slice(0, 3).join(' → ')}`)
+        }
+
+        if (errors.length > 0) {
+            throw new Error(errors.join('; '))
+        }
+
+        return {
+            testName,
+            success: true,
+            duration: Date.now() - startTime,
+            details: {
+                pageSequence: pageTypes.slice(0, 5).join(' → '),
+            },
+        }
+    } catch (error) {
+        return {
+            testName,
+            success: false,
+            duration: Date.now() - startTime,
+            error: String(error),
+        }
+    }
+}
+
+/**
+ * Test: Template rendering verification
+ * Ensures each page type that exists in the book renders without errors.
+ * Does NOT require all page types - books may vary (no races, no foreword, etc.)
+ */
+async function testTemplateRendering(outputDir: string): Promise<BookGenerationTestResult> {
+    const startTime = Date.now()
+    const testName = 'Template Rendering Verification'
+
+    try {
+        // Create activities that will generate all page types for comprehensive testing
+        const activities = createActivitiesForYear(2024, 20)
+        activities[5].workout_type = 1  // Add a race
+
+        const config: BookGenerationConfig = {
+            title: 'Template Test Book',
+            athleteName: 'Test Athlete',
+            year: 2024,
+            forewordText: 'Test foreword content.',
+            format: FORMATS['10x10'],
+        }
+
+        const entries = generateBookEntries(activities, config)
+        const pageTypes = entries.map(e => e.type)
+        const uniqueTypes = new Set(pageTypes)
+
+        // These are all possible page types - we verify which ones exist in this book
+        const allPossibleTypes: BookPageType[] = [
+            'COVER',
+            'FOREWORD',
+            'TABLE_OF_CONTENTS',
+            'YEAR_STATS',
+            'YEAR_AT_A_GLANCE',
+            'RACE_PAGE',
+            'MONTHLY_DIVIDER',
+            'ACTIVITY_LOG',
+            'BACK_COVER',
+        ]
+
+        // Minimum required types that every book should have
+        const requiredTypes: BookPageType[] = ['COVER', 'TABLE_OF_CONTENTS', 'BACK_COVER']
+        const missingRequired = requiredTypes.filter(t => !uniqueTypes.has(t))
+        if (missingRequired.length > 0) {
+            throw new Error(`Book missing required page types: ${missingRequired.join(', ')}`)
+        }
+
+        // Render the full book - if any template is broken, this will fail
+        const element = FullBookDocument({
+            activities,
+            title: config.title,
+            athleteName: config.athleteName,
+            year: config.year,
+            forewordText: config.forewordText,
+            format: config.format,
+            theme: DEFAULT_THEME,
+        })
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfBuffer = await renderToBuffer(element as any)
+
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+            throw new Error('PDF buffer is empty - templates may have rendering issues')
+        }
+
+        // Save for manual inspection
+        const pdfPath = path.join(outputDir, 'test-all-templates.pdf')
+        fs.writeFileSync(pdfPath, pdfBuffer)
+
+        return {
+            testName,
+            success: true,
+            duration: Date.now() - startTime,
+            details: {
+                totalPages: entries.length,
+                uniquePageTypes: Array.from(uniqueTypes),
+                pdfSize: pdfBuffer.length,
+                pdfPath,
+                pageTypeBreakdown: allPossibleTypes.reduce((acc, type) => {
+                    acc[type] = pageTypes.filter(t => t === type).length
+                    return acc
+                }, {} as Record<string, number>),
+            },
+        }
+    } catch (error) {
+        return {
+            testName,
+            success: false,
+            duration: Date.now() - startTime,
+            error: String(error),
+        }
+    }
+}
+
+/**
+ * Test: No nested Document wrappers
+ * Verifies that page components don't wrap themselves in Document
+ * (This is validated by successful PDF generation, but we log it explicitly)
+ */
+async function testNoNestedDocuments(outputDir: string): Promise<BookGenerationTestResult> {
+    const startTime = Date.now()
+    const testName = 'No Nested Document Wrappers'
+
+    try {
+        // This test verifies the fix for nested Document issues
+        // by generating a book with all page types and ensuring it renders
+
+        const activities = createActivitiesForYear(2024, 15)
+        activities[3].workout_type = 1  // Race
+
+        const element = FullBookDocument({
+            activities,
+            title: 'Nested Document Test',
+            athleteName: 'Test Athlete',
+            year: 2024,
+            forewordText: 'Testing that Foreword renders without nested Document.',
+            format: FORMATS['10x10'],
+            theme: DEFAULT_THEME,
+        })
+
+        // If any component wraps in <Document>, react-pdf will fail or produce corrupt output
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfBuffer = await renderToBuffer(element as any)
+
+        // Check that PDF is valid (has reasonable size)
+        if (pdfBuffer.length < 1000) {
+            throw new Error(`PDF suspiciously small (${pdfBuffer.length} bytes) - may indicate nested Document issue`)
+        }
+
+        const pdfPath = path.join(outputDir, 'test-no-nested-documents.pdf')
+        fs.writeFileSync(pdfPath, pdfBuffer)
+
+        return {
+            testName,
+            success: true,
+            duration: Date.now() - startTime,
+            details: {
+                pdfSize: pdfBuffer.length,
+                pdfPath,
+                note: 'PDF rendered successfully - no nested Document wrappers detected',
+            },
+        }
+    } catch (error) {
+        return {
+            testName,
+            success: false,
+            duration: Date.now() - startTime,
+            error: `Possible nested Document issue: ${String(error)}`,
+        }
+    }
+}
+
+// ============================================================================
 // Test Runner
 // ============================================================================
 
@@ -512,27 +876,40 @@ export async function runBookGenerationTests(
     const results: BookGenerationTestResult[] = []
 
     // Run synchronous tests
-    console.log('[1/7] Testing year filtering...')
+    console.log('[1/11] Testing year filtering...')
     results.push(testYearFiltering())
 
-    console.log('[2/7] Testing available years extraction...')
+    console.log('[2/11] Testing available years extraction...')
     results.push(testAvailableYearsExtraction())
 
-    console.log('[3/7] Testing page estimation...')
+    console.log('[3/11] Testing page estimation...')
     results.push(testPageEstimation())
 
-    console.log('[4/7] Testing API request validation...')
+    console.log('[4/11] Testing API request validation...')
     results.push(testApiRequestValidation())
 
+    // Page order tests
+    console.log('[5/11] Testing page order verification...')
+    results.push(testPageOrder())
+
+    console.log('[6/11] Testing page order with foreword...')
+    results.push(testPageOrderWithForeword())
+
     // Run async tests
-    console.log('[5/7] Testing FullBookDocument renders...')
+    console.log('[7/11] Testing FullBookDocument renders...')
     results.push(await testFullBookDocumentRenders(outputDir))
 
-    console.log('[6/7] Testing PDF generation with fixtures...')
+    console.log('[8/11] Testing PDF generation with fixtures...')
     results.push(await testPdfGenerationWithFixtures(outputDir))
 
-    console.log('[7/7] Testing all format sizes...')
+    console.log('[9/11] Testing all format sizes...')
     results.push(await testAllFormatSizes(outputDir))
+
+    console.log('[10/11] Testing template rendering verification...')
+    results.push(await testTemplateRendering(outputDir))
+
+    console.log('[11/11] Testing no nested Document wrappers...')
+    results.push(await testNoNestedDocuments(outputDir))
 
     // Calculate totals
     const totalPassed = results.filter(r => r.success).length

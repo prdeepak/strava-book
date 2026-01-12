@@ -10,7 +10,7 @@ interface YearCalendarProps {
   // Direct props interface
   year?: number
   activities?: StravaActivity[]
-  colorBy?: 'distance' | 'time' | 'count'
+  colorBy?: 'distance' | 'time' | 'count' | 'elevation'
   format?: BookFormat
   theme?: BookTheme
 }
@@ -151,7 +151,7 @@ const getFirstDayOfMonth = (year: number, month: number): number => {
 // Helper to aggregate activities by date
 const aggregateActivitiesByDate = (
   activities: StravaActivity[],
-  colorBy: 'distance' | 'time' | 'count'
+  colorBy: 'distance' | 'time' | 'count' | 'elevation'
 ): Map<string, number> => {
   const dateMap = new Map<string, number>()
 
@@ -169,6 +169,9 @@ const aggregateActivitiesByDate = (
         break
       case 'count':
         value = 1
+        break
+      case 'elevation':
+        value = activity.total_elevation_gain || 0
         break
     }
 
@@ -241,6 +244,19 @@ const generateMockYearData = (activity: StravaActivity) => {
   return { year, activities: mockActivities }
 }
 
+// Extended activity type that may include year_calendar fixture data
+interface YearCalendarActivity {
+  activityDates?: Record<string, { distance: number; time: number; count: number; elevation: number }>
+  summary?: { totalActivities: number; totalDistance: number; totalTime: number; totalElevation: number }
+  year?: number
+  // StravaActivity fields we use
+  start_date_local?: string
+  start_date?: string
+  distance?: number
+  moving_time?: number
+  total_elevation_gain?: number
+}
+
 export const YearCalendar = (props: YearCalendarProps) => {
   // Handle both test harness interface and direct props
   const format = props.format || FORMATS['10x10']
@@ -248,29 +264,55 @@ export const YearCalendar = (props: YearCalendarProps) => {
 
   let year: number
   let activities: StravaActivity[]
+  let dateMap: Map<string, number>
+  let totalDistance: number
+  let totalTime: number
+  let totalElevation: number
   const colorBy = props.colorBy || 'distance'
 
-  // If activity prop exists (test harness mode), generate mock year data
-  if (props.activity) {
+  // Check if this is a year_calendar fixture with activityDates
+  const fixture = props.activity as YearCalendarActivity | undefined
+  if (fixture?.activityDates) {
+    // Year calendar fixture format
+    year = fixture.year || new Date().getFullYear()
+    activities = []
+    dateMap = new Map<string, number>()
+
+    // Convert activityDates to dateMap
+    Object.entries(fixture.activityDates).forEach(([date, data]) => {
+      const value = colorBy === 'distance' ? data.distance / 1000 :
+                    colorBy === 'time' ? data.time / 3600 :
+                    colorBy === 'elevation' ? data.elevation :
+                    data.count
+      dateMap.set(date, value)
+    })
+
+    // Use summary stats from fixture
+    totalDistance = (fixture.summary?.totalDistance || 0) / 1000
+    totalTime = (fixture.summary?.totalTime || 0) / 3600
+    totalElevation = fixture.summary?.totalElevation || 0
+  } else if (props.activity) {
+    // Standard activity - generate mock year data
     const mockData = generateMockYearData(props.activity)
     year = mockData.year
     activities = mockData.activities
+    dateMap = aggregateActivitiesByDate(activities, colorBy)
+    totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
+    totalTime = activities.reduce((sum, a) => sum + a.moving_time / 3600, 0)
+    totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
   } else {
     // Direct props mode
     year = props.year || new Date().getFullYear()
     activities = props.activities || []
+    dateMap = aggregateActivitiesByDate(activities, colorBy)
+    totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
+    totalTime = activities.reduce((sum, a) => sum + a.moving_time / 3600, 0)
+    totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
   }
 
   const styles = createStyles(format, theme)
-
-  // Aggregate activities by date
-  const dateMap = aggregateActivitiesByDate(activities, colorBy)
   const maxValue = Math.max(...Array.from(dateMap.values()), 1)
-
-  // Calculate summary stats
-  const totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
-  const totalTime = activities.reduce((sum, a) => sum + a.moving_time / 3600, 0)
-  const totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
+  const totalActivities = fixture?.summary?.totalActivities || activities.length || dateMap.size
 
   // Cell size based on format - compact for single page fit
   const cellSize = 7 * format.scaleFactor
@@ -283,7 +325,7 @@ export const YearCalendar = (props: YearCalendarProps) => {
         <View style={styles.header}>
           <Text style={styles.year}>{year}</Text>
           <Text style={styles.subtitle}>
-            {activities.length} Activities • {totalDistance.toFixed(0)} kilometers
+            {totalActivities} Activities • {totalDistance.toFixed(0)} kilometers
           </Text>
         </View>
 

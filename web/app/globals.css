@@ -17,27 +17,11 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Roboto Mono';
-  src: url('/fonts/RobotoMono-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Roboto Mono';
-  src: url('/fonts/RobotoMono-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --font-geist-sans: 'Inter', Arial, Helvetica, sans-serif;
-  --font-geist-mono: 'Roboto Mono', monospace;
+  --font-geist-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 @theme inline {

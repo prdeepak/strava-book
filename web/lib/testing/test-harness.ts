@@ -64,6 +64,7 @@ export interface TestResult {
     judgments: VisualJudgment[]
     overallPass: boolean
     averageScore: number
+    minScore: number  // Lowest page score - use this for multi-page documents
     duration: number  // ms
     error?: string
     // Page dimension validation
@@ -253,6 +254,10 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         const mod = await import('../../components/templates/Cover')
         return mod.Cover
     },
+    'Foreword': async () => {
+        const mod = await import('../../components/templates/Foreword')
+        return mod.Foreword
+    },
     'YearStats': async () => {
         const mod = await import('../../components/templates/YearStats')
         return mod.YearStats
@@ -263,7 +268,7 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     },
     'MonthlyDivider': async () => {
         const mod = await import('../../components/templates/MonthlyDivider')
-        return mod.MonthlyDivider
+        return mod.MonthlyDividerDocument
     },
     'ActivityLog': async () => {
         const mod = await import('../../components/templates/ActivityLog')
@@ -272,6 +277,28 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     'BackCover': async () => {
         const mod = await import('../../components/templates/BackCover')
         return mod.BackCover
+    },
+    'AllMonthlyDividers': async () => {
+        const mod = await import('../../components/templates/AllMonthlyDividers')
+        return mod.AllMonthlyDividers
+    },
+    'TableOfContents': async () => {
+        const mod = await import('../../components/templates/TableOfContents')
+        return mod.TableOfContents
+    },
+
+    // Calendar view templates
+    'CalendarIconView': async () => {
+        const mod = await import('../../components/templates/CalendarIconView')
+        return mod.CalendarIconView
+    },
+    'CalendarHeatmapView': async () => {
+        const mod = await import('../../components/templates/CalendarHeatmapView')
+        return mod.CalendarHeatmapView
+    },
+    'CalendarBubbleView': async () => {
+        const mod = await import('../../components/templates/CalendarBubbleView')
+        return mod.CalendarBubbleView
     },
 }
 
@@ -393,6 +420,7 @@ export async function testTemplate(
         judgments: [],
         overallPass: false,
         averageScore: 0,
+        minScore: 0,
         duration: 0
     }
 
@@ -430,11 +458,57 @@ export async function testTemplate(
             console.log(`[Test Harness] Mapbox token: ${mapboxToken ? 'present' : 'missing'}`)
         }
 
+        // Build template props - some templates need special handling
         const templateProps: Record<string, unknown> = {
-            activity: fixture,
             format: FORMATS['10x10'],
             theme: DEFAULT_THEME,
             mapboxToken
+        }
+
+        // Check if this is a year/period fixture (has activities array)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fixtureObj = fixture as any
+        const isYearFixture = fixtureObj?.fixtureType === 'year' || Array.isArray(fixtureObj?.activities)
+        const activities = isYearFixture ? fixtureObj.activities : null
+
+        // Templates that work with activities arrays
+        const periodTemplates = ['MonthlyDivider', 'YearStats', 'YearCalendar', 'ActivityLog', 'AllMonthlyDividers']
+
+        if (periodTemplates.includes(templateName) && activities) {
+            templateProps.activities = activities
+
+            // MonthlyDivider needs a specific month - pick one with good activity count
+            if (templateName === 'MonthlyDivider') {
+                // Group by year-month and pick one with multiple activities
+                const byMonth = new Map<string, typeof activities>()
+                for (const a of activities) {
+                    const date = new Date(a.start_date_local || a.start_date)
+                    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`
+                    if (!byMonth.has(key)) byMonth.set(key, [])
+                    byMonth.get(key)!.push(a)
+                }
+                // Pick month with most activities
+                let bestMonth = ''
+                let bestCount = 0
+                for (const [key, monthActivities] of byMonth) {
+                    if (monthActivities.length > bestCount) {
+                        bestCount = monthActivities.length
+                        bestMonth = key
+                    }
+                }
+                if (bestMonth && byMonth.has(bestMonth)) {
+                    templateProps.activities = byMonth.get(bestMonth)
+                    if (verbose) {
+                        console.log(`[Test Harness] MonthlyDivider using ${bestMonth} with ${bestCount} activities`)
+                    }
+                }
+            }
+        } else if (periodTemplates.includes(templateName) && !activities) {
+            // Single activity fixture - wrap in array for period templates
+            templateProps.activities = [fixture]
+        } else {
+            // Single activity templates (Race_1p, Cover, etc.)
+            templateProps.activity = fixture
         }
 
         // Add variant if specified
@@ -501,6 +575,7 @@ export async function testTemplate(
             // Calculate overall results
             const scores = result.judgments.map(j => j.overallScore)
             result.averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            result.minScore = scores.length > 0 ? Math.min(...scores) : 0
             result.overallPass = result.judgments.every(j => j.pass)
         }
 
@@ -543,18 +618,25 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
     const results: TestResult[] = []
 
     // Map templates to appropriate fixtures
+    // Period templates prefer year fixtures; single-activity templates use individual fixtures
+    const yearFixtures = fixtures.filter(f => f.startsWith('year_'))
     const templateFixtureMap: Record<string, string[]> = {
         'Race_1p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Race_2p': fixtures.filter(f => f.startsWith('race_') || f.includes('training_long')),
         'Cover': ['race_ultramarathon', 'race_marathon'].filter(f => fixtures.includes(f)),
-        'YearStats': ['race_ultramarathon'].filter(f => fixtures.includes(f)),  // Needs year data
-        'YearCalendar': ['race_ultramarathon'].filter(f => fixtures.includes(f)),
-        'MonthlyDivider': fixtures.filter(f => f.startsWith('race_') || f.startsWith('training_')),
-        'ActivityLog': fixtures.filter(f => f.startsWith('training_') || f.startsWith('other_')),
+        'Foreword': ['race_marathon', 'rich_full_content'].filter(f => fixtures.includes(f)),
+        'YearStats': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'YearCalendar': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'MonthlyDivider': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('race_')),
+        'ActivityLog': yearFixtures.length > 0 ? yearFixtures : fixtures.filter(f => f.startsWith('training_')),
         'ActivityLog_concise': fixtures.filter(f => f.startsWith('race_') || f === 'rich_full_content'),
         'ActivityLog_full': fixtures.filter(f => f === 'rich_full_content' || f.startsWith('race_')),
         'PhotoGallery': fixtures.filter(f => f === 'rich_full_content' || f.startsWith('race_')),
-        'BackCover': ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'BackCover': yearFixtures.length > 0 ? yearFixtures : ['race_ultramarathon'].filter(f => fixtures.includes(f)),
+        'TableOfContents': ['toc_sections'].filter(f => fixtures.includes(f)),
+        'CalendarIconView': ['calendar_views'].filter(f => fixtures.includes(f)),
+        'CalendarHeatmapView': ['calendar_views'].filter(f => fixtures.includes(f)),
+        'CalendarBubbleView': ['calendar_views'].filter(f => fixtures.includes(f)),
     }
 
     for (const template of templates) {
@@ -569,7 +651,7 @@ export async function runAllTests(config: BatchTestConfig = {}): Promise<TestRes
             results.push(result)
 
             if (verbose) {
-                console.log(`Result: ${result.overallPass ? 'PASS' : 'FAIL'} (score: ${result.averageScore})`)
+                console.log(`Result: ${result.overallPass ? 'PASS' : 'FAIL'} (avg: ${result.averageScore}, min: ${result.minScore})`)
                 if (result.error) {
                     console.log(`Error: ${result.error}`)
                 }
@@ -597,6 +679,7 @@ export function generateReport(results: TestResult[]): string {
         `- **Failed:** ${results.filter(r => !r.overallPass && !r.error).length}`,
         `- **Errors:** ${results.filter(r => r.error).length}`,
         `- **Average Score:** ${Math.round(results.reduce((a, r) => a + r.averageScore, 0) / results.length)}`,
+        `- **Min Score:** ${Math.min(...results.map(r => r.minScore || r.averageScore))}`,
         '',
         '## Results',
         ''
@@ -607,7 +690,7 @@ export function generateReport(results: TestResult[]): string {
 
         lines.push(`### ${result.templateName} + ${result.fixtureName}`)
         lines.push(`- **Status:** ${status}`)
-        lines.push(`- **Score:** ${result.averageScore}/100`)
+        lines.push(`- **Score:** avg ${result.averageScore}/100, min ${result.minScore}/100`)
         lines.push(`- **Duration:** ${result.duration}ms`)
 
         if (result.error) {

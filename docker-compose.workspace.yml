@@ -17,7 +17,54 @@ services:
       - ./web/.env.local
     environment:
       - WORKSPACE_ID=ws-0d3a71
-    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    command: sh -c "./scripts/smart-npm-install.sh && npm run dev"
+
+  # Playwright test runner - requires web server to be running
+  # Usage: make test-e2e (after make web-dev)
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    working_dir: /app/web
+    network_mode: host
+    volumes:
+      - .:/app
+      - /app/web/node_modules
+    environment:
+      - CI=true
+      - PLAYWRIGHT_BASE_URL=http://localhost:3004
+    command: npx playwright test --reporter=line
+
+  # E2E test environment - fully self-contained
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    working_dir: /app/web
+    volumes:
+      - .:/app
+      - /app/web/node_modules
+    environment:
+      - CI=true
+      - PLAYWRIGHT_TEST=true
+      - E2E_TEST_MODE=true
+      - NEXTAUTH_URL=http://localhost:3004
+      - NEXTAUTH_SECRET=test-secret-for-e2e-testing
+      - NEXT_PUBLIC_MOCK_AUTH=true
+      - NODE_ENV=production
+      - PORT=3004
+      - PLAYWRIGHT_BASE_URL=http://localhost:3004
+    command: >
+      sh -c "
+        echo '📦 Installing system dependencies...' &&
+        apt-get update && apt-get install -y poppler-utils &&
+        echo '🔧 Installing npm dependencies...' &&
+        npm install --legacy-peer-deps &&
+        echo '🔨 Building Next.js app...' &&
+        npm run build &&
+        echo '🚀 Starting server on port 3004...' &&
+        npm start -- --port 3004 &
+        echo '⏳ Waiting for server to be ready...' &&
+        npx wait-on http://localhost:3004 --timeout 120000 &&
+        echo '🎭 Running Playwright tests...' &&
+        npx playwright test --reporter=line
+      "
 
 volumes:
   ws-0d3a71_node_modules:

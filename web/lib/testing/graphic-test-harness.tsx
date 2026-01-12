@@ -11,7 +11,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import React from 'react'
-import { Document, Page, View, StyleSheet, Svg, Rect, Text as SvgText } from '@react-pdf/renderer'
+import { Document, Page, View, StyleSheet, Svg, Rect, Text as SvgText, Polyline, Circle, Line } from '@react-pdf/renderer'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { pdfToImages, loadFixture, generateRunId, getRunOutputDir } from './test-harness'
 import { judgePageVisual, VisualJudgment, JudgeContext } from './visual-judge'
@@ -361,9 +361,6 @@ function renderMapGraphic(fixture: StravaActivity, width: number, height: number
     // Get start and end points
     const startPoint = svgPoints[0]
     const endPoint = svgPoints[svgPoints.length - 1]
-
-    // Use components from react-pdf
-    const { Polyline, Circle, Line } = require('@react-pdf/renderer')
 
     // Generate subtle grid lines for geographic context - visible for print
     const gridLines: React.ReactElement[] = []
