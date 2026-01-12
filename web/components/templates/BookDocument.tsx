@@ -246,11 +246,22 @@ export function generateBookEntries(
     // Track page numbers for TOC
     let currentPage = 1
 
+    // Find best photo for cover (prefer A-race, then any activity with photos)
+    const races = activities.filter(a => a.workout_type === 1)
+    const aRace = races.length > 0
+        ? races.sort((a, b) => (b.distance || 0) - (a.distance || 0))[0]
+        : undefined
+
+    // Try A-race photo first, then any activity with a photo
+    const coverPhotoSource = aRace?.photos?.primary?.urls?.['600']
+        || activities.find(a => a.photos?.primary?.urls?.['600'])?.photos?.primary?.urls?.['600']
+
     // 1. COVER (page 1)
     entries.push({
         type: 'COVER',
         title: config.title || `${year} Year in Review`,
         pageNumber: currentPage++,
+        heroImage: coverPhotoSource,
     })
 
     // 2. FOREWORD (optional)
@@ -455,6 +466,7 @@ export const BookDocument = ({
                             title={entry.title || 'My Year in Review'}
                             year={year}
                             athleteName={athleteName}
+                            backgroundImage={entry.heroImage}
                             format={format}
                             theme={theme}
                         />
