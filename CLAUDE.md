@@ -137,10 +137,39 @@ make workspace-new name=feature-name
 # Output shows workspace path and port, e.g.:
 #   Directory: ~/bin/strava-workspaces/ws-abc123
 #   Dev server: http://localhost:3001
-
-# IMPORTANT: Immediately cd into the workspace before any code changes
-cd ~/bin/strava-workspaces/ws-abc123
 ```
+
+### Starting a New Claude Session (Required)
+
+**Claude Code's working directory is fixed at session start.** After creating a workspace, you must instruct the user to start a new Claude Code session in that workspace directory.
+
+Always end workspace creation with a handoff message like this:
+
+```
+## Handoff: Start New Claude Session
+
+To continue, start a new Claude Code session in the workspace:
+
+    cd ~/bin/strava-workspaces/ws-abc123
+    claude
+
+### Task Summary
+[Brief description of what needs to be done]
+
+### Key Files
+- `web/path/to/file.tsx` - [purpose]
+- `web/path/to/other.ts` - [purpose]
+
+### Next Steps
+1. [First thing to do]
+2. [Second thing to do]
+3. [etc.]
+```
+
+This ensures:
+- The new Claude session has the correct working directory
+- Makefile workspace-aware commands work correctly
+- The new session has context to continue immediately
 
 ### Workspace Commands
 ```bash
