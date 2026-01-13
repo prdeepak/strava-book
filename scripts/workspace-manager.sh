@@ -122,6 +122,11 @@ EOF
         cp "$MAIN_REPO/web/.env.local" "$workspace_path/web/.env.local"
     fi
 
+    # Copy Claude settings.local.json for consistent permissions
+    if [[ -f "$MAIN_REPO/.claude/settings.local.json" ]]; then
+        cp "$MAIN_REPO/.claude/settings.local.json" "$workspace_path/.claude/settings.local.json"
+    fi
+
     # Update registry
     local new_workspace
     new_workspace=$(cat << EOF
