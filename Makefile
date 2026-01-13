@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info
 
 # =============================================================================
 # Workspace Detection
@@ -48,13 +48,14 @@ help:
 	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
 	@echo ""
 	@echo "Multi-agent workspace commands:"
-	@echo "  make workspace-new name=X   - Create isolated workspace for parallel dev"
-	@echo "  make workspace-list         - List all workspaces with status"
-	@echo "  make workspace-start id=X   - Start a workspace container"
-	@echo "  make workspace-stop id=X    - Stop a workspace container"
-	@echo "  make workspace-destroy id=X - Remove a workspace completely"
-	@echo "  make workspace-cleanup      - Remove stale workspaces (inactive >24h)"
-	@echo "  make workspace-info         - Show current workspace context"
+	@echo "  make workspace-new name=X              - Create isolated workspace"
+	@echo "  make workspace-claude name=X prompt=Y  - Create workspace + launch Claude"
+	@echo "  make workspace-list                    - List all workspaces with status"
+	@echo "  make workspace-start id=X              - Start a workspace container"
+	@echo "  make workspace-stop id=X               - Stop a workspace container"
+	@echo "  make workspace-destroy id=X            - Remove a workspace completely"
+	@echo "  make workspace-cleanup                 - Remove stale workspaces (inactive >24h)"
+	@echo "  make workspace-info                    - Show current workspace context"
 ifeq ($(IS_WORKSPACE),yes)
 	@echo ""
 	@echo "Current context: WORKSPACE ($(WORKSPACE_ID))"
@@ -232,6 +233,9 @@ start-work:
 
 workspace-new:
 	@./scripts/workspace-manager.sh new $(name)
+
+workspace-claude:
+	@./scripts/workspace-manager.sh claude $(name) "$(prompt)"
 
 workspace-list:
 	@./scripts/workspace-manager.sh list
