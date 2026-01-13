@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { StravaActivity } from '@/lib/strava'
 import PDFGenerationModal from '@/components/PDFGenerationModal'
 import BookGenerationModal from '@/components/BookGenerationModal'
+import PeriodPDFGenerationModal from '@/components/PeriodPDFGenerationModal'
 
 interface BuilderClientProps {
     initialActivities: StravaActivity[]
@@ -43,6 +44,7 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
     const [modalOpen, setModalOpen] = useState(false)
     const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
     const [bookModalOpen, setBookModalOpen] = useState(false)
+    const [periodPdfModalOpen, setPeriodPdfModalOpen] = useState(false)
 
     const handleFilter = async () => {
         if (!fromDate && !toDate) {
@@ -167,6 +169,13 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
                         >
                             Reset
                         </button>
+                        <button
+                            onClick={() => setPeriodPdfModalOpen(true)}
+                            disabled={activities.length === 0}
+                            className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 transition disabled:bg-stone-300 disabled:cursor-not-allowed"
+                        >
+                            Generate Period PDFs
+                        </button>
                     </div>
                 </div>
 
@@ -276,6 +285,13 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
                 isOpen={bookModalOpen}
                 onClose={() => setBookModalOpen(false)}
                 athleteName={athleteName}
+            />
+
+            {/* Period PDF Generation Modal */}
+            <PeriodPDFGenerationModal
+                activities={activities}
+                isOpen={periodPdfModalOpen}
+                onClose={() => setPeriodPdfModalOpen(false)}
             />
         </main>
     )
