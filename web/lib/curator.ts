@@ -76,8 +76,8 @@ function hasPersonalRecords(activity: StravaActivity): boolean {
  * 1. COVER
  * 2. TABLE_OF_CONTENTS
  * 3. YEAR_AT_A_GLANCE
- * 4. For each month: MONTHLY_DIVIDER + race activities for that month
- * 5. ACTIVITY_LOG pages (remaining non-race activities)
+ * 4. RACE ACTIVITIES -- one spread per race
+ * 5. For each month: MONTHLY_DIVIDER + ACTIVITY_LOG pages (all activities for that month)
  * 6. BEST_EFFORTS (if any activity has PRs)
  * 7. BACK_COVER
  * @param activities - Array of Strava activities
