@@ -68,9 +68,11 @@ timestamp() {
     date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
-# Create new workspace
-cmd_new() {
+# Create new workspace (internal helper, returns path via WORKSPACE_PATH variable)
+_create_workspace() {
     local name="${1:-untitled}"
+    local quiet="${2:-false}"
+
     local id
     id=$(generate_id)
     local branch="${id}-${name}"
@@ -79,19 +81,24 @@ cmd_new() {
     local workspace_path="$WORKSPACES_DIR/$id"
     local container_name="strava-ws-$id"
 
-    echo -e "${BLUE}Creating workspace: ${name}${NC}"
-    echo "  ID: $id"
-    echo "  Branch: $branch"
-    echo "  Port: $port"
-    echo ""
+    # Export for caller
+    WORKSPACE_PATH="$workspace_path"
+    WORKSPACE_ID="$id"
+    WORKSPACE_PORT="$port"
+
+    [[ "$quiet" != "true" ]] && echo -e "${BLUE}Creating workspace: ${name}${NC}"
+    [[ "$quiet" != "true" ]] && echo "  ID: $id"
+    [[ "$quiet" != "true" ]] && echo "  Branch: $branch"
+    [[ "$quiet" != "true" ]] && echo "  Port: $port"
+    [[ "$quiet" != "true" ]] && echo ""
 
     # Create git worktree
-    echo -e "${YELLOW}Creating git worktree...${NC}"
+    [[ "$quiet" != "true" ]] && echo -e "${YELLOW}Creating git worktree...${NC}"
     cd "$MAIN_REPO"
-    git worktree add "$workspace_path" -b "$branch"
+    git worktree add "$workspace_path" -b "$branch" ${quiet:+--quiet}
 
     # Copy docker-compose template
-    echo -e "${YELLOW}Setting up Docker configuration...${NC}"
+    [[ "$quiet" != "true" ]] && echo -e "${YELLOW}Setting up Docker configuration...${NC}"
     sed -e "s/\${WORKSPACE_ID}/$id/g" \
         -e "s/\${WORKSPACE_PORT}/$port/g" \
         "$MAIN_REPO/scripts/docker-compose.workspace.template.yml" \
@@ -132,22 +139,53 @@ EOF
 EOF
 )
     jq ".workspaces += [$new_workspace]" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
+}
+
+# Create new workspace
+cmd_new() {
+    local name="${1:-untitled}"
+
+    _create_workspace "$name" "false"
 
     echo ""
     echo -e "${GREEN}=========================================="
     echo -e "Workspace created successfully!"
     echo -e "==========================================${NC}"
     echo ""
-    echo "  ID:         $id"
+    echo "  ID:         $WORKSPACE_ID"
     echo "  Name:       $name"
-    echo "  Branch:     $branch"
-    echo "  Directory:  $workspace_path"
-    echo "  Dev server: http://localhost:$port"
+    echo "  Directory:  $WORKSPACE_PATH"
+    echo "  Dev server: http://localhost:$WORKSPACE_PORT"
     echo ""
     echo -e "${BLUE}To start working:${NC}"
-    echo "  cd $workspace_path"
+    echo "  cd $WORKSPACE_PATH"
     echo "  make web-dev"
     echo ""
+}
+
+# Create workspace and launch Claude with initial prompt
+cmd_claude() {
+    local name="${1:-untitled}"
+    local prompt="$2"
+
+    # Check if prompt is a file path
+    if [[ -n "$prompt" && -f "$MAIN_REPO/$prompt" ]]; then
+        prompt="Execute the instructions in $prompt"
+    fi
+
+    echo -e "${BLUE}Creating workspace and launching Claude...${NC}"
+    _create_workspace "$name" "true"
+
+    echo -e "${GREEN}Workspace ready: $WORKSPACE_PATH${NC}"
+    echo -e "${BLUE}Launching Claude...${NC}"
+    echo ""
+
+    cd "$WORKSPACE_PATH"
+    if [[ -n "$prompt" ]]; then
+        exec claude "$prompt"
+    else
+        exec claude
+    fi
 }
 
 # List all workspaces
@@ -456,20 +494,22 @@ cmd_help() {
     echo "Usage: workspace-manager.sh <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  new [name]        Create a new isolated workspace"
-    echo "  list              List all workspaces with status"
-    echo "  start <id>        Start a workspace container"
-    echo "  stop <id>         Stop a workspace container"
-    echo "  shell <id>        Open shell in workspace container"
-    echo "  destroy <id>      Remove a workspace completely"
-    echo "  cleanup           Remove all stale workspaces"
-    echo "  help              Show this help message"
+    echo "  new [name]              Create a new isolated workspace"
+    echo "  claude <name> [prompt]  Create workspace and launch Claude with prompt"
+    echo "  list                    List all workspaces with status"
+    echo "  start <id>              Start a workspace container"
+    echo "  stop <id>               Stop a workspace container"
+    echo "  shell <id>              Open shell in workspace container"
+    echo "  destroy <id>            Remove a workspace completely"
+    echo "  cleanup                 Remove all stale workspaces"
+    echo "  help                    Show this help message"
     echo ""
     echo "Examples:"
     echo "  workspace-manager.sh new feature-auth"
+    echo "  workspace-manager.sh claude fix-bug \"Fix the login button styling\""
+    echo "  workspace-manager.sh claude task scripts/tasks/my-task.md"
     echo "  workspace-manager.sh list"
     echo "  workspace-manager.sh destroy ws-abc123"
-    echo "  workspace-manager.sh cleanup --dry-run"
 }
 
 # Main entry point
@@ -482,6 +522,7 @@ main() {
 
     case "$command" in
         new)     cmd_new "$@" ;;
+        claude)  cmd_claude "$@" ;;
         list)    cmd_list "$@" ;;
         start)   cmd_start "$@" ;;
         stop)    cmd_stop "$@" ;;
