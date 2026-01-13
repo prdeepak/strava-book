@@ -25,8 +25,7 @@ make sync msg="..."  # Commit & push (always confirm message with user first)
 **These rules are non-negotiable:**
 
 1. **Always use workspaces for code changes.** Before making ANY code changes:
-   - Run `make workspace-claude name=<feature>` - this creates the workspace AND launches a new Claude session in it
-   - Provide a task summary so the new session knows what to do
+   - Ask the user how they want to launch the workspace (see "Launching a Workspace" below)
    - Never edit code directly in the main repo (`~/bin/strava-book`)
 
 2. **Always create PRs for approval.** Never push directly to main - branch protection will reject it. Always:
@@ -128,37 +127,33 @@ Required in `web/.env.local`:
 
 When running multiple Claude Code sessions in parallel, use isolated workspaces to avoid conflicts.
 
-### Quick Start
+### Launching a Workspace
+
+**Always ask the user** before creating a workspace. Use the AskUserQuestion tool with these options:
+
+1. **Background process** - Claude runs `make workspace-claude` in the background. Good for straightforward fixes where the user wants to monitor progress but not interact directly.
+
+2. **New terminal (interactive)** - User runs the command themselves in a new terminal window. Good for complex tasks where the user wants to interact with the new Claude session directly.
+
+Example question to ask:
+> "I need to create a workspace for this fix. How would you like to launch it?"
+> - Background (I'll monitor and report back)
+> - New terminal (you'll interact with the new session)
+
+**If background:** Run `make workspace-claude name=X prompt="Y"` with `run_in_background: true`, then periodically check on progress.
+
+**If new terminal:** Provide the command for the user to copy:
 ```bash
-# Create workspace AND launch Claude in it (preferred)
-make workspace-claude name=feature-name prompt="Fix the foreword generator"
-
-# Or create workspace only (if you need to launch Claude manually)
-make workspace-new name=feature-name
+cd ~/bin/strava-book
+make workspace-claude name=feature-name prompt="Task description here"
 ```
 
-The `workspace-claude` command:
-1. Creates an isolated workspace with its own branch
-2. Launches a new Claude Code session in that workspace
-3. Passes your prompt to the new session
+### Handoff Context
 
-### Handoff to New Session
-
-When using `workspace-claude`, provide a clear task description in the `prompt` parameter. The new Claude session will have the correct working directory and can run workspace-aware commands like `make web-dev` and `make test-e2e-ci`.
-
-If you need to provide more context, end with a handoff message:
-
-```
-## Task Summary
-[Brief description of what needs to be done]
-
-## Key Files
-- `web/path/to/file.tsx` - [purpose]
-
-## Next Steps
-1. [First thing to do]
-2. [Second thing to do]
-```
+Whether background or interactive, provide a clear task description. Include:
+- What needs to be fixed/implemented
+- Key files involved
+- Any important context from the conversation
 
 ### Workspace Commands
 ```bash
