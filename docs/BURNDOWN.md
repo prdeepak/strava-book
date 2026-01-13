@@ -1,6 +1,8 @@
 # MedalBook Gap Analysis & Burndown
 
 ## Summary
+NOTE: Monthly dividers still not showing properly in book.
+
 
 Comparing **current output** (`Strava-book output 20260111 1125.pdf`) against **reference** (`TrainingSparkle Strava book to 20250609.pdf`) and **PRD vision**.
 
