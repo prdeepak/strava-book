@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
       endDate: endDate || new Date().toISOString().split('T')[0],
     }
 
-    // Use mock if requested or if AWS credentials are not configured
-    const shouldUseMock = useMock || !process.env.AWS_ACCESS_KEY_ID
+    // Use mock if requested or if AWS Bedrock is not configured
+    const shouldUseMock = useMock || !process.env.AWS_BEARER_TOKEN_BEDROCK
 
     let result
     if (shouldUseMock) {

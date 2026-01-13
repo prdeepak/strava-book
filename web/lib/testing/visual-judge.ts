@@ -6,7 +6,7 @@
  */
 
 import * as fs from 'fs'
-import * as path from 'path'
+import { callClaudeWithImages, isBedrockConfigured } from '@/lib/claude-client'
 
 // ============================================================================
 // Types
@@ -116,65 +116,17 @@ async function judgeWithBedrock(
     prompt: string,
     verbose: boolean
 ): Promise<string> {
-    // AWS Bedrock using API key (bearer token) authentication
-    // See: https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html
-
-    const apiKey = process.env.AWS_BEARER_TOKEN_BEDROCK
-    if (!apiKey) {
-        throw new Error('AWS_BEARER_TOKEN_BEDROCK not set')
-    }
-
-    const region = process.env.AWS_REGION || 'us-east-1'
-    const modelId = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
-    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/converse`
-
-    const payload = {
-        messages: [
-            {
-                role: "user",
-                content: [
-                    {
-                        image: {
-                            format: "png",
-                            source: {
-                                bytes: imageBase64
-                            }
-                        }
-                    },
-                    {
-                        text: prompt
-                    }
-                ]
-            }
-        ],
-        inferenceConfig: {
-            maxTokens: 2000,
-            temperature: 0.1
-        }
-    }
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Bedrock API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
+    const result = await callClaudeWithImages(
+        [{ base64: imageBase64, format: 'png' }],
+        prompt,
+        { maxTokens: 2000, temperature: 0.1 }
+    )
 
     if (verbose) {
         console.log('[Visual Judge] Bedrock response received')
     }
 
-    // Converse API returns different structure
-    return data.output.message.content[0].text
+    return result
 }
 
 async function judgeWithGemini(
@@ -313,7 +265,7 @@ export async function judgePageVisual(
     const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
     if (provider === 'auto') {
         // Only include Bedrock if API key is configured
-        if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
+        if (isBedrockConfigured()) {
             availableProviders.push('bedrock')
         }
         if (process.env.GEMINI_API_KEY) {
@@ -323,7 +275,7 @@ export async function judgePageVisual(
             availableProviders.push('anthropic')
         }
         if (availableProviders.length === 0) {
-            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS credentials.')
+            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS_BEARER_TOKEN_BEDROCK.')
         }
     } else {
         availableProviders.push(provider)
@@ -579,7 +531,7 @@ export async function judgeBook(
     // Build available providers list
     const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
     if (provider === 'auto') {
-        if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
+        if (isBedrockConfigured()) {
             availableProviders.push('bedrock')
         }
         if (process.env.GEMINI_API_KEY) {
@@ -589,7 +541,7 @@ export async function judgeBook(
             availableProviders.push('anthropic')
         }
         if (availableProviders.length === 0) {
-            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS credentials.')
+            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS_BEARER_TOKEN_BEDROCK.')
         }
     } else {
         availableProviders.push(provider)
@@ -714,61 +666,18 @@ async function judgeBookWithBedrock(
     prompt: string,
     verbose: boolean
 ): Promise<string> {
-    const apiKey = process.env.AWS_BEARER_TOKEN_BEDROCK
-    if (!apiKey) {
-        throw new Error('AWS_BEARER_TOKEN_BEDROCK not set')
-    }
-
-    const region = process.env.AWS_REGION || 'us-east-1'
-    const modelId = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
-    const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/converse`
-
-    // Build content array with all images and the prompt
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content: any[] = imageData.map(img => ({
-        image: {
-            format: "png",
-            source: {
-                bytes: img.base64
-            }
-        }
-    }))
-    content.push({ text: prompt })
-
-    const payload = {
-        messages: [
-            {
-                role: "user",
-                content
-            }
-        ],
-        inferenceConfig: {
-            maxTokens: 2000,
-            temperature: 0.1
-        }
-    }
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Bedrock API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
+    const images = imageData.map(img => ({ base64: img.base64, format: 'png' as const }))
+    const result = await callClaudeWithImages(
+        images,
+        prompt,
+        { maxTokens: 2000, temperature: 0.1 }
+    )
 
     if (verbose) {
         console.log('[Visual Judge] Bedrock book response received')
     }
 
-    return data.output.message.content[0].text
+    return result
 }
 
 async function judgeBookWithGemini(
