@@ -9,6 +9,7 @@ import { RaceSectionCommentsPage } from './RaceSectionCommentsPage'
 
 // Available variants for RaceSection template
 export type RaceSectionVariant =
+    | 'auto'      // Dynamically choose based on content richness
     | 'compact'   // 2 pages: hero + stats/map
     | 'standard'  // 4 pages: hero, stats/map, photos, splits
     | 'full'      // 6+ pages: complete race story
@@ -21,6 +22,74 @@ export interface RaceSectionProps {
     mapboxToken?: string
     highlightLabel?: string
     variant?: RaceSectionVariant
+}
+
+/**
+ * Determine the best variant based on content richness
+ *
+ * Scoring system:
+ * - Photos: 1 point each (max 5)
+ * - Description: 2 points if exists, +1 if > 200 chars
+ * - Comments: 1 point each (max 3)
+ * - Kudos: 1 point if > 10, +1 if > 50
+ * - Best efforts with PRs: 2 points each (max 6)
+ *
+ * Thresholds:
+ * - 0-2 points: minimal (no hero, just stats)
+ * - 3-5 points: compact (hero + stats)
+ * - 6-10 points: standard (4 pages)
+ * - 11+ points: full (6+ pages)
+ */
+function determineAutoVariant(activity: StravaActivity): Exclude<RaceSectionVariant, 'auto'> {
+    let score = 0
+
+    // Photo scoring
+    const photos = activity.comprehensiveData?.photos || activity.allPhotos || []
+    const photoCount = photos.length > 0 ? photos.length : (activity.photos?.count || 0)
+    score += Math.min(photoCount, 5)
+
+    // Description scoring
+    const description = activity.description || ''
+    if (description.length > 0) {
+        score += 2
+        if (description.length > 200) score += 1
+    }
+
+    // Comments scoring
+    const comments = activity.comprehensiveData?.comments || activity.comments || []
+    score += Math.min(comments.length, 3)
+
+    // Kudos scoring
+    const kudos = activity.kudos_count || 0
+    if (kudos > 10) score += 1
+    if (kudos > 50) score += 1
+
+    // PR scoring (best efforts with top-3 rank)
+    const bestEfforts = activity.best_efforts || []
+    const prCount = bestEfforts.filter(e => e.pr_rank && e.pr_rank <= 3).length
+    score += Math.min(prCount * 2, 6)
+
+    console.log(`[RaceSection] Auto variant scoring for "${activity.name}":`, {
+        photoCount,
+        descriptionLength: description.length,
+        commentCount: comments.length,
+        kudos,
+        prCount,
+        totalScore: score
+    })
+
+    // Determine variant based on score
+    if (score <= 2) {
+        // Minimal content - check if we have a usable hero photo
+        const hasHeroPhoto = photoCount > 0 || activity.photos?.primary?.urls?.['600']
+        return hasHeroPhoto ? 'compact' : 'minimal'
+    } else if (score <= 5) {
+        return 'compact'
+    } else if (score <= 10) {
+        return 'standard'
+    } else {
+        return 'full'
+    }
 }
 
 /**
@@ -202,18 +271,20 @@ export const RaceSection = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
-    variant = 'compact'
+    variant = 'auto'
 }: RaceSectionProps) => {
-    console.log(`[RaceSection] Rendering variant: ${variant}`)
+    // Resolve 'auto' variant to a concrete variant
+    const resolvedVariant = variant === 'auto' ? determineAutoVariant(activity) : variant
+    console.log(`[RaceSection] Rendering variant: ${variant} -> ${resolvedVariant}`)
 
     const props = { activity, format, theme, mapboxToken: mapboxToken || '', highlightLabel: highlightLabel || '' }
 
     return (
         <Document>
-            {variant === 'full' && renderFullPages(props)}
-            {variant === 'standard' && renderStandardPages(props)}
-            {variant === 'minimal' && renderMinimalPages(props)}
-            {variant === 'compact' && renderCompactPages(props)}
+            {resolvedVariant === 'full' && renderFullPages(props)}
+            {resolvedVariant === 'standard' && renderStandardPages(props)}
+            {resolvedVariant === 'minimal' && renderMinimalPages(props)}
+            {resolvedVariant === 'compact' && renderCompactPages(props)}
         </Document>
     )
 }
@@ -228,18 +299,20 @@ export const RaceSectionPages = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
-    variant = 'compact'
+    variant = 'auto'
 }: RaceSectionProps) => {
-    console.log(`[RaceSectionPages] Rendering variant: ${variant}`)
+    // Resolve 'auto' variant to a concrete variant
+    const resolvedVariant = variant === 'auto' ? determineAutoVariant(activity) : variant
+    console.log(`[RaceSectionPages] Rendering variant: ${variant} -> ${resolvedVariant}`)
 
     const props = { activity, format, theme, mapboxToken: mapboxToken || '', highlightLabel: highlightLabel || '' }
 
     return (
         <>
-            {variant === 'full' && renderFullPages(props)}
-            {variant === 'standard' && renderStandardPages(props)}
-            {variant === 'minimal' && renderMinimalPages(props)}
-            {variant === 'compact' && renderCompactPages(props)}
+            {resolvedVariant === 'full' && renderFullPages(props)}
+            {resolvedVariant === 'standard' && renderStandardPages(props)}
+            {resolvedVariant === 'minimal' && renderMinimalPages(props)}
+            {resolvedVariant === 'compact' && renderCompactPages(props)}
         </>
     )
 }

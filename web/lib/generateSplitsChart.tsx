@@ -25,9 +25,13 @@ export type ChartOptions = {
     width: number
     height: number
     showMilestones?: boolean
+    /** Whether to include elevation profile section. Default: true */
     showElevation?: boolean
     baseElevation?: number  // Starting elevation above sea level
 }
+
+/** Internal type for chart options with defaults applied */
+type ChartOptionsResolved = Required<Omit<ChartOptions, 'baseElevation'>> & { baseElevation?: number }
 
 export type ProgressMarker = {
     x: number
@@ -53,7 +57,7 @@ export function generateSplitsChartData(
     totalTime: number,
     options: ChartOptions
 ) {
-    const { width, height, baseElevation } = options
+    const { width, height, baseElevation, showElevation = true } = options
 
     if (splits.length === 0) {
         return null
@@ -79,7 +83,8 @@ export function generateSplitsChartData(
     const padding = { top: 25, right: 40, bottom: 30, left: 40 }
     const plotWidth = width - padding.left - padding.right
     const plotHeight = height - padding.top - padding.bottom
-    const elevHeight = Math.min(30, plotHeight * 0.25)  // 25% of plot height for elevation
+    // When elevation is hidden, use full height for pace bars
+    const elevHeight = showElevation ? Math.min(30, plotHeight * 0.25) : 0
     const paceHeight = plotHeight - elevHeight
 
     // Calculate pace values
@@ -241,7 +246,8 @@ export function generateSplitsChartData(
         progressMarkers,
         finishMarker,
         lapLabels,
-        axes
+        axes,
+        showElevation
     }
 }
 
@@ -285,19 +291,22 @@ export function SplitsChartSVG({
     totalTime,
     width,
     height,
-    backgroundColor = 'white'
+    backgroundColor = 'white',
+    showElevation = true
 }: {
     splits: SplitData[]
     totalTime: number
     width: number
     height: number
     backgroundColor?: string
+    /** Whether to show the elevation profile at the bottom of the chart. Default: true */
+    showElevation?: boolean
 }) {
-    const chartData = generateSplitsChartData(splits, totalTime, { width, height })
+    const chartData = generateSplitsChartData(splits, totalTime, { width, height, showElevation })
 
     if (!chartData) return null
 
-    const { dimensions, paceData, elevData, barData, lapLabels, progressMarkers, finishMarker, axes } = chartData
+    const { dimensions, paceData, elevData, barData, lapLabels, progressMarkers, finishMarker, axes, showElevation: includeElevation } = chartData
     const { padding, paceHeight, plotWidth, elevHeight } = dimensions
 
     // Calculate font sizes based on chart size (smaller charts = smaller fonts)
@@ -314,7 +323,7 @@ export function SplitsChartSVG({
 
             {/* Axes */}
             <Polyline points={`${axes.paceAxis.x1},${axes.paceAxis.y1} ${axes.paceAxis.x2},${axes.paceAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />
-            <Polyline points={`${axes.elevAxis.x1},${axes.elevAxis.y1} ${axes.elevAxis.x2},${axes.elevAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />
+            {includeElevation && <Polyline points={`${axes.elevAxis.x1},${axes.elevAxis.y1} ${axes.elevAxis.x2},${axes.elevAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />}
             <Polyline points={`${axes.xAxis.x1},${axes.xAxis.y1} ${axes.xAxis.x2},${axes.xAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />
 
             {/* Pace labels */}
@@ -329,8 +338,8 @@ export function SplitsChartSVG({
                 </View>
             ))}
 
-            {/* Elevation labels */}
-            {elevData.elevTicks.map((tick, i) => (
+            {/* Elevation labels - only shown when elevation profile is enabled */}
+            {includeElevation && elevData.elevTicks.map((tick, i) => (
                 <View key={`elev-${i}`}>
                     <Polyline points={`${padding.left + plotWidth},${tick.y} ${padding.left + plotWidth + 4},${tick.y}`} stroke="#666" strokeWidth="0.5" fill="none" />
                     <Svg>
@@ -362,8 +371,8 @@ export function SplitsChartSVG({
                 </Svg>
             ))}
 
-            {/* Elevation profile - filled area (absolute altitude) */}
-            {(() => {
+            {/* Elevation profile - filled area (absolute altitude) - only shown when enabled */}
+            {includeElevation && (() => {
                 const elevY = padding.top + paceHeight
                 let elevPoints = `${padding.left},${elevY + elevHeight}`
 
