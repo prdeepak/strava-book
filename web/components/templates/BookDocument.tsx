@@ -2,7 +2,7 @@ import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
 import { RaceSectionPages } from './RaceSection'
-import { TableOfContents, TOCEntry } from './TableOfContents'
+import { TableOfContentsPage, TOCEntry } from './TableOfContents'
 import { CoverPage } from './Cover'
 import { ForewordPage } from './Foreword'
 import { BackCover } from './BackCover'
@@ -462,8 +462,15 @@ export const BookDocument = ({
     const processedEntries = printReady ? insertBlankPagesForPrint(entries) : entries
 
     // Build TOC entries from draft entries
+    // Exclude: COVER, TABLE_OF_CONTENTS, ACTIVITY_LOG (only show dividers, not individual log pages)
     const tocEntries: TOCEntry[] = entries
-        .filter(entry => entry.type !== 'COVER' && entry.type !== 'TABLE_OF_CONTENTS')
+        .filter(entry =>
+            entry.type !== 'COVER' &&
+            entry.type !== 'TABLE_OF_CONTENTS' &&
+            entry.type !== 'ACTIVITY_LOG' &&
+            entry.type !== 'BLANK_PAGE' &&
+            entry.type !== 'BACK_COVER'
+        )
         .map(entry => ({
             title: entry.title || getDefaultTitle(entry),
             pageNumber: entry.pageNumber || 0,
@@ -494,7 +501,7 @@ export const BookDocument = ({
                 // TABLE_OF_CONTENTS
                 if (entry.type === 'TABLE_OF_CONTENTS') {
                     return (
-                        <TableOfContents
+                        <TableOfContentsPage
                             key={index}
                             entries={tocEntries}
                             format={format}

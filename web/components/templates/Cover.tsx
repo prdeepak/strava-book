@@ -86,14 +86,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     backgroundColor: theme.accentColor,
     transform: 'translateX(-50%)',
   },
+  // Main title - period name (e.g., "Road to Comrades 2025", "2024", "Summer 2024")
+  // Uses dynamic font sizing to fit longer text
   yearText: {
-    fontSize: Math.max(120, 140 * format.scaleFactor),
+    fontSize: Math.max(48, 72 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
     fontWeight: 'bold',
-    marginBottom: 8 * format.scaleFactor,
+    marginBottom: 16 * format.scaleFactor,
     textAlign: 'center',
-    letterSpacing: -2,
+    letterSpacing: 2,
+    maxWidth: '90%',
+    lineHeight: 1.1,
   },
   periodRangeText: {
     fontSize: Math.max(14, 18 * format.scaleFactor),
@@ -103,17 +107,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     textAlign: 'center',
     letterSpacing: 1,
   },
-  title: {
-    fontSize: Math.max(32, 42 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: 4,
-    marginBottom: 16 * format.scaleFactor,
-    textAlign: 'center',
-    maxWidth: '85%',
-    lineHeight: 1.2,
-  },
+  // REMOVED: title style - periodName is now the book title, displayed in yearText
   subtitle: {
     fontSize: Math.max(16, 20 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
@@ -133,14 +127,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     flexDirection: 'column',
     alignItems: 'center',
   },
-  athleteLabel: {
-    fontSize: Math.max(9, 11 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 4 * format.scaleFactor,
-  },
+  // REMOVED: athleteLabel style - no longer showing "By" prefix
   athleteName: {
     fontSize: Math.max(14, 18 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
@@ -264,17 +251,16 @@ export const CoverPage = ({
 
       {/* Main content layer */}
       <View style={styles.contentContainer}>
+        {/* Period name IS the book title now */}
         <Text style={styles.yearText}>{mainPeriodDisplay}</Text>
         {showPeriodRangeBelow && periodRangeDisplay && (
           <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
         )}
-        <Text style={styles.title}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 
-      {/* Bottom section with athlete name */}
+      {/* Bottom section with athlete name (no "By" prefix) */}
       <View style={styles.bottomSection}>
-        <Text style={styles.athleteLabel}>By</Text>
         <Text style={styles.athleteName}>{athleteName}</Text>
         <View style={styles.bottomAccent} />
       </View>

@@ -125,12 +125,17 @@ const TEST_MONTHLY_STATS = {
   activities: [TEST_ACTIVITY],
 }
 
-// Test TOC entries
+// Test TOC entries - Races before Training Log, no Activity Log pages
 const TEST_TOC_ENTRIES = [
-  { title: 'Year Overview', pageNumber: 1, type: 'YEAR_STATS' as const, category: 'Overview' },
-  { title: 'January', pageNumber: 5, type: 'MONTHLY_DIVIDER' as const, category: 'Journal' },
-  { title: 'Boston Marathon', pageNumber: 15, type: 'RACE_PAGE' as const, category: 'Races' },
-  { title: 'Activity Log', pageNumber: 50, type: 'ACTIVITY_LOG' as const, category: 'Appendix' },
+  { title: 'Year Overview', pageNumber: 3, type: 'YEAR_STATS' as const, category: 'Overview' },
+  { title: 'Activity Calendar', pageNumber: 5, type: 'YEAR_AT_A_GLANCE' as const, category: 'Overview' },
+  { title: 'Boston Marathon', pageNumber: 8, type: 'RACE_PAGE' as const, category: 'Races', isARace: true },
+  { title: 'Brooklyn Half', pageNumber: 14, type: 'RACE_PAGE' as const, category: 'Races', subtitle: 'May 17 • 21.1 km' },
+  { title: 'Chicago Marathon', pageNumber: 20, type: 'RACE_PAGE' as const, category: 'Races', subtitle: 'Oct 12 • 42.2 km' },
+  { title: 'January', pageNumber: 28, type: 'MONTHLY_DIVIDER' as const, category: 'Training Log' },
+  { title: 'February', pageNumber: 34, type: 'MONTHLY_DIVIDER' as const, category: 'Training Log' },
+  { title: 'March', pageNumber: 40, type: 'MONTHLY_DIVIDER' as const, category: 'Training Log' },
+  { title: 'Best Efforts', pageNumber: 48, type: 'BEST_EFFORTS' as const, category: 'Highlights' },
 ]
 
 // Template registry with component and default props

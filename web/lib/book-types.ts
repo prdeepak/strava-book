@@ -36,6 +36,12 @@ export interface BookConfig {
 export interface BookTheme {
   primaryColor: string      // e.g., "#0D2240" (Boston blue)
   accentColor: string       // e.g., "#FFD200" (Boston yellow)
+  // Adjusted accent color that meets WCAG contrast against white backgrounds
+  // Falls back to accentColor if not provided
+  accentForWhiteBg?: string
+  // Background color to use when displaying text in the accent color
+  // Ensures proper contrast for accent-colored text on stats pages
+  accentBackground?: string
   backgroundColor: string
   fontPairing: {
     heading: string         // e.g., "Oswald"
