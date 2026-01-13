@@ -133,14 +133,6 @@ EOF
 )
     jq ".workspaces += [$new_workspace]" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
 
-    # Start the container
-    echo -e "${YELLOW}Starting Docker container...${NC}"
-    cd "$workspace_path"
-    docker-compose -f docker-compose.workspace.yml up -d --build
-
-    # Update status to running
-    jq "(.workspaces[] | select(.id == \"$id\")).status = \"running\"" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
-
     echo ""
     echo -e "${GREEN}=========================================="
     echo -e "Workspace created successfully!"
@@ -154,9 +146,7 @@ EOF
     echo ""
     echo -e "${BLUE}To start working:${NC}"
     echo "  cd $workspace_path"
-    echo ""
-    echo -e "${BLUE}Container is building and starting...${NC}"
-    echo "  Check status: docker-compose -f docker-compose.workspace.yml logs -f"
+    echo "  make web-dev"
     echo ""
 }
 
