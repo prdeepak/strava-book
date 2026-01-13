@@ -25,9 +25,8 @@ make sync msg="..."  # Commit & push (always confirm message with user first)
 **These rules are non-negotiable:**
 
 1. **Always use workspaces for code changes.** Before making ANY code changes:
-   - Run `make workspace-new name=<feature>`
-   - Immediately `cd` into the workspace directory shown in the output
-   - All subsequent work happens in that workspace
+   - Run `make workspace-claude name=<feature>` - this creates the workspace AND launches a new Claude session in it
+   - Provide a task summary so the new session knows what to do
    - Never edit code directly in the main repo (`~/bin/strava-book`)
 
 2. **Always create PRs for approval.** Never push directly to main - branch protection will reject it. Always:
@@ -131,55 +130,46 @@ When running multiple Claude Code sessions in parallel, use isolated workspaces 
 
 ### Quick Start
 ```bash
-# Create a new isolated workspace
+# Create workspace AND launch Claude in it (preferred)
+make workspace-claude name=feature-name prompt="Fix the foreword generator"
+
+# Or create workspace only (if you need to launch Claude manually)
 make workspace-new name=feature-name
-
-# Output shows workspace path and port, e.g.:
-#   Directory: ~/bin/strava-workspaces/ws-abc123
-#   Dev server: http://localhost:3001
 ```
 
-### Starting a New Claude Session (Required)
+The `workspace-claude` command:
+1. Creates an isolated workspace with its own branch
+2. Launches a new Claude Code session in that workspace
+3. Passes your prompt to the new session
 
-**Claude Code's working directory is fixed at session start.** After creating a workspace, you must instruct the user to start a new Claude Code session in that workspace directory.
+### Handoff to New Session
 
-Always end workspace creation with a handoff message like this:
+When using `workspace-claude`, provide a clear task description in the `prompt` parameter. The new Claude session will have the correct working directory and can run workspace-aware commands like `make web-dev` and `make test-e2e-ci`.
+
+If you need to provide more context, end with a handoff message:
 
 ```
-## Handoff: Start New Claude Session
-
-To continue, start a new Claude Code session in the workspace:
-
-    cd ~/bin/strava-workspaces/ws-abc123
-    claude
-
-### Task Summary
+## Task Summary
 [Brief description of what needs to be done]
 
-### Key Files
+## Key Files
 - `web/path/to/file.tsx` - [purpose]
-- `web/path/to/other.ts` - [purpose]
 
-### Next Steps
+## Next Steps
 1. [First thing to do]
 2. [Second thing to do]
-3. [etc.]
 ```
-
-This ensures:
-- The new Claude session has the correct working directory
-- Makefile workspace-aware commands work correctly
-- The new session has context to continue immediately
 
 ### Workspace Commands
 ```bash
-make workspace-new name=X   # Create isolated workspace (auto-starts container)
-make workspace-list         # Show all workspaces with status
-make workspace-start id=X   # Start a stopped workspace
-make workspace-stop id=X    # Stop a workspace container
-make workspace-destroy id=X # Remove workspace completely
-make workspace-cleanup      # Remove stale workspaces (inactive >24h)
-make workspace-info         # Show current workspace context
+make workspace-claude name=X prompt="Y"  # Create workspace + launch Claude (preferred)
+make workspace-new name=X                # Create workspace only
+make workspace-list                      # Show all workspaces with status
+make workspace-start id=X                # Start a stopped workspace
+make workspace-stop id=X                 # Stop a workspace container
+make workspace-destroy id=X              # Remove workspace completely
+make workspace-cleanup                   # Remove stale workspaces (inactive >24h)
+make workspace-info                      # Show current workspace context
 ```
 
 ### How It Works
@@ -198,14 +188,14 @@ The Makefile automatically detects if you're in a workspace and adjusts behavior
 
 | Context | Port | Docker Compose File | Container Filter |
 |---------|------|---------------------|------------------|
-| Main repo | 3001 | docker-compose.yml | strava-book |
+| Main repo | 3000 | docker-compose.yml | strava-book |
 | Workspace | Assigned (3001-3020) | docker-compose.workspace.yml | strava-ws-{id} |
 
 Run `make workspace-info` to see the current context.
 
 ### Workflow for Parallel Development
 1. Main repo (`~/bin/strava-book`) stays clean - never edit directly
-2. Create workspaces for each task: `make workspace-new name=<feature>`
+2. Create workspaces for each task: `make workspace-claude name=<feature> prompt="task description"`
 3. Each Claude Code session works in its own workspace
 4. When done, create PR from workspace branch to main
 5. Wait for user to approve and merge the PR
