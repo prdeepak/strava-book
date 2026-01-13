@@ -18,7 +18,7 @@ type GenerationStep = 'configure' | 'generating' | 'complete' | 'error'
 type StylePreference = 'minimal' | 'bold' | 'classic' | 'ai'
 
 interface BookConfig {
-    title: string
+    // Note: periodName serves as the book title (no separate title field)
     periodName: string
     athleteName: string
     startDate: string // ISO date string
@@ -102,10 +102,11 @@ export default function BookGenerationModal({
     const [generatingTheme, setGeneratingTheme] = useState(false)
     const [aiThemeReasoning, setAiThemeReasoning] = useState<string | null>(null)
     const [aiDesignerOpen, setAiDesignerOpen] = useState(false)
+    const [generatingForeword, setGeneratingForeword] = useState(false)
+    const [forewordSuggestion, setForewordSuggestion] = useState<string | null>(null)
 
     const initialDates = getInitialDateRange()
     const [config, setConfig] = useState<BookConfig>({
-        title: 'My Running Journey',
         periodName: getInitialPeriodName(),
         athleteName: initialAthleteName,
         startDate: initialDates.startDate,
@@ -244,6 +245,44 @@ export default function BookGenerationModal({
         }
     }
 
+    const generateAiForeword = useCallback(async () => {
+        setGeneratingForeword(true)
+        setForewordSuggestion(null)
+
+        try {
+            const response = await fetch('/api/generate-foreword', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    activities: filteredActivities,
+                    athleteName: config.athleteName,
+                    periodName: config.periodName,
+                    startDate: config.startDate,
+                    endDate: config.endDate,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to generate foreword')
+            }
+
+            const result = await response.json()
+
+            // Update foreword text
+            setConfig(prev => ({ ...prev, forewordText: result.foreword }))
+
+            // If there's a suggested period name, show it
+            if (result.suggestedPeriodName) {
+                setForewordSuggestion(result.suggestedPeriodName)
+            }
+        } catch (error) {
+            console.error('Foreword generation error:', error)
+            // Could show a toast/alert here
+        } finally {
+            setGeneratingForeword(false)
+        }
+    }, [filteredActivities, config.athleteName, config.periodName, config.startDate, config.endDate])
+
     const generateBook = useCallback(async () => {
         setStep('generating')
         setProgress(0)
@@ -266,7 +305,8 @@ export default function BookGenerationModal({
                 body: JSON.stringify({
                     activities: filteredActivities,
                     config: {
-                        title: config.title,
+                        // periodName serves as the book title
+                        title: config.periodName,
                         periodName: config.periodName,
                         athleteName: config.athleteName,
                         year: new Date(config.endDate).getFullYear(),
@@ -313,7 +353,7 @@ export default function BookGenerationModal({
             console.log('[BookGenModal] Starting auto-download...')
             const link = document.createElement('a')
             link.href = url
-            link.download = `${config.title.replace(/\s+/g, '-').toLowerCase()}.pdf`
+            link.download = `${config.periodName.replace(/\s+/g, '-').toLowerCase()}.pdf`
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
@@ -332,12 +372,12 @@ export default function BookGenerationModal({
         if (pdfUrl) {
             const link = document.createElement('a')
             link.href = pdfUrl
-            link.download = `${config.title.replace(/\s+/g, '-').toLowerCase()}.pdf`
+            link.download = `${config.periodName.replace(/\s+/g, '-').toLowerCase()}.pdf`
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
         }
-    }, [pdfUrl, config.title])
+    }, [pdfUrl, config.periodName])
 
     const handleClose = useCallback(() => {
         if (pdfUrl) {
@@ -419,43 +459,78 @@ export default function BookGenerationModal({
                                 </div>
                             </div>
 
-                            {/* Book Info */}
+                            {/* Author Info */}
                             <div className="bg-stone-50 rounded-xl p-4">
-                                <h3 className="font-semibold text-stone-800 mb-4">Book Details</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs text-stone-500 mb-1">Book Title</label>
-                                        <input
-                                            type="text"
-                                            value={config.title}
-                                            onChange={(e) => setConfig(prev => ({ ...prev, title: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="My Running Journey"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-stone-500 mb-1">Athlete Name</label>
-                                        <input
-                                            type="text"
-                                            value={config.athleteName}
-                                            onChange={(e) => setConfig(prev => ({ ...prev, athleteName: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Your Name"
-                                        />
-                                    </div>
+                                <h3 className="font-semibold text-stone-800 mb-4">Author</h3>
+                                <div>
+                                    <label className="block text-xs text-stone-500 mb-1">Athlete Name</label>
+                                    <input
+                                        type="text"
+                                        value={config.athleteName}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, athleteName: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Your Name"
+                                    />
                                 </div>
                             </div>
 
                             {/* Foreword (optional) */}
                             <div className="bg-stone-50 rounded-xl p-4">
-                                <h3 className="font-semibold text-stone-800 mb-2">Foreword (Optional)</h3>
-                                <p className="text-xs text-stone-500 mb-2">Add a personal message at the beginning of your book</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h3 className="font-semibold text-stone-800">Foreword (Optional)</h3>
+                                        <p className="text-xs text-stone-500">Add a personal message at the beginning of your book</p>
+                                    </div>
+                                    <button
+                                        onClick={generateAiForeword}
+                                        disabled={generatingForeword || filteredActivities.length === 0}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                            generatingForeword
+                                                ? 'bg-purple-100 text-purple-600 cursor-wait'
+                                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        title="Generate foreword with AI"
+                                    >
+                                        {generatingForeword ? (
+                                            <>
+                                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                <span>Generating...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                </svg>
+                                                <span>AI Magic</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                                 <textarea
                                     value={config.forewordText}
                                     onChange={(e) => setConfig(prev => ({ ...prev, forewordText: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 resize-none"
                                     placeholder="This year was incredible..."
                                 />
+                                {forewordSuggestion && (
+                                    <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <p className="text-xs text-purple-700">
+                                            <span className="font-semibold">AI suggestion:</span> Consider renaming your book to &quot;{forewordSuggestion}&quot;
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                setConfig(prev => ({ ...prev, periodName: forewordSuggestion }))
+                                                setForewordSuggestion(null)
+                                            }}
+                                            className="mt-1 text-xs text-purple-600 hover:text-purple-800 underline"
+                                        >
+                                            Use this name
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Theme Selection */}
@@ -728,7 +803,6 @@ export default function BookGenerationModal({
                 isOpen={aiDesignerOpen}
                 onClose={() => setAiDesignerOpen(false)}
                 initialConfig={{
-                    title: config.title,
                     periodName: config.periodName,
                     athleteName: config.athleteName,
                     startDate: config.startDate,

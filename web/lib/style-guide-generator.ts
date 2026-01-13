@@ -8,6 +8,7 @@
 import { BookTheme } from './book-types'
 import { StravaActivity, StravaPhoto } from './strava'
 import { getFontInfoForAI, getHeadingFonts, getBodyFonts } from './font-registry'
+import { ensureContrastAgainstWhite } from './color-utils'
 
 // ============================================================================
 // Types
@@ -31,43 +32,63 @@ export interface StyleGuideResponse {
 interface RaceColorScheme {
   primaryColor: string
   accentColor: string
+  // Adjusted accent color that meets WCAG contrast against white
+  // Used when accent text appears on white/light backgrounds
+  accentForWhiteBg: string
+  // Background color to use when displaying text in the accent color
+  // Ensures proper contrast for accent-colored text
+  accentBackground: string
   keywords: string[]
 }
 
 const KNOWN_RACE_COLORS: Record<string, RaceColorScheme> = {
   'boston': {
     primaryColor: '#0D2240',  // Boston blue
-    accentColor: '#FFD200',   // Boston yellow
+    accentColor: '#FFD200',   // Boston yellow (original)
+    accentForWhiteBg: '#9E7B00', // Darkened yellow for white backgrounds (WCAG 3:1)
+    accentBackground: '#0D2240', // Use Boston blue as background for yellow text
     keywords: ['boston', 'baa', 'b.a.a.']
   },
   'nyc': {
     primaryColor: '#003087',  // NYC blue
     accentColor: '#FF6B00',   // NYC orange
+    accentForWhiteBg: '#CC5500', // Slightly darkened orange for better contrast
+    accentBackground: '#003087', // Use NYC blue as background for orange text
     keywords: ['new york', 'nyc', 'nyrr', 'tcsnycmarathon']
   },
   'chicago': {
     primaryColor: '#E31837',  // Chicago red
-    accentColor: '#00205B',   // Chicago blue
+    accentColor: '#00205B',   // Chicago blue (already high contrast)
+    accentForWhiteBg: '#00205B', // Already has good contrast
+    accentBackground: '#E31837', // Use Chicago red as background for blue text
     keywords: ['chicago', 'bank of america marathon']
   },
   'london': {
     primaryColor: '#E31836',  // London red
-    accentColor: '#1D428A',   // London blue
+    accentColor: '#1D428A',   // London blue (already high contrast)
+    accentForWhiteBg: '#1D428A', // Already has good contrast
+    accentBackground: '#E31836', // Use London red as background for blue text
     keywords: ['london marathon', 'tcs london']
   },
   'berlin': {
     primaryColor: '#000000',  // Berlin black
-    accentColor: '#FFCC00',   // Berlin yellow
+    accentColor: '#FFCC00',   // Berlin yellow (original)
+    accentForWhiteBg: '#8B6914', // Darkened yellow for white backgrounds (WCAG 3:1)
+    accentBackground: '#000000', // Use black as background for yellow text
     keywords: ['berlin marathon', 'bmw berlin']
   },
   'comrades': {
     primaryColor: '#006B3C',  // Comrades green
-    accentColor: '#FFD700',   // Gold
+    accentColor: '#FFD700',   // Gold (original)
+    accentForWhiteBg: '#8B7500', // Darkened gold for white backgrounds (WCAG 3:1)
+    accentBackground: '#006B3C', // Use Comrades green as background for gold text
     keywords: ['comrades', 'comrades marathon']
   },
   'ironman': {
     primaryColor: '#E31837',  // Ironman red
-    accentColor: '#1C1C1C',   // Ironman black
+    accentColor: '#1C1C1C',   // Ironman black (already high contrast)
+    accentForWhiteBg: '#1C1C1C', // Already has excellent contrast
+    accentBackground: '#E31837', // Use Ironman red as background for black text
     keywords: ['ironman', 'im70.3', 'triathlon']
   }
 }
@@ -386,6 +407,8 @@ export async function generateStyleGuide(
       // Use known race colors as primary, but keep AI's font choices
       result.theme.primaryColor = knownRace.primaryColor
       result.theme.accentColor = knownRace.accentColor
+      result.theme.accentForWhiteBg = knownRace.accentForWhiteBg
+      result.theme.accentBackground = knownRace.accentBackground
       result.reasoning = `Theme based on official race branding. ${result.reasoning}`
     }
 
@@ -412,22 +435,35 @@ function generateMockStyleGuide(
   // Select base colors based on energy and preference
   let primaryColor: string
   let accentColor: string
+  let accentForWhiteBg: string | undefined
+  let accentBackground: string | undefined
   let headingFont: string
   let bodyFont: string
 
   if (knownRace) {
     primaryColor = knownRace.primaryColor
     accentColor = knownRace.accentColor
+    accentForWhiteBg = knownRace.accentForWhiteBg
+    accentBackground = knownRace.accentBackground
   } else if (preference === 'bold') {
     primaryColor = '#1a1a1a'
     accentColor = '#ff6b35'
+    // Orange has decent contrast, but provide a slightly darker version
+    accentForWhiteBg = ensureContrastAgainstWhite(accentColor)
+    accentBackground = primaryColor
   } else if (preference === 'minimal') {
     primaryColor = '#2c3e50'
     accentColor = '#95a5a6'
+    // Gray may need adjustment
+    accentForWhiteBg = ensureContrastAgainstWhite(accentColor)
+    accentBackground = primaryColor
   } else {
     // Classic
     primaryColor = '#1e3a5f'
     accentColor = '#e67e22'
+    // Orange should be checked for contrast
+    accentForWhiteBg = ensureContrastAgainstWhite(accentColor)
+    accentBackground = primaryColor
   }
 
   // Font selection based on energy
@@ -449,6 +485,8 @@ function generateMockStyleGuide(
   const theme: BookTheme = {
     primaryColor,
     accentColor,
+    accentForWhiteBg,
+    accentBackground,
     backgroundColor: '#ffffff',
     fontPairing: {
       heading: headingFont,

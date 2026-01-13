@@ -9,7 +9,7 @@ interface AIBookDesignerModalProps {
     isOpen: boolean
     onClose: () => void
     initialConfig?: {
-        title: string
+        // periodName serves as the book title (no separate title field)
         periodName: string
         athleteName: string
         startDate: string
@@ -101,8 +101,7 @@ export default function AIBookDesignerModal({
     onClose,
     initialConfig,
 }: AIBookDesignerModalProps) {
-    // Configuration state
-    const [title, setTitle] = useState(initialConfig?.title || 'My Running Journey')
+    // Configuration state - periodName serves as the book title
     const [periodName, setPeriodName] = useState(initialConfig?.periodName || 'My Running Journey')
     const [athleteName, setAthleteName] = useState(initialConfig?.athleteName || 'Athlete')
     const [startDate] = useState(initialConfig?.startDate || new Date().toISOString().split('T')[0])
@@ -159,7 +158,8 @@ export default function AIBookDesignerModal({
                 body: JSON.stringify({
                     activities: activities,
                     config: {
-                        title,
+                        // periodName serves as the book title
+                        title: periodName,
                         periodName,
                         athleteName,
                         startDate,
@@ -178,7 +178,7 @@ export default function AIBookDesignerModal({
                 // Auto-download the PDF
                 const link = document.createElement('a')
                 link.href = url
-                link.download = `${title.replace(/\s+/g, '-').toLowerCase()}-ai-designed.pdf`
+                link.download = `${periodName.replace(/\s+/g, '-').toLowerCase()}-ai-designed.pdf`
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
@@ -186,7 +186,7 @@ export default function AIBookDesignerModal({
         } catch (error) {
             console.error('Failed to generate PDF from design:', error)
         }
-    }, [activities, title, periodName, athleteName, startDate, endDate, format])
+    }, [activities, periodName, athleteName, startDate, endDate, format])
 
     // Poll for status updates
     const pollStatus = useCallback(async (sessionId: string) => {
@@ -253,7 +253,8 @@ export default function AIBookDesignerModal({
                         location_city: a.location_city,
                     })),
                     config: {
-                        title,
+                        // periodName serves as the book title
+                        title: periodName,
                         periodName,
                         athleteName,
                         startDate,
@@ -287,7 +288,7 @@ export default function AIBookDesignerModal({
             setCurrentStep('error')
             setErrorMessage(error instanceof Error ? error.message : 'Failed to start design session')
         }
-    }, [activities, title, athleteName, format, pollStatus])
+    }, [activities, periodName, athleteName, format, startDate, endDate, pollStatus])
 
     // Retry after error
     const handleRetry = useCallback(() => {
@@ -301,12 +302,12 @@ export default function AIBookDesignerModal({
         if (pdfUrl) {
             const link = document.createElement('a')
             link.href = pdfUrl
-            link.download = `${title.replace(/\s+/g, '-').toLowerCase()}-ai-designed.pdf`
+            link.download = `${periodName.replace(/\s+/g, '-').toLowerCase()}-ai-designed.pdf`
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
         }
-    }, [pdfUrl, title])
+    }, [pdfUrl, periodName])
 
     // Cancel the design process
     const handleCancel = useCallback(() => {
@@ -418,30 +419,21 @@ export default function AIBookDesignerModal({
                                 </div>
                             </div>
 
-                            {/* Book Details */}
+                            {/* Author */}
                             <div className="bg-stone-50 rounded-xl p-4">
-                                <h3 className="font-semibold text-stone-800 mb-4">Book Details</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs text-stone-500 mb-1">Book Title</label>
-                                        <input
-                                            type="text"
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
-                                            placeholder="My Year in Running"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-stone-500 mb-1">Athlete Name</label>
-                                        <input
-                                            type="text"
-                                            value={athleteName}
-                                            onChange={(e) => setAthleteName(e.target.value)}
-                                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
-                                            placeholder="Your Name"
-                                        />
-                                    </div>
+                                <h3 className="font-semibold text-stone-800 mb-4">Author</h3>
+                                <div>
+                                    <label className="block text-xs text-stone-500 mb-1">Athlete Name</label>
+                                    <input
+                                        type="text"
+                                        value={athleteName}
+                                        onChange={(e) => setAthleteName(e.target.value)}
+                                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                        placeholder="Your Name"
+                                    />
+                                    <p className="text-xs text-stone-500 mt-1">
+                                        Book title: {periodName}
+                                    </p>
                                 </div>
                             </div>
 

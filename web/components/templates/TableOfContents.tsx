@@ -36,94 +36,80 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     flexDirection: 'column',
   },
   title: {
-    fontSize: Math.max(28, 36 * format.scaleFactor),
+    fontSize: Math.max(32, 42 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.primaryColor,
     fontWeight: 'bold',
-    marginBottom: 20 * format.scaleFactor,
+    marginBottom: 32 * format.scaleFactor,
     textTransform: 'uppercase',
-    letterSpacing: 3,
+    letterSpacing: 4,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    flexShrink: 0,
   },
   categoryHeader: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
+    fontSize: Math.max(11, 13 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
     fontWeight: 'bold',
-    marginTop: 14 * format.scaleFactor,
-    marginBottom: 8 * format.scaleFactor,
+    marginTop: 28 * format.scaleFactor,
+    marginBottom: 14 * format.scaleFactor,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    borderBottomWidth: 1.5,
+    letterSpacing: 2,
+    borderBottomWidth: 2,
     borderBottomColor: theme.accentColor,
-    paddingBottom: 4 * format.scaleFactor,
+    paddingBottom: 6 * format.scaleFactor,
+  },
+  categoryHeaderFirst: {
+    marginTop: 0,
   },
   tocEntry: {
     flexDirection: 'row',
-    marginBottom: 6 * format.scaleFactor,
+    marginBottom: 14 * format.scaleFactor,
     alignItems: 'center',
-    paddingLeft: 8 * format.scaleFactor,
+    paddingLeft: 12 * format.scaleFactor,
   },
   tocEntryHighlight: {
     flexDirection: 'row',
-    marginBottom: 6 * format.scaleFactor,
+    marginBottom: 14 * format.scaleFactor,
     alignItems: 'center',
-    paddingLeft: 8 * format.scaleFactor,
-    backgroundColor: `${theme.accentColor}15`,
-    paddingVertical: 4 * format.scaleFactor,
-    paddingRight: 8 * format.scaleFactor,
+    paddingLeft: 12 * format.scaleFactor,
+    backgroundColor: `${theme.accentColor}12`,
+    paddingVertical: 8 * format.scaleFactor,
+    paddingRight: 12 * format.scaleFactor,
     borderRadius: 4,
-    marginRight: -8 * format.scaleFactor,
+    marginRight: -12 * format.scaleFactor,
   },
   tocTitleContainer: {
     flex: 1,
     flexDirection: 'column',
   },
   tocTitle: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
+    fontSize: Math.max(12, 14 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
   },
   tocTitleHighlight: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
+    fontSize: Math.max(12, 14 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.primaryColor,
     fontWeight: 'bold',
   },
   tocSubtitle: {
-    fontSize: Math.max(7, 8 * format.scaleFactor),
+    fontSize: Math.max(8, 10 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     opacity: 0.6,
-    marginTop: 1,
+    marginTop: 2,
   },
   tocPageNumber: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
+    fontSize: Math.max(12, 14 * format.scaleFactor),
     fontFamily: 'Courier-Bold',
     color: theme.primaryColor,
-    marginLeft: 8 * format.scaleFactor,
-    minWidth: 24 * format.scaleFactor,
+    marginLeft: 'auto',
+    paddingLeft: 12 * format.scaleFactor,
     textAlign: 'right',
-  },
-  dotsContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    marginHorizontal: 6 * format.scaleFactor,
-    borderBottomWidth: 0.5,
-    borderBottomColor: theme.primaryColor,
-    opacity: 0.2,
-    minWidth: 20,
-  },
-  footerText: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    marginTop: 'auto',
-    textAlign: 'center',
-    paddingTop: 12 * format.scaleFactor,
-    borderTopWidth: 0.5,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
   },
 })
 
@@ -134,17 +120,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
  */
 
 // Generate default entries for testing when no data provided
+// Order: Overview → Races → Training Log (dividers only) → Highlights
 const generateDefaultEntries = (): TOCEntry[] => [
   { title: 'Year Overview', category: 'Overview', pageNumber: 3, type: 'year_stats' },
-  { title: 'Activity Calendar', category: 'Overview', pageNumber: 4, type: 'year_calendar' },
-  { title: 'January', category: 'Monthly', pageNumber: 6, type: 'monthly_divider', activityCount: 18 },
-  { title: 'February', category: 'Monthly', pageNumber: 12, type: 'monthly_divider', activityCount: 20 },
-  { title: 'March', category: 'Monthly', pageNumber: 18, type: 'monthly_divider', activityCount: 24 },
-  { title: 'Boston Marathon', category: 'Races', pageNumber: 24, type: 'race_section', subtitle: 'April 21 • 42.2 km' },
-  { title: 'Brooklyn Half', category: 'Races', pageNumber: 30, type: 'race_section', subtitle: 'May 17 • 21.1 km' },
-  { title: 'Comrades Ultra', category: 'Races', pageNumber: 36, type: 'race_section', subtitle: 'June 8 • 89 km', isARace: true },
-  { title: 'Chicago Marathon', category: 'Races', pageNumber: 44, type: 'race_section', subtitle: 'Oct 12 • 42.2 km' },
-  { title: 'Activity Log', category: 'Appendix', pageNumber: 56, type: 'activity_log' },
+  { title: 'Activity Calendar', category: 'Overview', pageNumber: 5, type: 'year_calendar' },
+  { title: 'Boston Marathon', category: 'Races', pageNumber: 8, type: 'race_section', subtitle: 'April 21 • 42.2 km', isARace: true },
+  { title: 'Brooklyn Half', category: 'Races', pageNumber: 14, type: 'race_section', subtitle: 'May 17 • 21.1 km' },
+  { title: 'Comrades Ultra', category: 'Races', pageNumber: 20, type: 'race_section', subtitle: 'June 8 • 89 km' },
+  { title: 'Chicago Marathon', category: 'Races', pageNumber: 28, type: 'race_section', subtitle: 'Oct 12 • 42.2 km' },
+  { title: 'January', category: 'Training Log', pageNumber: 36, type: 'monthly_divider', activityCount: 18 },
+  { title: 'February', category: 'Training Log', pageNumber: 42, type: 'monthly_divider', activityCount: 20 },
+  { title: 'March', category: 'Training Log', pageNumber: 48, type: 'monthly_divider', activityCount: 24 },
+  { title: 'Best Efforts', category: 'Highlights', pageNumber: 56, type: 'best_efforts' },
 ]
 
 // Page-only version for use in BookDocument (no Document wrapper)
@@ -161,7 +148,20 @@ export const TableOfContentsPage = ({
 
   // Group entries by category
   const groupedEntries: Record<string, TOCEntry[]> = {}
-  const categoryOrder = ['Overview', 'Monthly', 'Races', 'Appendix']
+  // Category order - Races come before Training Log (monthly sections)
+  const categoryOrder = [
+    'Front Matter',   // Cover, Foreword
+    'Overview',       // Year at a Glance, Year Stats
+    'Races',          // Race pages
+    'Training Log',   // Monthly Dividers only (not Activity Log)
+    'Highlights',     // Best Efforts, Route Heatmap
+    'Back Matter',    // Back Cover
+    // Legacy categories for backwards compatibility
+    'Monthly',
+    'Journal',
+    'Appendix',
+    'Other',
+  ]
 
   entries.forEach(entry => {
     const category = entry.category || 'Other'
@@ -169,6 +169,11 @@ export const TableOfContentsPage = ({
       groupedEntries[category] = []
     }
     groupedEntries[category].push(entry)
+  })
+
+  // Sort entries within each category by page number
+  Object.values(groupedEntries).forEach(categoryEntries => {
+    categoryEntries.sort((a, b) => a.pageNumber - b.pageNumber)
   })
 
   // Sort categories by predefined order
@@ -184,11 +189,15 @@ export const TableOfContentsPage = ({
       <Text style={styles.title}>Contents</Text>
 
       {/* TOC Entries */}
-      <View style={{ flex: 1 }}>
-        {sortedCategories.map(category => (
+      <View style={styles.contentContainer}>
+        {sortedCategories.map((category, categoryIndex) => (
           <View key={category}>
-            {/* Category Header */}
-            <Text style={styles.categoryHeader}>{category}</Text>
+            {/* Category Header - no top margin for first category */}
+            <Text style={
+              categoryIndex === 0
+                ? [styles.categoryHeader, styles.categoryHeaderFirst]
+                : styles.categoryHeader
+            }>{category}</Text>
 
             {/* Entries in Category */}
             {groupedEntries[category]?.map((entry, idx) => {
@@ -208,7 +217,6 @@ export const TableOfContentsPage = ({
                     <Text style={titleStyle}>{entry.title}</Text>
                     {subtitle && <Text style={styles.tocSubtitle}>{subtitle}</Text>}
                   </View>
-                  <View style={styles.dotsContainer} />
                   <Text style={styles.tocPageNumber}>{entry.pageNumber}</Text>
                 </View>
               )
@@ -216,11 +224,6 @@ export const TableOfContentsPage = ({
           </View>
         ))}
       </View>
-
-      {/* Footer */}
-      <Text style={styles.footerText}>
-        {activity?.bookTitle || 'Strava Book'} • {activity?.athleteName || 'Year in Review'}
-      </Text>
     </Page>
   )
 }
