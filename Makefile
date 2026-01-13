@@ -22,7 +22,7 @@ ifeq ($(IS_WORKSPACE),yes)
 else
   # Running in main repo - use default configuration
   WORKSPACE_ID := main
-  WEB_PORT := 3001
+  WEB_PORT := 3000
   CONTAINER_NAME := strava-book-web
   COMPOSE_CMD := docker-compose
   CONTAINER_FILTER := name=strava-book
