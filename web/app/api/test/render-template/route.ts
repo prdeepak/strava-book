@@ -13,6 +13,7 @@ import '@/lib/pdf-fonts'
 
 // Template imports
 import { Race_1p } from '@/components/templates/Race_1p'
+import { RaceSection } from '@/components/templates/RaceSection'
 import { Cover } from '@/components/templates/Cover'
 import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
@@ -138,6 +139,58 @@ const TEST_TOC_ENTRIES = [
   { title: 'Best Efforts', pageNumber: 48, type: 'BEST_EFFORTS' as const, category: 'Highlights' },
 ]
 
+// Rich activity with full content for testing RaceSection auto variant
+const TEST_RICH_ACTIVITY = {
+  ...TEST_ACTIVITY,
+  id: 99999001,
+  name: 'Boston Marathon 2024',
+  distance: 42195,
+  moving_time: 12600,
+  kudos_count: 127,
+  comment_count: 6,
+  description: 'What an incredible day! Started at Hopkinton with 30,000 of my closest friends. The Newton Hills were brutal but the crowd support at Wellesley was electric! Heartbreak Hill lived up to its name but I pushed through. Crossing the finish on Boylston Street was a dream come true.',
+  best_efforts: [
+    { name: '1k', elapsed_time: 268, moving_time: 268, distance: 1000, start_index: 0, end_index: 100, pr_rank: 1 },
+    { name: '5k', elapsed_time: 1420, moving_time: 1420, distance: 5000, start_index: 0, end_index: 500, pr_rank: 1 },
+    { name: '10k', elapsed_time: 2880, moving_time: 2880, distance: 10000, start_index: 0, end_index: 1000, pr_rank: 2 },
+    { name: 'Half Marathon', elapsed_time: 6180, moving_time: 6180, distance: 21097, start_index: 0, end_index: 2100, pr_rank: null },
+    { name: 'Marathon', elapsed_time: 12600, moving_time: 12600, distance: 42195, start_index: 0, end_index: 4220, pr_rank: 1 },
+  ],
+  comprehensiveData: {
+    photos: [
+      { unique_id: 'photo1', urls: { '5000': 'https://example.com/boston1.jpg', '600': 'https://example.com/boston1_600.jpg' }, source: 1, uploaded_at: '2024-04-15T18:00:00Z', created_at: '2024-04-15T11:00:00Z', caption: 'Starting line!', activity_id: 99999001 },
+      { unique_id: 'photo2', urls: { '5000': 'https://example.com/boston2.jpg', '600': 'https://example.com/boston2_600.jpg' }, source: 1, uploaded_at: '2024-04-15T18:05:00Z', created_at: '2024-04-15T12:30:00Z', caption: 'Wellesley!', activity_id: 99999001 },
+      { unique_id: 'photo3', urls: { '5000': 'https://example.com/boston3.jpg', '600': 'https://example.com/boston3_600.jpg' }, source: 1, uploaded_at: '2024-04-15T18:10:00Z', created_at: '2024-04-15T13:00:00Z', caption: 'Heartbreak Hill', activity_id: 99999001 },
+    ],
+    comments: [
+      { id: 1, activity_id: 99999001, text: 'Incredible run! You crushed it!', athlete: { id: 1001, firstname: 'Sarah', lastname: 'J' }, created_at: '2024-04-15T16:00:00Z', reaction_count: 15 },
+      { id: 2, activity_id: 99999001, text: 'Boston!! Amazing achievement!', athlete: { id: 1002, firstname: 'Mike', lastname: 'C' }, created_at: '2024-04-15T16:05:00Z', reaction_count: 8 },
+      { id: 3, activity_id: 99999001, text: '12 min PR?! Congrats!', athlete: { id: 1003, firstname: 'Emily', lastname: 'D' }, created_at: '2024-04-15T16:10:00Z', reaction_count: 12 },
+    ],
+    streams: {},
+    fetchedAt: '2024-04-15T20:00:00Z',
+  },
+}
+
+// Minimal activity for testing minimal variant
+const TEST_MINIMAL_ACTIVITY = {
+  id: 99999002,
+  name: 'Local 10K',
+  type: 'Run',
+  sport_type: 'Run',
+  distance: 10000,
+  moving_time: 3000,
+  elapsed_time: 3100,
+  total_elevation_gain: 45,
+  start_date: '2024-06-15T08:00:00Z',
+  start_date_local: '2024-06-15T08:00:00Z',
+  timezone: '(GMT+00:00) UTC',
+  kudos_count: 2,
+  map: { id: 'a99999002', summary_polyline: 'kqbjGbducNoBCiKtBoDOqF', resource_state: 2 },
+  workout_type: 1,
+  comprehensiveData: { photos: [], comments: [], streams: {}, fetchedAt: '2024-06-15T12:00:00Z' },
+}
+
 // Template registry with component and default props
 const TEMPLATES: Record<string, {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -239,6 +292,16 @@ const TEMPLATES: Record<string, {
       theme: DEFAULT_THEME,
     }),
     variants: ['grouped-categories', 'simple-list', 'two-column'],
+  },
+  race_section: {
+    component: RaceSection,
+    getProps: (variant) => ({
+      activity: variant === 'minimal' ? TEST_MINIMAL_ACTIVITY : TEST_RICH_ACTIVITY,
+      format: FORMATS['10x10'],
+      theme: DEFAULT_THEME,
+      variant: variant || 'auto',
+    }),
+    variants: ['auto', 'compact', 'standard', 'full', 'minimal'],
   },
 }
 
