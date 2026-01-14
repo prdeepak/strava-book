@@ -101,21 +101,21 @@ export function generateSmartDraft(activities: StravaActivity[]): BookEntry[] {
         ? new Date(activities[0].start_date).getFullYear()
         : new Date().getFullYear()
 
-    // 2. Year at a Glance
+    // 2. Period at a Glance (calendar view)
     draft.push({
         type: 'YEAR_AT_A_GLANCE',
         year,
-        title: `${year} at a Glance`
+        title: 'Period at a Glance'
     })
-    entryTitles.push({ title: `${year} at a Glance`, type: 'YEAR_AT_A_GLANCE', category: 'Overview' })
+    entryTitles.push({ title: 'Period at a Glance', type: 'YEAR_AT_A_GLANCE', category: 'Overview' })
 
-    // 3. Year Stats Summary
+    // 3. Period Stats Summary
     draft.push({
         type: 'YEAR_STATS',
         year,
-        title: 'Year Summary'
+        title: 'Period Summary'
     })
-    entryTitles.push({ title: 'Year Summary', type: 'YEAR_STATS', category: 'Overview' })
+    entryTitles.push({ title: 'Period Summary', type: 'YEAR_STATS', category: 'Overview' })
 
     // Group activities by month
     const activitiesByMonth: Map<number, StravaActivity[]> = new Map()

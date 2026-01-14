@@ -18,10 +18,24 @@ import { Cover } from '@/components/templates/Cover'
 import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
 import { MonthlyDividerDocument } from '@/components/templates/MonthlyDivider'
+import { MonthlyDividerSpread } from '@/components/templates/MonthlyDividerSpread'
 import { ActivityLog } from '@/components/templates/ActivityLog'
 import { BackCover } from '@/components/templates/BackCover'
 import { Foreword } from '@/components/templates/Foreword'
 import { TableOfContents } from '@/components/templates/TableOfContents'
+import rawActivitiesJson from '@/lib/testing/fixtures/raw-activities.json'
+import * as path from 'path'
+
+// Resolve photo paths in fixtures to absolute paths
+function resolveFixturePhotoPaths<T>(fixture: T): T {
+  const fixturesDir = path.join(process.cwd(), 'lib/testing/fixtures')
+  const json = JSON.stringify(fixture)
+  const resolved = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
+    const absolutePath = path.join(fixturesDir, relativePath)
+    return `"${absolutePath}"`
+  })
+  return JSON.parse(resolved)
+}
 
 // Minimal test activity
 const TEST_ACTIVITY = {
@@ -302,6 +316,27 @@ const TEMPLATES: Record<string, {
       variant: variant || 'auto',
     }),
     variants: ['auto', 'compact', 'standard', 'full', 'minimal'],
+  },
+  monthly_divider_spread: {
+    component: MonthlyDividerSpread,
+    getProps: () => {
+      // Get June 2025 activities from real fixtures (has photos that map to local files)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allActivities = (rawActivitiesJson as any).activities || []
+      const juneActivities = allActivities
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((a: any) => a.start_date_local?.startsWith('2025-06'))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((a: any) => resolveFixturePhotoPaths(a))
+      return {
+        activities: juneActivities,
+        month: 5, // June (0-indexed)
+        year: 2025,
+        format: FORMATS['10x10'],
+        theme: DEFAULT_THEME,
+      }
+    },
+    variants: [],
   },
 }
 

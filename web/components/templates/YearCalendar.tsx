@@ -138,6 +138,11 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+// Helper to format numbers with thousands separators
+const formatWithCommas = (num: number): string => {
+  return Math.round(num).toLocaleString('en-US')
+}
+
 // Helper to get days in month
 const getDaysInMonth = (year: number, month: number): number => {
   return new Date(year, month + 1, 0).getDate()
@@ -325,7 +330,7 @@ export const YearCalendar = (props: YearCalendarProps) => {
         <View style={styles.header}>
           <Text style={styles.year}>{year}</Text>
           <Text style={styles.subtitle}>
-            {totalActivities} Activities • {totalDistance.toFixed(0)} kilometers
+            {formatWithCommas(totalActivities)} Activities • {formatWithCommas(totalDistance)} kilometers
           </Text>
         </View>
 
@@ -404,27 +409,27 @@ export const YearCalendar = (props: YearCalendarProps) => {
         <View style={styles.statsGrid} wrap={false}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {totalDistance.toFixed(0)}
+              {formatWithCommas(totalDistance)}
               <Text style={styles.statUnit}> km</Text>
             </Text>
             <Text style={styles.statLabel}>Distance</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {totalTime.toFixed(0)}
+              {formatWithCommas(totalTime)}
               <Text style={styles.statUnit}> hrs</Text>
             </Text>
             <Text style={styles.statLabel}>Time</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {totalElevation.toFixed(0)}
+              {formatWithCommas(totalElevation)}
               <Text style={styles.statUnit}> m</Text>
             </Text>
             <Text style={styles.statLabel}>Elevation</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{activities.length}</Text>
+            <Text style={styles.statValue}>{formatWithCommas(activities.length)}</Text>
             <Text style={styles.statLabel}>Activities</Text>
           </View>
         </View>

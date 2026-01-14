@@ -4,6 +4,11 @@ import { StravaActivity } from '@/lib/strava'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { MONTH_NAMES_SHORT } from '@/lib/heatmap-utils'
 
+// Helper to format numbers with thousands separators
+const formatWithCommas = (num: number): string => {
+  return num.toLocaleString('en-US')
+}
+
 interface YearStatsProps {
   // Primary input: array of activities for the period
   activities?: StravaActivity[]
@@ -77,14 +82,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     flex: 1,
   },
   heroValue: {
-    fontSize: Math.max(52, 86 * format.scaleFactor),
+    fontSize: Math.max(32, 48 * format.scaleFactor),
     fontFamily: 'Courier-Bold', // Monospace for tabular figures
     color: theme.accentColor,
     lineHeight: 1,
-    letterSpacing: -2,
+    letterSpacing: -1,
   },
   heroUnit: {
-    fontSize: Math.max(13, 16 * format.scaleFactor),
+    fontSize: Math.max(11, 14 * format.scaleFactor),
     fontFamily: 'Courier-Bold',
     color: theme.accentColor,
     opacity: 0.7,
@@ -228,16 +233,62 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
 /**
  * Inline MonthlyBarChart component for YearStats
  * Renders a simple bar chart using View components (no SVG Text issues)
+ * Shows only the months in the actual period, in order
  */
 interface MonthlyBarChartProps {
   monthlyStats: MonthlyStats[]
   theme: BookTheme
   format: BookFormat
+  startMonth?: number  // 0-11, month to start from
+  endMonth?: number    // 0-11, month to end at
 }
 
-const MonthlyBarChart = ({ monthlyStats, theme, format }: MonthlyBarChartProps) => {
-  const maxDistance = Math.max(...monthlyStats.map(m => m.totalDistance), 1)
+const MonthlyBarChart = ({ monthlyStats, theme, format, startMonth, endMonth }: MonthlyBarChartProps) => {
+  // Determine which months to show based on actual activity data
+  // Default: show only months with data, or fall back to provided range
+  let monthsToShow: { stats: MonthlyStats; monthIndex: number }[] = []
+
+  if (startMonth !== undefined && endMonth !== undefined) {
+    // Use provided range (can wrap around year boundary)
+    if (startMonth <= endMonth) {
+      // Same year: July (6) to December (11)
+      for (let m = startMonth; m <= endMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+    } else {
+      // Crosses year boundary: October (9) to February (1)
+      for (let m = startMonth; m < 12; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+      for (let m = 0; m <= endMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+    }
+  } else {
+    // Find first and last month with activity
+    let firstMonth = -1
+    let lastMonth = -1
+    monthlyStats.forEach((stats, idx) => {
+      if (stats.totalDistance > 0 || stats.activityCount > 0) {
+        if (firstMonth === -1) firstMonth = idx
+        lastMonth = idx
+      }
+    })
+
+    if (firstMonth === -1) {
+      // No activities, show all months
+      monthsToShow = monthlyStats.map((stats, idx) => ({ stats, monthIndex: idx }))
+    } else {
+      // Show from first to last active month
+      for (let m = firstMonth; m <= lastMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m], monthIndex: m })
+      }
+    }
+  }
+
+  const maxDistance = Math.max(...monthsToShow.map(m => m.stats.totalDistance), 1)
   const chartHeight = 60 * format.scaleFactor
+  const numMonths = monthsToShow.length
 
   return (
     <View style={{ flexDirection: 'column' }}>
@@ -253,13 +304,13 @@ const MonthlyBarChart = ({ monthlyStats, theme, format }: MonthlyBarChartProps) 
         paddingBottom: 2,
         marginBottom: 4 * format.scaleFactor,
       }}>
-        {monthlyStats.map((month, index) => {
-          const barHeight = Math.max((month.totalDistance / maxDistance) * (chartHeight - 4), 4)
+        {monthsToShow.map((month, index) => {
+          const barHeight = Math.max((month.stats.totalDistance / maxDistance) * (chartHeight - 4), 4)
           return (
             <View
               key={index}
               style={{
-                width: `${100 / 12 - 1}%`,
+                width: `${100 / numMonths - 1}%`,
                 height: barHeight,
                 backgroundColor: theme.accentColor,
                 borderTopLeftRadius: 2,
@@ -274,11 +325,11 @@ const MonthlyBarChart = ({ monthlyStats, theme, format }: MonthlyBarChartProps) 
         flexDirection: 'row',
         justifyContent: 'space-between',
       }}>
-        {MONTH_NAMES_SHORT.map((month, index) => (
+        {monthsToShow.map((month, index) => (
           <Text
             key={index}
             style={{
-              width: `${100 / 12}%`,
+              width: `${100 / numMonths}%`,
               fontSize: Math.max(7, 8 * format.scaleFactor),
               fontFamily: theme.fontPairing.body,
               color: theme.primaryColor,
@@ -286,7 +337,7 @@ const MonthlyBarChart = ({ monthlyStats, theme, format }: MonthlyBarChartProps) 
               textAlign: 'center',
             }}
           >
-            {month.charAt(0)}
+            {MONTH_NAMES_SHORT[month.monthIndex]}
           </Text>
         ))}
       </View>
@@ -534,21 +585,21 @@ export const YearStats = ({
         <View style={styles.heroStatsRow}>
           {/* Total Distance */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{distance.value}</Text>
+            <Text style={styles.heroValue}>{formatWithCommas(distance.value)}</Text>
             <Text style={styles.heroUnit}>{distance.unit}</Text>
             <Text style={styles.heroLabel}>Distance</Text>
           </View>
 
           {/* Total Time */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{time.value}</Text>
+            <Text style={styles.heroValue}>{formatWithCommas(time.value)}</Text>
             <Text style={styles.heroUnit}>{time.unit}</Text>
             <Text style={styles.heroLabel}>Time</Text>
           </View>
 
           {/* Total Elevation */}
           <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{elevation.value}</Text>
+            <Text style={styles.heroValue}>{formatWithCommas(elevation.value)}</Text>
             <Text style={styles.heroUnit}>{elevation.unit}</Text>
             <Text style={styles.heroLabel}>Elevation</Text>
           </View>
@@ -601,6 +652,8 @@ export const YearStats = ({
               monthlyStats={yearSummary.monthlyStats}
               theme={theme}
               format={format}
+              startMonth={propStartDate ? new Date(propStartDate).getMonth() : undefined}
+              endMonth={propEndDate ? new Date(propEndDate).getMonth() : undefined}
             />
           </View>
         )}

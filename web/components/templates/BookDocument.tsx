@@ -8,7 +8,7 @@ import { ForewordPage } from './Foreword'
 import { BackCover } from './BackCover'
 import { YearCalendar } from './YearCalendar'
 import { YearStats } from './YearStats'
-import { MonthlyDivider } from './MonthlyDivider'
+import { MonthlyDividerSpread } from './MonthlyDividerSpread'
 import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
@@ -541,11 +541,13 @@ export const BookDocument = ({
                         return activityMonth === entry.month && activityYear === entry.year
                     })
 
-                    // Pass activities - MonthlyDivider derives everything it needs
+                    // MonthlyDividerSpread is a 2-page spread with photos and calendar
                     return (
-                        <MonthlyDivider
+                        <MonthlyDividerSpread
                             key={index}
                             activities={monthActivities}
+                            month={entry.month!}
+                            year={entry.year!}
                             format={format}
                             theme={theme}
                         />
