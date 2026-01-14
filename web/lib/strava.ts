@@ -185,8 +185,10 @@ export type StravaActivity = {
         }
         count: number
     }
+    total_photo_count?: number // Total photos including Instagram
     location_city?: string
     workout_type?: number | null
+    suffer_score?: number // Strava's relative effort score
     start_latlng?: [number, number] // [latitude, longitude]
     best_efforts?: Array<{
         name: string

@@ -249,6 +249,7 @@ async function generatePDF() {
         // Actual template
         const templateBuffer = await renderToBuffer(
           YearCalendar({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             activity: yearCalendarFixture as any,
             colorBy,
             format,

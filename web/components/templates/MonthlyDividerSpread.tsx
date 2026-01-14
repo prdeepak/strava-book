@@ -191,23 +191,74 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   leftPage: {
     width: format.dimensions.width,
     height: format.dimensions.height,
-    backgroundColor: theme.primaryColor,
-    padding: 0,
+    backgroundColor: theme.backgroundColor,
+    padding: format.safeMargin,
+  },
+  leftPageHeader: {
+    marginBottom: 16 * format.scaleFactor,
+    borderBottomWidth: 2,
+    borderBottomColor: theme.primaryColor,
+    borderBottomStyle: 'solid',
+    paddingBottom: 12 * format.scaleFactor,
+  },
+  leftPageTitle: {
+    fontSize: 48 * format.scaleFactor,
+    fontFamily: theme.fontPairing.heading,
+    color: theme.primaryColor,
+    letterSpacing: -1,
+    marginBottom: 2 * format.scaleFactor,
+  },
+  leftPageYear: {
+    fontSize: 20 * format.scaleFactor,
+    fontFamily: theme.fontPairing.heading,
+    color: theme.accentColor,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
   },
   photoGrid: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10 * format.scaleFactor,
+    overflow: 'hidden',
+  },
+  photoRow: {
+    height: 245 * format.scaleFactor,
+    flexDirection: 'row',
+    gap: 10 * format.scaleFactor,
+  },
+  photoCell: {
+    flex: 1,
+    height: '100%',
+    overflow: 'hidden',
+    borderRadius: 4 * format.scaleFactor,
+  },
+  photo: {
     width: '100%',
     height: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    objectFit: 'cover',
+  },
+  // Legacy styles for backward compatibility
+  heroPhotoContainer: {
+    height: 320 * format.scaleFactor,
+    overflow: 'hidden',
+    borderRadius: 4 * format.scaleFactor,
+    marginBottom: 12 * format.scaleFactor,
   },
   heroPhoto: {
     width: '100%',
-    height: '60%',
+    height: '100%',
     objectFit: 'cover',
   },
+  smallPhotosRow: {
+    height: 195 * format.scaleFactor,
+    flexDirection: 'row',
+    gap: 10 * format.scaleFactor,
+  },
   smallPhotoContainer: {
-    width: '33.33%',
-    height: '40%',
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: 4 * format.scaleFactor,
   },
   smallPhoto: {
     width: '100%',
@@ -225,11 +276,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     textShadow: '0 1px 3px rgba(0,0,0,0.5)',
   },
   noPhotosPage: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
     backgroundColor: theme.primaryColor,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 4 * format.scaleFactor,
   },
   noPhotosText: {
     color: theme.backgroundColor,
@@ -394,18 +445,39 @@ export const MonthlyDividerSpread = ({
     <Document>
       {/* LEFT PAGE - Photos */}
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.leftPage}>
+        {/* Header with month/year for brand cohesion */}
+        <View style={styles.leftPageHeader}>
+          <Text style={styles.leftPageTitle}>{monthName}</Text>
+          <Text style={styles.leftPageYear}>{year}</Text>
+        </View>
+
         {topPhotos.length > 0 ? (
           <View style={styles.photoGrid}>
-            {/* Hero photo */}
-            {topPhotos[0] && (
-              <Image src={topPhotos[0].url} style={styles.heroPhoto} />
-            )}
-            {/* Smaller photos in row */}
-            {topPhotos.slice(1, 4).map((photo, idx) => (
-              <View key={idx} style={styles.smallPhotoContainer}>
-                <Image src={photo.url} style={styles.smallPhoto} />
-              </View>
-            ))}
+            {/* 2x2 photo grid for balanced layout */}
+            <View style={styles.photoRow}>
+              {topPhotos[0] && (
+                <View style={styles.photoCell}>
+                  <Image src={topPhotos[0].url} style={styles.photo} />
+                </View>
+              )}
+              {topPhotos[1] && (
+                <View style={styles.photoCell}>
+                  <Image src={topPhotos[1].url} style={styles.photo} />
+                </View>
+              )}
+            </View>
+            <View style={styles.photoRow}>
+              {topPhotos[2] && (
+                <View style={styles.photoCell}>
+                  <Image src={topPhotos[2].url} style={styles.photo} />
+                </View>
+              )}
+              {topPhotos[3] && (
+                <View style={styles.photoCell}>
+                  <Image src={topPhotos[3].url} style={styles.photo} />
+                </View>
+              )}
+            </View>
           </View>
         ) : (
           <View style={styles.noPhotosPage}>
@@ -435,6 +507,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
+              cellSize={30 * format.scaleFactor}
             />
           ) : (
             // Use icon calendar for mixed-sport months
@@ -446,6 +519,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
+              cellSize={30 * format.scaleFactor}
             />
           )}
         </View>
@@ -474,9 +548,9 @@ export const MonthlyDividerSpread = ({
         {topComments.length > 0 && (
           <View style={styles.commentsSection}>
             <Text style={styles.commentsLabel}>Month Highlights</Text>
-            {topComments.slice(0, 4).map((comment, idx) => (
+            {topComments.slice(0, 2).map((comment, idx) => (
               <View key={idx} style={styles.commentItem}>
-                <Text style={styles.commentText}>"{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}"</Text>
+                <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
                 <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
               </View>
             ))}
@@ -618,7 +692,7 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
           <Text style={styles.commentsLabel}>Month Highlights</Text>
           {topComments.slice(0, 4).map((comment, idx) => (
             <View key={idx} style={styles.commentItem}>
-              <Text style={styles.commentText}>"{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}"</Text>
+              <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
               <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
             </View>
           ))}

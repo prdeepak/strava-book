@@ -295,7 +295,7 @@ export const IconCalendarMonth = ({
 }: IconCalendarMonthProps) => {
   const cellSize = propCellSize || 14 * format.scaleFactor
   const cellGap = 2 * format.scaleFactor
-  const iconSize = cellSize * 0.7
+  const iconSize = cellSize * 0.8
 
   const daysInMonth = getDaysInMonth(year, month)
   const firstDay = getFirstDayOfMonth(year, month)
@@ -438,10 +438,10 @@ export const IconCalendarMonth = ({
                 alignItems: 'center',
               }}>
                 <Text style={{
-                  fontSize: Math.max(8, 10 * format.scaleFactor),
+                  fontSize: Math.max(10, cellSize * 0.55),
                   fontFamily: theme.fontPairing.body,
                   color: theme.primaryColor,
-                  opacity: 0.5,
+                  opacity: 0.6,
                 }}>
                   {day}
                 </Text>
