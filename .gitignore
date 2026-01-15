@@ -13,6 +13,9 @@ venv/
 /output/
 /test-output/
 
+# Photo cache (persistent cache for Strava photos)
+/web/.cache/
+
 # Playwright
 /web/playwright-report/
 /web/test-results/
