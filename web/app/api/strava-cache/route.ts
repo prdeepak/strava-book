@@ -2,7 +2,7 @@
  * Strava Cache API
  *
  * GET - Get cache status and statistics
- * POST - Start harvesting all Strava data (activities, photos, comments, streams)
+ * POST - Start harvesting Strava data (activity details, laps, comments)
  * DELETE - Clear cache (with options)
  */
 
@@ -14,8 +14,7 @@ import {
   getCacheStats,
   listCachedActivityIds,
   clearAllCache,
-  clearOldCache,
-  migrateFromPhotoCache
+  clearOldCache
 } from '@/lib/cache/strava-cache'
 import {
   cachedStrava,
@@ -30,23 +29,11 @@ export const maxDuration = 300 // 5 minutes max
  * GET /api/strava-cache
  * Returns cache statistics and status
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions)
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const searchParams = request.nextUrl.searchParams
-  const action = searchParams.get('action')
-
-  // Special action: migrate from old photo cache
-  if (action === 'migrate') {
-    const result = await migrateFromPhotoCache()
-    return NextResponse.json({
-      status: 'migrated',
-      ...result
-    })
   }
 
   try {
@@ -75,13 +62,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/strava-cache
- * Start harvesting all Strava data for activities
+ * Start harvesting Strava data for activities
  *
  * Body options:
  * - mode: 'full' | 'recent' | 'year' (default: 'recent')
  * - year: number (for 'year' mode)
  * - limit: number (max activities to process, default: 100)
- * - includeStreams: boolean (include GPS streams, default: true)
  */
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -95,18 +81,16 @@ export async function POST(request: NextRequest) {
     const {
       mode = 'recent',
       year,
-      limit = 100,
-      includeStreams = true
+      limit = 100
     } = body as {
       mode?: 'full' | 'recent' | 'year'
       year?: number
       limit?: number
-      includeStreams?: boolean
     }
 
     const athleteId = session.user?.id || 'unknown'
 
-    console.log(`[Strava Cache] Starting harvest: mode=${mode}, year=${year}, limit=${limit}, streams=${includeStreams}`)
+    console.log(`[Strava Cache] Starting harvest: mode=${mode}, year=${year}, limit=${limit}`)
 
     // Build date filters based on mode
     let after: number | undefined
@@ -140,11 +124,11 @@ export async function POST(request: NextRequest) {
       }, { status: 429 })
     }
 
-    // Step 2: Batch fetch comprehensive data
+    // Step 2: Batch fetch data for PDF generation (activity + laps + comments)
     const activityIds = allActivities.map(a => String(a.id))
     const progressUpdates: BatchProgress[] = []
 
-    const result = await cachedStrava.batchFetchComprehensive(
+    const result = await cachedStrava.batchFetchForPdf(
       session.accessToken,
       activityIds,
       athleteId,
@@ -154,8 +138,7 @@ export async function POST(request: NextRequest) {
           console.log(`[Strava Cache] Progress: ${progress.phase} - cached=${progress.cached}, fetched=${progress.fetched}, remaining=${progress.remaining}`)
         },
         maxConcurrent: 3,
-        respectRateLimits: true,
-        includeStreams
+        respectRateLimits: true
       }
     )
 
@@ -171,16 +154,15 @@ export async function POST(request: NextRequest) {
       },
       dataCollected: {
         activities: result.activities.size,
-        withPhotos: Array.from(result.activities.values()).filter(a => a.photos.length > 0).length,
+        withLaps: Array.from(result.activities.values()).filter(a => a.laps.length > 0).length,
         withComments: Array.from(result.activities.values()).filter(a => a.comments.length > 0).length,
-        withStreams: Array.from(result.activities.values()).filter(a => a.streams !== null).length,
-        totalPhotos: Array.from(result.activities.values()).reduce((sum, a) => sum + a.photos.length, 0),
+        totalLaps: Array.from(result.activities.values()).reduce((sum, a) => sum + a.laps.length, 0),
         totalComments: Array.from(result.activities.values()).reduce((sum, a) => sum + a.comments.length, 0)
       },
       rateLimits: getRateLimitInfo(),
       message: result.skippedRateLimit > 0
         ? `Partially complete. ${result.skippedRateLimit} activities skipped due to rate limits. Run again later to continue.`
-        : `Successfully cached all data for ${result.fetched + result.fromCache} activities.`
+        : `Successfully cached data for ${result.fetched + result.fromCache} activities.`
     }
 
     console.log('[Strava Cache] Harvest complete:', summary)

@@ -1,36 +1,36 @@
 /**
  * Cache-Aware Strava Client
  *
- * Wraps ALL Strava API calls with persistent caching to avoid rate limits.
- * Tracks rate limit headers and provides intelligent batch fetching.
+ * Wraps Strava API calls with persistent caching to avoid rate limits.
+ * Matches actual Strava API endpoints:
  *
- * Usage:
- *   import { cachedStrava } from '@/lib/cache'
+ *   GET /athlete/activities          → cachedStrava.getAthleteActivities()
+ *   GET /activities/{id}             → cachedStrava.getActivity()
+ *   GET /activities/{id}/laps        → cachedStrava.getActivityLaps()
+ *   GET /activities/{id}/comments    → cachedStrava.getActivityComments()
  *
- *   // These check cache first, fall back to API
- *   const activities = await cachedStrava.getAthleteActivities(token, athleteId, options)
- *   const activity = await cachedStrava.getActivity(token, activityId, athleteId)
- *   const photos = await cachedStrava.getActivityPhotos(token, activityId, athleteId)
- *   const comments = await cachedStrava.getActivityComments(token, activityId, athleteId)
- *   const streams = await cachedStrava.getActivityStreams(token, activityId, athleteId)
+ * Note: Photos are included in DetailedActivity response, not separate endpoint.
  */
 
 import {
   StravaActivity,
-  StravaPhoto,
   StravaComment,
-  StravaStreams
+  StravaLap,
+  getAthleteActivities as fetchAthleteActivities,
+  getActivity as fetchActivity,
+  getActivityLaps as fetchLaps,
+  getActivityComments as fetchComments
 } from '../strava'
 import {
   getCachedActivity,
   getCachedActivityList,
   cacheActivityDetails,
-  cacheActivityPhotos,
+  cacheActivityLaps,
   cacheActivityComments,
-  cacheActivityStreams,
   cacheActivityList,
   cacheCompleteActivity,
-  CachedActivity
+  CachedActivity,
+  StravaLap as CachedStravaLap
 } from './strava-cache'
 
 // ============================================
@@ -51,28 +51,6 @@ let rateLimitInfo: RateLimitInfo = {
   dailyUsage: 0,
   dailyLimit: 1000,
   lastUpdated: new Date()
-}
-
-/**
- * Parse rate limit headers from Strava response
- */
-function parseRateLimitHeaders(headers: Headers): void {
-  const usage = headers.get('X-RateLimit-Usage')
-  const limit = headers.get('X-RateLimit-Limit')
-
-  if (usage) {
-    const [shortTerm, daily] = usage.split(',').map(Number)
-    rateLimitInfo.shortTermUsage = shortTerm || 0
-    rateLimitInfo.dailyUsage = daily || 0
-  }
-
-  if (limit) {
-    const [shortTermLimit, dailyLimit] = limit.split(',').map(Number)
-    rateLimitInfo.shortTermLimit = shortTermLimit || 100
-    rateLimitInfo.dailyLimit = dailyLimit || 1000
-  }
-
-  rateLimitInfo.lastUpdated = new Date()
 }
 
 export function getRateLimitInfo(): RateLimitInfo {
@@ -102,94 +80,11 @@ export function getOptimalDelay(): number {
 }
 
 // ============================================
-// Raw API Calls (with rate limit tracking)
-// ============================================
-
-async function fetchWithRateTracking(url: string, accessToken: string): Promise<Response> {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  })
-  parseRateLimitHeaders(res.headers)
-  return res
-}
-
-async function fetchAthleteActivitiesRaw(
-  accessToken: string,
-  options?: { after?: number; before?: number; perPage?: number; page?: number }
-): Promise<StravaActivity[]> {
-  const params = new URLSearchParams()
-  params.set('per_page', (options?.perPage || 100).toString())
-  if (options?.after) params.set('after', options.after.toString())
-  if (options?.before) params.set('before', options.before.toString())
-  if (options?.page) params.set('page', options.page.toString())
-
-  const res = await fetchWithRateTracking(
-    `https://www.strava.com/api/v3/athlete/activities?${params}`,
-    accessToken
-  )
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch activities: ${res.status}`)
-  }
-
-  return res.json()
-}
-
-async function fetchActivityRaw(accessToken: string, activityId: string): Promise<StravaActivity> {
-  const res = await fetchWithRateTracking(
-    `https://www.strava.com/api/v3/activities/${activityId}`,
-    accessToken
-  )
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch activity ${activityId}: ${res.status}`)
-  }
-
-  return res.json()
-}
-
-async function fetchActivityPhotosRaw(accessToken: string, activityId: string): Promise<StravaPhoto[]> {
-  const res = await fetchWithRateTracking(
-    `https://www.strava.com/api/v3/activities/${activityId}/photos?size=5000`,
-    accessToken
-  )
-
-  if (!res.ok) return []
-  return res.json()
-}
-
-async function fetchActivityCommentsRaw(accessToken: string, activityId: string): Promise<StravaComment[]> {
-  const res = await fetchWithRateTracking(
-    `https://www.strava.com/api/v3/activities/${activityId}/comments`,
-    accessToken
-  )
-
-  if (!res.ok) return []
-  return res.json()
-}
-
-async function fetchActivityStreamsRaw(
-  accessToken: string,
-  activityId: string,
-  keys: string[] = ['latlng', 'altitude', 'time', 'distance']
-): Promise<StravaStreams> {
-  const keysParam = keys.join(',')
-  const res = await fetchWithRateTracking(
-    `https://www.strava.com/api/v3/activities/${activityId}/streams?keys=${keysParam}&key_by_type=true`,
-    accessToken
-  )
-
-  if (!res.ok) return {}
-  return res.json()
-}
-
-// ============================================
 // Cached API Calls
 // ============================================
 
 interface CacheOptions {
   forceRefresh?: boolean
-  maxAge?: number // Max cache age in seconds (optional staleness check)
 }
 
 interface CachedResult<T> {
@@ -200,7 +95,7 @@ interface CachedResult<T> {
 
 /**
  * Get athlete activities with caching
- * Note: Activity list caching is optional - mainly for avoiding repeated full fetches
+ * GET /athlete/activities
  */
 async function getAthleteActivities(
   accessToken: string,
@@ -209,8 +104,7 @@ async function getAthleteActivities(
 ): Promise<CachedResult<StravaActivity[]>> {
   const { forceRefresh, ...queryOptions } = options || {}
 
-  // For activity lists, we typically want fresh data, but can use cache as fallback
-  // Skip cache by default for pagination to ensure consistency
+  // Check cache for non-paginated queries
   if (!forceRefresh && !queryOptions.page) {
     const cached = await getCachedActivityList(athleteId, {
       after: queryOptions.after,
@@ -232,7 +126,7 @@ async function getAthleteActivities(
   const perPage = queryOptions.perPage || 100
 
   while (true) {
-    const activities = await fetchAthleteActivitiesRaw(accessToken, {
+    const activities = await fetchAthleteActivities(accessToken, {
       ...queryOptions,
       page,
       perPage
@@ -264,6 +158,9 @@ async function getAthleteActivities(
 
 /**
  * Get activity details with caching
+ * GET /activities/{id}
+ *
+ * Note: DetailedActivity includes photos in the response
  */
 async function getActivity(
   accessToken: string,
@@ -282,7 +179,7 @@ async function getActivity(
     }
   }
 
-  const activity = await fetchActivityRaw(accessToken, activityId)
+  const activity = await fetchActivity(accessToken, activityId)
   await cacheActivityDetails(activityId, athleteId, activity)
 
   return {
@@ -293,30 +190,32 @@ async function getActivity(
 }
 
 /**
- * Get activity photos with caching
+ * Get activity laps with caching
+ * GET /activities/{id}/laps
  */
-async function getActivityPhotos(
+async function getActivityLaps(
   accessToken: string,
   activityId: string,
   athleteId: string,
   options?: CacheOptions
-): Promise<CachedResult<StravaPhoto[]>> {
+): Promise<CachedResult<StravaLap[]>> {
   if (!options?.forceRefresh) {
     const cached = await getCachedActivity(activityId)
-    if (cached?.photosFetchedAt) {
+    if (cached?.lapsFetchedAt) {
+      // Convert cached laps to StravaLap type
       return {
-        data: cached.photos,
+        data: cached.laps as unknown as StravaLap[],
         fromCache: true,
-        cachedAt: cached.photosFetchedAt
+        cachedAt: cached.lapsFetchedAt
       }
     }
   }
 
-  const photos = await fetchActivityPhotosRaw(accessToken, activityId)
-  await cacheActivityPhotos(activityId, athleteId, photos)
+  const laps = await fetchLaps(accessToken, activityId)
+  await cacheActivityLaps(activityId, athleteId, laps as unknown as CachedStravaLap[])
 
   return {
-    data: photos,
+    data: laps,
     fromCache: false,
     cachedAt: null
   }
@@ -324,6 +223,7 @@ async function getActivityPhotos(
 
 /**
  * Get activity comments with caching
+ * GET /activities/{id}/comments
  */
 async function getActivityComments(
   accessToken: string,
@@ -342,7 +242,7 @@ async function getActivityComments(
     }
   }
 
-  const comments = await fetchActivityCommentsRaw(accessToken, activityId)
+  const comments = await fetchComments(accessToken, activityId)
   await cacheActivityComments(activityId, athleteId, comments)
 
   return {
@@ -353,65 +253,33 @@ async function getActivityComments(
 }
 
 /**
- * Get activity streams with caching
+ * Get all data needed for PDF generation with caching
+ * Fetches: activity details + laps + comments (only if not cached)
  */
-async function getActivityStreams(
-  accessToken: string,
-  activityId: string,
-  athleteId: string,
-  options?: CacheOptions & { keys?: string[] }
-): Promise<CachedResult<StravaStreams>> {
-  if (!options?.forceRefresh) {
-    const cached = await getCachedActivity(activityId)
-    if (cached?.streamsFetchedAt) {
-      return {
-        data: cached.streams || {},
-        fromCache: true,
-        cachedAt: cached.streamsFetchedAt
-      }
-    }
-  }
-
-  const streams = await fetchActivityStreamsRaw(accessToken, activityId, options?.keys)
-  await cacheActivityStreams(activityId, athleteId, streams)
-
-  return {
-    data: streams,
-    fromCache: false,
-    cachedAt: null
-  }
-}
-
-/**
- * Get all comprehensive data for an activity with caching
- */
-async function getComprehensiveActivity(
+async function getActivityForPdf(
   accessToken: string,
   activityId: string,
   athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<{
   activity: StravaActivity
-  photos: StravaPhoto[]
+  laps: StravaLap[]
   comments: StravaComment[]
-  streams: StravaStreams
 }>> {
   // Check what's already cached
   const cached = options?.forceRefresh ? null : await getCachedActivity(activityId)
 
-  const needsActivity = !cached?.activity
-  const needsPhotos = !cached?.photosFetchedAt
+  const needsActivity = !cached?.activityFetchedAt
+  const needsLaps = !cached?.lapsFetchedAt
   const needsComments = !cached?.commentsFetchedAt
-  const needsStreams = !cached?.streamsFetchedAt
 
   // If everything is cached, return it
-  if (!needsActivity && !needsPhotos && !needsComments && !needsStreams && cached) {
+  if (!needsActivity && !needsLaps && !needsComments && cached) {
     return {
       data: {
         activity: cached.activity!,
-        photos: cached.photos,
-        comments: cached.comments,
-        streams: cached.streams || {}
+        laps: cached.laps as unknown as StravaLap[],
+        comments: cached.comments
       },
       fromCache: true,
       cachedAt: cached.lastUpdatedAt
@@ -419,49 +287,30 @@ async function getComprehensiveActivity(
   }
 
   // Fetch what's missing in parallel
-  const promises: Promise<void>[] = []
-  let activity = cached?.activity
-  let photos = cached?.photos || []
-  let comments = cached?.comments || []
-  let streams = cached?.streams || {}
+  const [activityResult, lapsResult, commentsResult] = await Promise.all([
+    needsActivity
+      ? fetchActivity(accessToken, activityId)
+      : Promise.resolve(cached?.activity || null),
+    needsLaps
+      ? fetchLaps(accessToken, activityId)
+      : Promise.resolve(cached?.laps as unknown as StravaLap[] || []),
+    needsComments
+      ? fetchComments(accessToken, activityId)
+      : Promise.resolve(cached?.comments || [])
+  ])
 
-  if (needsActivity) {
-    promises.push(
-      fetchActivityRaw(accessToken, activityId).then(a => { activity = a })
-    )
-  }
-  if (needsPhotos) {
-    promises.push(
-      fetchActivityPhotosRaw(accessToken, activityId).then(p => { photos = p })
-    )
-  }
-  if (needsComments) {
-    promises.push(
-      fetchActivityCommentsRaw(accessToken, activityId).then(c => { comments = c })
-    )
-  }
-  if (needsStreams) {
-    promises.push(
-      fetchActivityStreamsRaw(accessToken, activityId).then(s => { streams = s })
-    )
-  }
-
-  await Promise.all(promises)
-
-  // Cache everything that was fetched
+  // Cache what was fetched
   await cacheCompleteActivity(activityId, athleteId, {
-    activity: needsActivity ? activity : undefined,
-    photos: needsPhotos ? photos : undefined,
-    comments: needsComments ? comments : undefined,
-    streams: needsStreams ? streams : undefined
+    activity: needsActivity ? (activityResult as StravaActivity) : undefined,
+    laps: needsLaps ? (lapsResult as unknown as CachedStravaLap[]) : undefined,
+    comments: needsComments ? commentsResult : undefined
   })
 
   return {
     data: {
-      activity: activity!,
-      photos,
-      comments,
-      streams
+      activity: (activityResult || cached?.activity) as StravaActivity,
+      laps: lapsResult as StravaLap[],
+      comments: commentsResult
     },
     fromCache: false,
     cachedAt: null
@@ -491,9 +340,10 @@ export interface BatchFetchResult {
 }
 
 /**
- * Batch fetch comprehensive data for multiple activities
+ * Batch fetch activity data for PDF generation
+ * Fetches: activity + laps + comments for each (only if not cached)
  */
-async function batchFetchComprehensive(
+async function batchFetchForPdf(
   accessToken: string,
   activityIds: string[],
   athleteId: string,
@@ -501,10 +351,9 @@ async function batchFetchComprehensive(
     onProgress?: (progress: BatchProgress) => void
     maxConcurrent?: number
     respectRateLimits?: boolean
-    includeStreams?: boolean
   }
 ): Promise<BatchFetchResult> {
-  const { onProgress, maxConcurrent = 3, respectRateLimits = true, includeStreams = true } = options || {}
+  const { onProgress, maxConcurrent = 3, respectRateLimits = true } = options || {}
 
   const result: BatchFetchResult = {
     total: activityIds.length,
@@ -520,10 +369,9 @@ async function batchFetchComprehensive(
 
   for (const activityId of activityIds) {
     const cached = await getCachedActivity(activityId)
-    const isComplete = cached?.activity &&
-                      cached?.photosFetchedAt &&
-                      cached?.commentsFetchedAt &&
-                      (!includeStreams || cached?.streamsFetchedAt)
+    const isComplete = cached?.activityFetchedAt &&
+                      cached?.lapsFetchedAt &&
+                      cached?.commentsFetchedAt
 
     if (isComplete && cached) {
       result.fromCache++
@@ -562,7 +410,7 @@ async function batchFetchComprehensive(
     const batchResults = await Promise.all(
       batch.map(async (activityId) => {
         try {
-          const { data } = await getComprehensiveActivity(accessToken, activityId, athleteId)
+          await getActivityForPdf(accessToken, activityId, athleteId)
           const cached = await getCachedActivity(activityId)
           return { activityId, cached, success: true }
         } catch (error) {
@@ -620,17 +468,11 @@ async function enrichActivitiesFromCache(
     activities.map(async (activity) => {
       const cached = await getCachedActivity(String(activity.id))
 
-      if (cached) {
+      if (cached?.activity) {
         return {
-          ...activity,
-          ...(cached.activity || {}),
-          allPhotos: cached.photos,
-          comments: cached.comments,
-          comprehensiveData: {
-            photos: cached.photos,
-            comments: cached.comments,
-            streams: cached.streams || undefined
-          }
+          ...cached.activity,
+          cachedLaps: cached.laps,
+          cachedComments: cached.comments
         }
       }
 
@@ -647,16 +489,19 @@ async function enrichActivitiesFromCache(
 // ============================================
 
 export const cachedStrava = {
-  // Individual operations
+  // Activity list
   getAthleteActivities,
+
+  // Individual activity data
   getActivity,
-  getActivityPhotos,
+  getActivityLaps,
   getActivityComments,
-  getActivityStreams,
-  getComprehensiveActivity,
+
+  // Combined fetch for PDF generation
+  getActivityForPdf,
 
   // Batch operations
-  batchFetchComprehensive,
+  batchFetchForPdf,
   enrichActivitiesFromCache,
 
   // Rate limit utilities
@@ -665,30 +510,13 @@ export const cachedStrava = {
   getOptimalDelay
 }
 
-// Legacy exports for backward compatibility
+// Named exports for direct imports
 export {
   getAthleteActivities,
   getActivity,
-  getActivityPhotos,
+  getActivityLaps,
   getActivityComments,
-  getActivityStreams,
-  getComprehensiveActivity,
-  batchFetchComprehensive,
+  getActivityForPdf,
+  batchFetchForPdf,
   enrichActivitiesFromCache
-}
-
-// Re-export the old function name for photo-cache API compatibility
-export async function getActivityPhotosWithCache(
-  accessToken: string,
-  activityId: string,
-  athleteId: string,
-  options?: { forceRefresh?: boolean }
-): Promise<{ photos: StravaPhoto[]; fromCache: boolean; cached: CachedActivity | null }> {
-  const result = await getActivityPhotos(accessToken, activityId, athleteId, options)
-  const cached = await getCachedActivity(activityId)
-  return {
-    photos: result.data,
-    fromCache: result.fromCache,
-    cached
-  }
 }

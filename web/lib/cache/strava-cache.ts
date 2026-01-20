@@ -1,30 +1,54 @@
 /**
  * Unified Strava Data Cache
  *
- * Stores ALL Strava data persistently to avoid API rate limits.
- * File-based storage: one JSON file per activity with complete data.
+ * Stores Strava data persistently to avoid API rate limits.
+ * File-based storage: one JSON file per activity.
  *
- * Cached data types:
- * - Activity details (from getActivity)
- * - Photos (from getActivityPhotos)
- * - Comments (from getActivityComments)
- * - Streams (from getActivityStreams)
- * - Activity list snapshots (from getAthleteActivities)
+ * Cached data types (matching actual Strava API):
+ * - Activity details from GET /activities/{id} (includes photos in response)
+ * - Laps from GET /activities/{id}/laps
+ * - Comments from GET /activities/{id}/comments
+ * - Activity list snapshots from GET /athlete/activities
  */
 
 import { promises as fs } from 'fs'
 import path from 'path'
 import {
   StravaActivity,
-  StravaPhoto,
-  StravaComment,
-  StravaStreams
+  StravaComment
 } from '../strava'
 
 // Cache directories
 const CACHE_BASE = path.join(process.cwd(), '.cache', 'strava')
 const ACTIVITIES_DIR = path.join(CACHE_BASE, 'activities')
 const LISTS_DIR = path.join(CACHE_BASE, 'lists')
+
+/**
+ * Lap data from GET /activities/{id}/laps
+ */
+export interface StravaLap {
+  id: number
+  name: string
+  activity: { id: number }
+  athlete: { id: number }
+  elapsed_time: number
+  moving_time: number
+  start_date: string
+  start_date_local: string
+  distance: number
+  start_index: number
+  end_index: number
+  total_elevation_gain: number
+  average_speed: number
+  max_speed: number
+  average_cadence?: number
+  average_watts?: number
+  average_heartrate?: number
+  max_heartrate?: number
+  lap_index: number
+  split?: number
+  pace_zone?: number
+}
 
 /**
  * Complete cached data for a single activity
@@ -34,19 +58,18 @@ export interface CachedActivity {
   activityId: string
   athleteId: string
 
-  // Core activity data
+  // Activity details from GET /activities/{id}
+  // Includes: photos, splits_metric, best_efforts, map, etc.
   activity: StravaActivity | null
   activityFetchedAt: string | null
 
-  // Related data
-  photos: StravaPhoto[]
-  photosFetchedAt: string | null
+  // Laps from GET /activities/{id}/laps
+  laps: StravaLap[]
+  lapsFetchedAt: string | null
 
+  // Comments from GET /activities/{id}/comments
   comments: StravaComment[]
   commentsFetchedAt: string | null
-
-  streams: StravaStreams | null
-  streamsFetchedAt: string | null
 
   // Metadata
   createdAt: string
@@ -73,10 +96,9 @@ export interface CachedActivityList {
 export interface CacheStats {
   totalActivities: number
   withDetails: number
-  withPhotos: number
+  withLaps: number
   withComments: number
-  withStreams: number
-  totalPhotos: number
+  totalLaps: number
   totalComments: number
   oldestEntry: string | null
   newestEntry: string | null
@@ -146,12 +168,10 @@ async function getOrCreateCacheEntry(activityId: string, athleteId: string): Pro
     athleteId,
     activity: null,
     activityFetchedAt: null,
-    photos: [],
-    photosFetchedAt: null,
+    laps: [],
+    lapsFetchedAt: null,
     comments: [],
     commentsFetchedAt: null,
-    streams: null,
-    streamsFetchedAt: null,
     createdAt: now,
     lastUpdatedAt: now
   }
@@ -170,7 +190,7 @@ async function saveCachedActivity(cached: CachedActivity): Promise<void> {
 }
 
 /**
- * Cache activity details
+ * Cache activity details (from GET /activities/{id})
  */
 export async function cacheActivityDetails(
   activityId: string,
@@ -184,21 +204,21 @@ export async function cacheActivityDetails(
 }
 
 /**
- * Cache activity photos
+ * Cache activity laps (from GET /activities/{id}/laps)
  */
-export async function cacheActivityPhotos(
+export async function cacheActivityLaps(
   activityId: string,
   athleteId: string,
-  photos: StravaPhoto[]
+  laps: StravaLap[]
 ): Promise<void> {
   const cached = await getOrCreateCacheEntry(activityId, athleteId)
-  cached.photos = photos
-  cached.photosFetchedAt = new Date().toISOString()
+  cached.laps = laps
+  cached.lapsFetchedAt = new Date().toISOString()
   await saveCachedActivity(cached)
 }
 
 /**
- * Cache activity comments
+ * Cache activity comments (from GET /activities/{id}/comments)
  */
 export async function cacheActivityComments(
   activityId: string,
@@ -212,20 +232,6 @@ export async function cacheActivityComments(
 }
 
 /**
- * Cache activity streams
- */
-export async function cacheActivityStreams(
-  activityId: string,
-  athleteId: string,
-  streams: StravaStreams
-): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
-  cached.streams = streams
-  cached.streamsFetchedAt = new Date().toISOString()
-  await saveCachedActivity(cached)
-}
-
-/**
  * Cache all activity data at once (for batch operations)
  */
 export async function cacheCompleteActivity(
@@ -233,9 +239,8 @@ export async function cacheCompleteActivity(
   athleteId: string,
   data: {
     activity?: StravaActivity
-    photos?: StravaPhoto[]
+    laps?: StravaLap[]
     comments?: StravaComment[]
-    streams?: StravaStreams
   }
 ): Promise<void> {
   const cached = await getOrCreateCacheEntry(activityId, athleteId)
@@ -245,17 +250,13 @@ export async function cacheCompleteActivity(
     cached.activity = data.activity
     cached.activityFetchedAt = now
   }
-  if (data.photos !== undefined) {
-    cached.photos = data.photos
-    cached.photosFetchedAt = now
+  if (data.laps !== undefined) {
+    cached.laps = data.laps
+    cached.lapsFetchedAt = now
   }
   if (data.comments !== undefined) {
     cached.comments = data.comments
     cached.commentsFetchedAt = now
-  }
-  if (data.streams !== undefined) {
-    cached.streams = data.streams
-    cached.streamsFetchedAt = now
   }
 
   await saveCachedActivity(cached)
@@ -361,10 +362,9 @@ export async function getCacheStats(): Promise<CacheStats> {
   const listFiles = await fs.readdir(LISTS_DIR).catch(() => [])
 
   let withDetails = 0
-  let withPhotos = 0
+  let withLaps = 0
   let withComments = 0
-  let withStreams = 0
-  let totalPhotos = 0
+  let totalLaps = 0
   let totalComments = 0
   let oldestEntry: string | null = null
   let newestEntry: string | null = null
@@ -380,11 +380,10 @@ export async function getCacheStats(): Promise<CacheStats> {
       const cached = JSON.parse(content) as CachedActivity
 
       if (cached.activity) withDetails++
-      if (cached.photos.length > 0) withPhotos++
+      if (cached.laps.length > 0) withLaps++
       if (cached.comments.length > 0) withComments++
-      if (cached.streams) withStreams++
 
-      totalPhotos += cached.photos.length
+      totalLaps += cached.laps.length
       totalComments += cached.comments.length
 
       if (!oldestEntry || cached.createdAt < oldestEntry) {
@@ -411,10 +410,9 @@ export async function getCacheStats(): Promise<CacheStats> {
   return {
     totalActivities: activityFiles.filter(f => f.endsWith('.json')).length,
     withDetails,
-    withPhotos,
+    withLaps,
     withComments,
-    withStreams,
-    totalPhotos,
+    totalLaps,
     totalComments,
     oldestEntry,
     newestEntry,
@@ -504,10 +502,9 @@ export async function deleteCachedActivity(activityId: string): Promise<boolean>
 export async function getCacheStatus(activityId: string): Promise<{
   exists: boolean
   hasDetails: boolean
-  hasPhotos: boolean
+  hasLaps: boolean
   hasComments: boolean
-  hasStreams: boolean
-  photoCount: number
+  lapCount: number
   commentCount: number
   lastUpdated: string | null
 }> {
@@ -517,10 +514,9 @@ export async function getCacheStatus(activityId: string): Promise<{
     return {
       exists: false,
       hasDetails: false,
-      hasPhotos: false,
+      hasLaps: false,
       hasComments: false,
-      hasStreams: false,
-      photoCount: 0,
+      lapCount: 0,
       commentCount: 0,
       lastUpdated: null
     }
@@ -529,10 +525,9 @@ export async function getCacheStatus(activityId: string): Promise<{
   return {
     exists: true,
     hasDetails: cached.activity !== null,
-    hasPhotos: cached.photos.length > 0 || cached.photosFetchedAt !== null,
-    hasComments: cached.comments.length > 0 || cached.commentsFetchedAt !== null,
-    hasStreams: cached.streams !== null,
-    photoCount: cached.photos.length,
+    hasLaps: cached.lapsFetchedAt !== null,
+    hasComments: cached.commentsFetchedAt !== null,
+    lapCount: cached.laps.length,
     commentCount: cached.comments.length,
     lastUpdated: cached.lastUpdatedAt
   }
@@ -548,41 +543,4 @@ function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-// ============================================
-// Migration: Import from old photo cache
-// ============================================
-
-/**
- * Migrate data from old photo-only cache to unified cache
- * Run once if upgrading from previous version
- */
-export async function migrateFromPhotoCache(): Promise<{ migrated: number }> {
-  const OLD_CACHE_DIR = path.join(process.cwd(), '.cache', 'photos')
-
-  let migrated = 0
-
-  try {
-    const files = await fs.readdir(OLD_CACHE_DIR)
-
-    for (const file of files.filter(f => f.endsWith('.json'))) {
-      try {
-        const content = await fs.readFile(path.join(OLD_CACHE_DIR, file), 'utf-8')
-        const old = JSON.parse(content)
-
-        // Old format had: activityId, athleteId, photos, fetchedAt
-        if (old.activityId && old.photos) {
-          await cacheActivityPhotos(old.activityId, old.athleteId || 'unknown', old.photos)
-          migrated++
-        }
-      } catch {
-        // Skip files we can't parse
-      }
-    }
-  } catch {
-    // Old cache directory doesn't exist
-  }
-
-  return { migrated }
 }

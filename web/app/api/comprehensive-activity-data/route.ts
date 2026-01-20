@@ -21,29 +21,26 @@ export async function GET(request: NextRequest) {
     const athleteId = session.user?.id || 'unknown'
 
     try {
-        // Fetch all comprehensive data with caching
-        const { data, fromCache, cachedAt } = await cachedStrava.getComprehensiveActivity(
+        // Fetch all data needed for PDF generation with caching
+        const { data, fromCache, cachedAt } = await cachedStrava.getActivityForPdf(
             session.accessToken,
             activityId,
             athleteId,
             { forceRefresh: skipCache }
         )
 
-        const { activity, photos, comments, streams } = data
+        const { activity, laps, comments } = data
 
-        // Debug: Log photo data structure
-        console.log('[Comprehensive Data] Photo count:', photos.length, fromCache ? '(from cache)' : '(fresh)')
+        console.log('[Comprehensive Data] Activity:', activity.name, fromCache ? '(from cache)' : '(fresh)')
 
         return NextResponse.json({
             activity,
-            photos,
+            laps,
             comments,
-            streams,
             metadata: {
                 fetchedAt: cachedAt || new Date().toISOString(),
-                photoCount: photos.length,
+                lapCount: laps.length,
                 commentCount: comments.length,
-                hasStreams: Object.keys(streams).length > 0,
                 fromCache,
                 cachedAt
             }

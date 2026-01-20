@@ -85,6 +85,48 @@ export async function getActivityStreams(
     return res.json()
 }
 
+export async function getActivityLaps(accessToken: string, id: string): Promise<StravaLap[]> {
+    const res = await fetch(`https://www.strava.com/api/v3/activities/${id}/laps`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    })
+
+    if (!res.ok) {
+        // Return empty array if laps fetch fails
+        return []
+    }
+
+    return res.json()
+}
+
+/**
+ * Lap data from GET /activities/{id}/laps
+ */
+export type StravaLap = {
+    id: number
+    name: string
+    activity: { id: number }
+    athlete: { id: number }
+    elapsed_time: number
+    moving_time: number
+    start_date: string
+    start_date_local: string
+    distance: number
+    start_index: number
+    end_index: number
+    total_elevation_gain: number
+    average_speed: number
+    max_speed: number
+    average_cadence?: number
+    average_watts?: number
+    average_heartrate?: number
+    max_heartrate?: number
+    lap_index: number
+    split?: number
+    pace_zone?: number
+}
+
 export type StravaPhoto = {
     unique_id: string
     urls: {
