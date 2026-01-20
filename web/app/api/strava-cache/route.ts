@@ -1,23 +1,24 @@
 /**
- * Photo Cache API
+ * Strava Cache API
  *
  * GET - Get cache status and statistics
- * POST - Start harvesting photos (background job)
+ * POST - Start harvesting all Strava data (activities, photos, comments, streams)
  * DELETE - Clear cache (with options)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]/route'
-import { getAthleteActivities, StravaActivity } from '@/lib/strava'
+import { getAthleteActivities } from '@/lib/strava'
 import {
-  getCacheMetadata,
+  getCacheStats,
   listCachedActivityIds,
-  clearCache,
-  clearOldCache
-} from '@/lib/cache/photo-cache'
+  clearAllCache,
+  clearOldCache,
+  migrateFromPhotoCache
+} from '@/lib/cache/strava-cache'
 import {
-  batchFetchPhotosWithCache,
+  cachedStrava,
   getRateLimitInfo,
   isNearRateLimit,
   BatchProgress
@@ -26,24 +27,36 @@ import {
 export const maxDuration = 300 // 5 minutes max
 
 /**
- * GET /api/photo-cache
+ * GET /api/strava-cache
  * Returns cache statistics and status
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const searchParams = request.nextUrl.searchParams
+  const action = searchParams.get('action')
+
+  // Special action: migrate from old photo cache
+  if (action === 'migrate') {
+    const result = await migrateFromPhotoCache()
+    return NextResponse.json({
+      status: 'migrated',
+      ...result
+    })
+  }
+
   try {
-    const metadata = await getCacheMetadata()
+    const stats = await getCacheStats()
     const cachedIds = await listCachedActivityIds()
     const rateLimits = getRateLimitInfo()
     const rateLimitStatus = isNearRateLimit()
 
     return NextResponse.json({
-      cache: metadata,
+      cache: stats,
       cachedActivityIds: cachedIds.slice(0, 100), // First 100 for preview
       totalCached: cachedIds.length,
       rateLimits: {
@@ -52,7 +65,7 @@ export async function GET() {
       }
     })
   } catch (error) {
-    console.error('[Photo Cache] Status error:', error)
+    console.error('[Strava Cache] Status error:', error)
     return NextResponse.json(
       { error: 'Failed to get cache status', details: String(error) },
       { status: 500 }
@@ -61,14 +74,14 @@ export async function GET() {
 }
 
 /**
- * POST /api/photo-cache
- * Start harvesting photos for activities
+ * POST /api/strava-cache
+ * Start harvesting all Strava data for activities
  *
  * Body options:
  * - mode: 'full' | 'recent' | 'year' (default: 'recent')
  * - year: number (for 'year' mode)
  * - limit: number (max activities to process, default: 100)
- * - forceRefresh: boolean (re-fetch even if cached)
+ * - includeStreams: boolean (include GPS streams, default: true)
  */
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -83,13 +96,17 @@ export async function POST(request: NextRequest) {
       mode = 'recent',
       year,
       limit = 100,
+      includeStreams = true
     } = body as {
       mode?: 'full' | 'recent' | 'year'
       year?: number
       limit?: number
+      includeStreams?: boolean
     }
 
-    console.log(`[Photo Cache] Starting harvest: mode=${mode}, year=${year}, limit=${limit}`)
+    const athleteId = session.user?.id || 'unknown'
+
+    console.log(`[Strava Cache] Starting harvest: mode=${mode}, year=${year}, limit=${limit}, streams=${includeStreams}`)
 
     // Build date filters based on mode
     let after: number | undefined
@@ -106,30 +123,11 @@ export async function POST(request: NextRequest) {
     }
     // 'full' mode: no date filters
 
-    // Step 1: Fetch activity list (paginated)
-    console.log('[Photo Cache] Fetching activity list...')
-    const allActivities: StravaActivity[] = []
-    let page = 1
-    const perPage = 100
+    // Step 1: Fetch activity list
+    console.log('[Strava Cache] Fetching activity list...')
+    const allActivities = await fetchActivityList(session.accessToken, { after, before, limit })
 
-    while (allActivities.length < limit) {
-      const activities = await getAthleteActivities(session.accessToken, {
-        after,
-        before,
-        perPage: Math.min(perPage, limit - allActivities.length),
-        page
-      })
-
-      if (activities.length === 0) break
-      allActivities.push(...activities)
-      if (activities.length < perPage) break
-      page++
-
-      // Small delay between pagination
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-
-    console.log(`[Photo Cache] Found ${allActivities.length} activities to process`)
+    console.log(`[Strava Cache] Found ${allActivities.length} activities to process`)
 
     // Check rate limits before proceeding
     const rateLimitStatus = isNearRateLimit()
@@ -142,20 +140,22 @@ export async function POST(request: NextRequest) {
       }, { status: 429 })
     }
 
-    // Step 2: Batch fetch photos with caching
+    // Step 2: Batch fetch comprehensive data
+    const activityIds = allActivities.map(a => String(a.id))
     const progressUpdates: BatchProgress[] = []
 
-    const result = await batchFetchPhotosWithCache(
+    const result = await cachedStrava.batchFetchComprehensive(
       session.accessToken,
-      allActivities,
-      session.user?.id || 'unknown',
+      activityIds,
+      athleteId,
       {
         onProgress: (progress) => {
           progressUpdates.push(progress)
-          console.log(`[Photo Cache] Progress: ${progress.phase} - ${progress.fetched}/${progress.total - progress.cached} fetched`)
+          console.log(`[Strava Cache] Progress: ${progress.phase} - cached=${progress.cached}, fetched=${progress.fetched}, remaining=${progress.remaining}`)
         },
         maxConcurrent: 3,
-        respectRateLimits: true
+        respectRateLimits: true,
+        includeStreams
       }
     )
 
@@ -169,20 +169,26 @@ export async function POST(request: NextRequest) {
         failed: result.failed,
         skippedRateLimit: result.skippedRateLimit
       },
-      photosFound: Array.from(result.photos.values()).reduce((sum, photos) => sum + photos.length, 0),
-      activitiesWithPhotos: Array.from(result.photos.values()).filter(photos => photos.length > 0).length,
+      dataCollected: {
+        activities: result.activities.size,
+        withPhotos: Array.from(result.activities.values()).filter(a => a.photos.length > 0).length,
+        withComments: Array.from(result.activities.values()).filter(a => a.comments.length > 0).length,
+        withStreams: Array.from(result.activities.values()).filter(a => a.streams !== null).length,
+        totalPhotos: Array.from(result.activities.values()).reduce((sum, a) => sum + a.photos.length, 0),
+        totalComments: Array.from(result.activities.values()).reduce((sum, a) => sum + a.comments.length, 0)
+      },
       rateLimits: getRateLimitInfo(),
       message: result.skippedRateLimit > 0
         ? `Partially complete. ${result.skippedRateLimit} activities skipped due to rate limits. Run again later to continue.`
-        : `Successfully cached photos for ${result.fetched} activities.`
+        : `Successfully cached all data for ${result.fetched + result.fromCache} activities.`
     }
 
-    console.log('[Photo Cache] Harvest complete:', summary)
+    console.log('[Strava Cache] Harvest complete:', summary)
 
     return NextResponse.json(summary)
 
   } catch (error) {
-    console.error('[Photo Cache] Harvest error:', error)
+    console.error('[Strava Cache] Harvest error:', error)
     return NextResponse.json(
       { error: 'Harvest failed', details: String(error) },
       { status: 500 }
@@ -191,7 +197,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/photo-cache
+ * DELETE /api/strava-cache
  * Clear cache (all or old entries)
  *
  * Query params:
@@ -211,11 +217,11 @@ export async function DELETE(request: NextRequest) {
 
   try {
     if (clearAll) {
-      const result = await clearCache()
+      const result = await clearAllCache()
       return NextResponse.json({
         status: 'cleared',
-        deleted: result.deleted,
-        message: `Cleared ${result.deleted} cached entries`
+        ...result,
+        message: `Cleared ${result.activitiesDeleted} activities and ${result.listsDeleted} list snapshots`
       })
     }
 
@@ -241,10 +247,39 @@ export async function DELETE(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('[Photo Cache] Clear error:', error)
+    console.error('[Strava Cache] Clear error:', error)
     return NextResponse.json(
       { error: 'Clear failed', details: String(error) },
       { status: 500 }
     )
   }
+}
+
+// Helper to fetch activity list with pagination
+async function fetchActivityList(
+  accessToken: string,
+  options: { after?: number; before?: number; limit: number }
+): Promise<{ id: number }[]> {
+  const allActivities: { id: number }[] = []
+  let page = 1
+  const perPage = 100
+
+  while (allActivities.length < options.limit) {
+    const activities = await getAthleteActivities(accessToken, {
+      after: options.after,
+      before: options.before,
+      perPage: Math.min(perPage, options.limit - allActivities.length),
+      page
+    })
+
+    if (activities.length === 0) break
+    allActivities.push(...activities)
+    if (activities.length < perPage) break
+    page++
+
+    // Small delay between pagination
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  return allActivities
 }

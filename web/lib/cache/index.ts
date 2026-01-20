@@ -1,51 +1,81 @@
 /**
- * Photo Cache Module
+ * Strava Data Cache Module
  *
- * Persistent caching for Strava photo URLs to avoid API rate limits.
+ * Persistent caching for ALL Strava data to avoid API rate limits.
  *
  * Usage:
  *
- * 1. Check/get cached photos:
- *    import { getCachedPhotos, isActivityCached } from '@/lib/cache'
+ * 1. Use the cached Strava client (recommended):
+ *    import { cachedStrava } from '@/lib/cache'
  *
- * 2. Fetch with automatic caching:
- *    import { getActivityPhotosWithCache } from '@/lib/cache'
+ *    const { data, fromCache } = await cachedStrava.getActivity(token, activityId, athleteId)
+ *    const { data, fromCache } = await cachedStrava.getActivityPhotos(token, activityId, athleteId)
  *
- * 3. Batch operations:
- *    import { batchFetchPhotosWithCache, enrichActivitiesWithCachedPhotos } from '@/lib/cache'
+ * 2. Batch operations:
+ *    import { cachedStrava } from '@/lib/cache'
  *
- * 4. Cache management:
- *    import { getCacheMetadata, clearCache, clearOldCache } from '@/lib/cache'
+ *    const result = await cachedStrava.batchFetchComprehensive(token, activityIds, athleteId, {
+ *      onProgress: (p) => console.log(`${p.fetched}/${p.total}`),
+ *      maxConcurrent: 3
+ *    })
+ *
+ * 3. Cache management:
+ *    import { getCacheStats, clearAllCache } from '@/lib/cache'
  *
  * API endpoints:
- *   GET  /api/photo-cache        - Get cache status
- *   POST /api/photo-cache        - Start harvesting (mode: 'recent' | 'full' | 'year')
- *   DELETE /api/photo-cache?all=true  - Clear cache
+ *   GET  /api/strava-cache        - Get cache status
+ *   POST /api/strava-cache        - Start harvesting all data
+ *   DELETE /api/strava-cache      - Clear cache
  */
 
-// Core cache operations
-export {
-  getCachedPhotos,
-  cachePhotos,
-  isActivityCached,
-  getCachedPhotosMultiple,
-  getCacheMetadata,
-  listCachedActivityIds,
-  clearCache,
-  clearOldCache,
-  deleteCachedPhotos,
-  type CachedActivityPhotos,
-  type CacheMetadata
-} from './photo-cache'
+// Main cached client
+export { cachedStrava } from './cached-strava'
 
-// Cache-aware Strava client
+// Individual cached operations (for direct imports)
 export {
-  getActivityPhotosWithCache,
-  batchFetchPhotosWithCache,
-  enrichActivitiesWithCachedPhotos,
+  getAthleteActivities,
+  getActivity,
+  getActivityPhotos,
+  getActivityComments,
+  getActivityStreams,
+  getComprehensiveActivity,
+  batchFetchComprehensive,
+  enrichActivitiesFromCache,
+  getActivityPhotosWithCache, // Legacy compatibility
   getRateLimitInfo,
   isNearRateLimit,
   getOptimalDelay,
   type BatchProgress,
   type BatchFetchResult
 } from './cached-strava'
+
+// Cache storage operations
+export {
+  // Activity cache
+  getCachedActivity,
+  isActivityCached,
+  getCachedActivitiesMultiple,
+  cacheActivityDetails,
+  cacheActivityPhotos,
+  cacheActivityComments,
+  cacheActivityStreams,
+  cacheCompleteActivity,
+  deleteCachedActivity,
+  getCacheStatus,
+
+  // Activity list cache
+  getCachedActivityList,
+  cacheActivityList,
+
+  // Cache management
+  getCacheStats,
+  listCachedActivityIds,
+  clearAllCache,
+  clearOldCache,
+  migrateFromPhotoCache,
+
+  // Types
+  type CachedActivity,
+  type CachedActivityList,
+  type CacheStats
+} from './strava-cache'
