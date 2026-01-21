@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]/route'
-import { getAthleteActivities, StravaActivity } from '@/lib/strava'
+import { getAthleteActivities, StravaActivity, StravaPhoto, StravaComment, StravaStreams } from '@/lib/strava'
 import { cachedStrava, enrichActivitiesFromCache, getRateLimitInfo } from '@/lib/cache'
 
 export const maxDuration = 300 // 5 minutes max for Vercel
 
-interface ComprehensiveActivity extends StravaActivity {
+interface ComprehensiveActivity extends Omit<StravaActivity, 'comprehensiveData'> {
     comprehensiveData: {
-        photos: unknown[]
-        comments: unknown[]
-        streams: Record<string, unknown>
+        photos: StravaPhoto[]
+        comments: StravaComment[]
+        streams: StravaStreams | Record<string, unknown>
         fetchedAt: string
     }
 }

@@ -12,6 +12,9 @@ WORKDIR /opt/node_modules_cache
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
+# Install wait-on globally to avoid npx conflicts with npm start
+RUN npm install -g wait-on
+
 # Store checksum of package.json for change detection
 RUN md5sum package.json > /opt/package.json.md5
 

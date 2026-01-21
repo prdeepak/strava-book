@@ -14,7 +14,9 @@ if [ ! -f "node_modules/.bin/next" ]; then
     # Check if we have a cache to copy from
     if [ -d "$CACHE_DIR" ]; then
         echo "Copying cached node_modules from Docker image..."
-        cp -r "$CACHE_DIR" ./node_modules
+        # Use cp -a to preserve symlinks; copy contents (not the dir itself) with /.
+        mkdir -p ./node_modules
+        cp -a "$CACHE_DIR"/. ./node_modules/
         echo "Done copying cache."
 
         # Check if package.json has changed since the image was built
