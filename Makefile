@@ -43,7 +43,9 @@ help:
 	@echo "  make test-integration - Run full book integration tests"
 	@echo "  make test-ai          - Run AI output validation tests"
 	@echo "  make test-e2e         - Run Playwright e2e tests (requires web-dev)"
-	@echo "  make test-e2e-ci      - Self-contained e2e tests (fully isolated)"
+	@echo "  make test-e2e-ci      - Self-contained e2e tests (uses cache)"
+	@echo "  make e2e-rebuild      - Rebuild e2e image (after package.json changes)"
+	@echo "  make e2e-clear-cache  - Clear e2e caches (force fresh build)"
 	@echo "  make test-list        - List available templates and fixtures"
 	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
 	@echo ""
@@ -218,8 +220,22 @@ test-e2e-ci:
 	@echo "🔤 Running font validation..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running self-contained e2e tests in Docker..."
-	@echo "This builds, starts server, and runs tests - fully isolated"
+	@echo "Using cached node_modules and Next.js build (run 'make e2e-rebuild' if deps changed)"
 	$(COMPOSE_CMD) run --rm e2e
+
+# Rebuild e2e Docker image (needed when package.json changes)
+e2e-rebuild:
+	@echo "🔨 Rebuilding e2e Docker image with fresh dependencies..."
+	$(COMPOSE_CMD) build --no-cache e2e
+	@echo "🧹 Clearing e2e caches to use fresh image..."
+	docker volume rm -f strava-book_e2e_node_modules strava-book_e2e_next_cache 2>/dev/null || true
+	@echo "✅ E2E image rebuilt. Next test run will populate caches."
+
+# Clear e2e caches (forces fresh npm install and build on next run)
+e2e-clear-cache:
+	@echo "🧹 Clearing e2e caches..."
+	docker volume rm -f strava-book_e2e_node_modules strava-book_e2e_next_cache 2>/dev/null || true
+	@echo "✅ Caches cleared. Next test run will rebuild."
 
 
 # --- Start the day ---

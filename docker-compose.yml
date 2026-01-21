@@ -37,12 +37,16 @@ services:
   # E2E test environment - fully self-contained (no host dependencies)
   # Usage: docker-compose run --rm e2e
   # Uses port 3001 internally to avoid conflicts with local dev servers
+  # Custom image with pre-cached node_modules and system deps for fast startup
   e2e:
-    image: mcr.microsoft.com/playwright:v1.57.0-noble
+    build:
+      context: ./web
+      dockerfile: Dockerfile.e2e
     working_dir: /app/web
     volumes:
       - .:/app
-      - /app/web/node_modules  # Anonymous volume for container-specific node_modules
+      - e2e_node_modules:/app/web/node_modules  # Named volume persists between runs
+      - e2e_next_cache:/app/web/.next           # Cache Next.js build output
     environment:
       - CI=true
       - PLAYWRIGHT_TEST=true
@@ -55,10 +59,8 @@ services:
       - PLAYWRIGHT_BASE_URL=http://localhost:3001
     command: >
       sh -c "
-        echo '📦 Installing system dependencies...' &&
-        apt-get update && apt-get install -y poppler-utils &&
         echo '🔧 Installing npm dependencies...' &&
-        ./scripts/smart-npm-install.sh || npm install --legacy-peer-deps &&
+        ./scripts/smart-npm-install.sh &&
         echo '🔨 Building Next.js app...' &&
         npm run build &&
         echo '🚀 Starting server on port 3001...' &&
@@ -71,4 +73,6 @@ services:
 
 volumes:
   web_node_modules:
+  e2e_node_modules:    # Persists e2e node_modules between test runs
+  e2e_next_cache:      # Persists Next.js build cache for faster rebuilds
 

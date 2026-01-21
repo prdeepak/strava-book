@@ -1,0 +1,18 @@
+# Custom Playwright image with pre-cached dependencies for faster e2e tests
+# Based on official Playwright image with node_modules pre-installed
+
+FROM mcr.microsoft.com/playwright:v1.57.0-noble
+
+# Install system dependencies (poppler-utils for PDF testing)
+RUN apt-get update && apt-get install -y poppler-utils && rm -rf /var/lib/apt/lists/*
+
+# Pre-install node_modules to a cache directory
+# This gets copied to the volume at startup (see smart-npm-install.sh)
+WORKDIR /opt/node_modules_cache
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Store checksum of package.json for change detection
+RUN md5sum package.json > /opt/package.json.md5
+
+WORKDIR /app/web
