@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         // Step 2: Fetch comprehensive data using cached client
         const activityIds = allActivities.map(a => String(a.id))
 
-        const result = await cachedStrava.batchFetchComprehensive(
+        const result = await cachedStrava.batchFetchForPdf(
             session.accessToken,
             activityIds,
             athleteId,
@@ -105,21 +105,22 @@ export async function GET(request: NextRequest) {
                     console.log(`[Fetch All] Progress: ${progress.phase} - cached=${progress.cached}, fetched=${progress.fetched}`)
                 },
                 maxConcurrent: 3,
-                respectRateLimits: true,
-                includeStreams: true
+                respectRateLimits: true
             }
         )
 
         // Build comprehensive activities from results
         const comprehensiveActivities: ComprehensiveActivity[] = allActivities.map(activity => {
             const cached = result.activities.get(String(activity.id))
-            if (cached) {
+            if (cached?.activity) {
+                // Photos are included in DetailedActivity
+                const photos = cached.activity.allPhotos || []
                 return {
-                    ...(cached.activity || activity),
+                    ...cached.activity,
                     comprehensiveData: {
-                        photos: cached.photos,
-                        comments: cached.comments,
-                        streams: cached.streams || {},
+                        photos,
+                        comments: cached.comments || [],
+                        streams: {},
                         fetchedAt: cached.lastUpdatedAt
                     }
                 }
