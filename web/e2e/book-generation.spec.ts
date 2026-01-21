@@ -97,19 +97,22 @@ test.describe('Book Generation Modal UI', () => {
       const modal = page.locator('.fixed')
 
       if (await modal.count() > 0) {
-        // Check for expected sections
-        const bookDetailsSection = page.getByText(/book details|book title/i)
-        const themeSection = page.getByText(/theme/i)
-        const formatSection = page.getByText(/format|size/i)
+        // Check for expected sections in the new manual book generation modal
+        // Step 1: Date selection
+        const dateRangeSection = page.getByText(/select date range|date range/i)
+        // Step 3: Book details
+        const bookDetailsSection = page.getByText(/book details|book name/i)
+        // Step indicators
+        const stepIndicator = page.getByText(/dates|configure|generate/i)
 
         // At least one of these should be visible
+        const hasDateRange = await dateRangeSection.count() > 0
         const hasBookDetails = await bookDetailsSection.count() > 0
-        const hasTheme = await themeSection.count() > 0
-        const hasFormat = await formatSection.count() > 0
+        const hasStepIndicator = await stepIndicator.count() > 0
 
         // If modal is open, at least one section should exist
         if (await modal.isVisible()) {
-          expect(hasBookDetails || hasTheme || hasFormat).toBe(true)
+          expect(hasDateRange || hasBookDetails || hasStepIndicator).toBe(true)
         }
       }
     }

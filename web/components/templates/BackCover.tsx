@@ -1,4 +1,4 @@
-import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary, FORMATS } from '@/lib/book-types'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
@@ -13,6 +13,7 @@ export interface BackCoverProps {
   periodName?: string  // Display text for time period
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
+  backgroundPhotoUrl?: string  // Background photo for the back cover
   format?: BookFormat
   theme?: BookTheme
 }
@@ -28,6 +29,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.4,
   },
   contentContainer: {
     width: '100%',
@@ -182,6 +192,7 @@ export const BackCover = ({
   periodName: propPeriodName,
   startDate: propStartDate,
   endDate: propEndDate,
+  backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: BackCoverProps) => {
@@ -225,6 +236,11 @@ export const BackCover = ({
   return (
     <Document>
       <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        {/* Background photo (if provided) */}
+        {backgroundPhotoUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+          <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+        )}
         <View style={styles.contentContainer}>
           {/* Top section with period and stats */}
           <View style={styles.topSection}>

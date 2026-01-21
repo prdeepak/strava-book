@@ -1,6 +1,5 @@
-import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, BookPageType, FORMATS } from '@/lib/book-types'
-import { StravaActivity } from '@/lib/strava'
 
 export interface TOCEntry {
   title: string
@@ -21,6 +20,7 @@ export interface TableOfContentsProps {
     bookTitle?: string
     athleteName?: string
   }
+  backgroundPhotoUrl?: string  // Faint background photo (opacity ~0.1)
   format?: BookFormat
   theme?: BookTheme
 }
@@ -34,6 +34,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     paddingTop: format.safeMargin * 1.5,
     paddingBottom: format.safeMargin,
     flexDirection: 'column',
+    position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.1,
   },
   title: {
     fontSize: Math.max(32, 42 * format.scaleFactor),
@@ -138,6 +148,7 @@ const generateDefaultEntries = (): TOCEntry[] => [
 export const TableOfContentsPage = ({
   entries: propEntries,
   activity,
+  backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: TableOfContentsProps) => {
@@ -185,6 +196,12 @@ export const TableOfContentsPage = ({
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Background photo (if provided) */}
+      {backgroundPhotoUrl && (
+        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+        <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+      )}
+
       {/* Title */}
       <Text style={styles.title}>Contents</Text>
 
