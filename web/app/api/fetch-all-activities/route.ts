@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]/route'
-import {
-    getAthleteActivities,
-    getActivity,
-    getActivityComments,
-    getActivityPhotos,
-    getActivityStreams,
-    StravaActivity
-} from '@/lib/strava'
+import { getAthleteActivities, StravaActivity, StravaPhoto, StravaComment, StravaStreams } from '@/lib/strava'
+import { cachedStrava, enrichActivitiesFromCache, getRateLimitInfo } from '@/lib/cache'
 
 export const maxDuration = 300 // 5 minutes max for Vercel
 
-interface ComprehensiveActivity extends StravaActivity {
+interface ComprehensiveActivity extends Omit<StravaActivity, 'comprehensiveData'> {
     comprehensiveData: {
-        photos: Awaited<ReturnType<typeof getActivityPhotos>>
-        comments: Awaited<ReturnType<typeof getActivityComments>>
-        streams: Awaited<ReturnType<typeof getActivityStreams>>
+        photos: StravaPhoto[]
+        comments: StravaComment[]
+        streams: StravaStreams | Record<string, unknown>
         fetchedAt: string
     }
 }
-
-// Helper to add delay between API calls to respect rate limits
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
@@ -35,13 +26,16 @@ export async function GET(request: NextRequest) {
     const afterDate = searchParams.get('after') // ISO date string
     const beforeDate = searchParams.get('before') // ISO date string
     const skipDetails = searchParams.get('skipDetails') === 'true' // For faster initial fetch
+    const useCache = searchParams.get('useCache') !== 'false' // Default true
 
     // Convert dates to Unix timestamps
     const after = afterDate ? Math.floor(new Date(afterDate).getTime() / 1000) : undefined
     const before = beforeDate ? Math.floor(new Date(beforeDate).getTime() / 1000) : undefined
 
+    const athleteId = session.user?.id || 'unknown'
+
     try {
-        console.log(`[Fetch All] Starting fetch: after=${afterDate}, before=${beforeDate}`)
+        console.log(`[Fetch All] Starting fetch: after=${afterDate}, before=${beforeDate}, useCache=${useCache}`)
 
         // Step 1: Fetch all activity summaries (paginated)
         const allActivities: StravaActivity[] = []
@@ -65,13 +59,29 @@ export async function GET(request: NextRequest) {
             if (activities.length < perPage) break // Last page
 
             page++
-            await delay(100) // Small delay between pagination calls
+            await new Promise(resolve => setTimeout(resolve, 100))
         }
 
         console.log(`[Fetch All] Total activities found: ${allActivities.length}`)
 
         // If skipDetails, return just summaries for quick overview
         if (skipDetails) {
+            // Still try to enrich from cache if available
+            if (useCache) {
+                const { enriched, uncachedCount } = await enrichActivitiesFromCache(allActivities)
+                return NextResponse.json({
+                    activities: enriched,
+                    metadata: {
+                        totalCount: enriched.length,
+                        dateRange: { after: afterDate, before: beforeDate },
+                        fetchedAt: new Date().toISOString(),
+                        detailsIncluded: false,
+                        enrichedFromCache: enriched.length - uncachedCount,
+                        uncached: uncachedCount
+                    }
+                })
+            }
+
             return NextResponse.json({
                 activities: allActivities,
                 metadata: {
@@ -83,50 +93,48 @@ export async function GET(request: NextRequest) {
             })
         }
 
-        // Step 2: Fetch comprehensive data for each activity
-        const comprehensiveActivities: ComprehensiveActivity[] = []
+        // Step 2: Fetch comprehensive data using cached client
+        const activityIds = allActivities.map(a => String(a.id))
 
-        for (let i = 0; i < allActivities.length; i++) {
-            const activity = allActivities[i]
-            console.log(`[Fetch All] Fetching details for activity ${i + 1}/${allActivities.length}: ${activity.name}`)
+        const result = await cachedStrava.batchFetchForPdf(
+            session.accessToken,
+            activityIds,
+            athleteId,
+            {
+                onProgress: (progress) => {
+                    console.log(`[Fetch All] Progress: ${progress.phase} - cached=${progress.cached}, fetched=${progress.fetched}`)
+                },
+                maxConcurrent: 3,
+                respectRateLimits: true
+            }
+        )
 
-            try {
-                // Fetch all details in parallel
-                const [detailedActivity, photos, comments, streams] = await Promise.all([
-                    getActivity(session.accessToken, activity.id.toString()),
-                    getActivityPhotos(session.accessToken, activity.id.toString()),
-                    getActivityComments(session.accessToken, activity.id.toString()),
-                    getActivityStreams(session.accessToken, activity.id.toString()),
-                ])
-
-                comprehensiveActivities.push({
-                    ...detailedActivity,
+        // Build comprehensive activities from results
+        const comprehensiveActivities: ComprehensiveActivity[] = allActivities.map(activity => {
+            const cached = result.activities.get(String(activity.id))
+            if (cached?.activity) {
+                // Photos are included in DetailedActivity
+                const photos = cached.activity.allPhotos || []
+                return {
+                    ...cached.activity,
                     comprehensiveData: {
                         photos,
-                        comments,
-                        streams,
-                        fetchedAt: new Date().toISOString(),
-                    }
-                })
-
-                // Rate limiting: ~15 requests per 15 seconds = 1 per second
-                // We make 4 requests per activity, so wait 300ms between activities
-                await delay(300)
-
-            } catch (error) {
-                console.error(`[Fetch All] Error fetching activity ${activity.id}:`, error)
-                // Continue with basic data if detail fetch fails
-                comprehensiveActivities.push({
-                    ...activity,
-                    comprehensiveData: {
-                        photos: [],
-                        comments: [],
+                        comments: cached.comments || [],
                         streams: {},
-                        fetchedAt: new Date().toISOString(),
+                        fetchedAt: cached.lastUpdatedAt
                     }
-                })
+                }
             }
-        }
+            return {
+                ...activity,
+                comprehensiveData: {
+                    photos: [],
+                    comments: [],
+                    streams: {},
+                    fetchedAt: new Date().toISOString()
+                }
+            }
+        })
 
         return NextResponse.json({
             activities: comprehensiveActivities,
@@ -135,9 +143,14 @@ export async function GET(request: NextRequest) {
                 dateRange: { after: afterDate, before: beforeDate },
                 fetchedAt: new Date().toISOString(),
                 detailsIncluded: true,
+                fromCache: result.fromCache,
+                freshlyFetched: result.fetched,
+                failed: result.failed,
+                skippedRateLimit: result.skippedRateLimit,
                 withPhotos: comprehensiveActivities.filter(a => a.comprehensiveData.photos.length > 0).length,
                 withComments: comprehensiveActivities.filter(a => a.comprehensiveData.comments.length > 0).length,
                 races: comprehensiveActivities.filter(a => a.workout_type === 1).length,
+                rateLimits: getRateLimitInfo()
             }
         })
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]/route'
-import { getActivity, getActivityComments, getActivityPhotos, getActivityStreams } from '@/lib/strava'
+import { cachedStrava } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
@@ -12,36 +12,37 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const activityId = searchParams.get('activityId')
+    const skipCache = searchParams.get('skipCache') === 'true'
 
     if (!activityId) {
         return NextResponse.json({ error: 'activityId is required' }, { status: 400 })
     }
 
-    try {
-        // Fetch all comprehensive data in parallel for efficiency
-        const [activity, photos, comments, streams] = await Promise.all([
-            getActivity(session.accessToken, activityId),
-            getActivityPhotos(session.accessToken, activityId),
-            getActivityComments(session.accessToken, activityId),
-            getActivityStreams(session.accessToken, activityId),
-        ])
+    const athleteId = session.user?.id || 'unknown'
 
-        // Debug: Log photo data structure
-        console.log('[Comprehensive Data] Photo count:', photos.length)
-        if (photos.length > 0) {
-            console.log('[Comprehensive Data] First photo sample:', JSON.stringify(photos[0], null, 2))
-        }
+    try {
+        // Fetch all data needed for PDF generation with caching
+        const { data, fromCache, cachedAt } = await cachedStrava.getActivityForPdf(
+            session.accessToken,
+            activityId,
+            athleteId,
+            { forceRefresh: skipCache }
+        )
+
+        const { activity, laps, comments } = data
+
+        console.log('[Comprehensive Data] Activity:', activity.name, fromCache ? '(from cache)' : '(fresh)')
 
         return NextResponse.json({
             activity,
-            photos,
+            laps,
             comments,
-            streams,
             metadata: {
-                fetchedAt: new Date().toISOString(),
-                photoCount: photos.length,
+                fetchedAt: cachedAt || new Date().toISOString(),
+                lapCount: laps.length,
                 commentCount: comments.length,
-                hasStreams: Object.keys(streams).length > 0,
+                fromCache,
+                cachedAt
             }
         })
     } catch (error) {

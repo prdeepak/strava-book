@@ -13,6 +13,9 @@ venv/
 /output/
 /test-output/
 
+# Strava cache (persistent cache for all Strava API data)
+/web/.cache/
+
 # Playwright
 /web/playwright-report/
 /web/test-results/
