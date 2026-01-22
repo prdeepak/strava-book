@@ -28,18 +28,29 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: format.dimensions.width,
+    height: format.dimensions.height,
     objectFit: 'cover',
-    opacity: 0.3,
+    opacity: 0.15,
+  },
+  // Semi-transparent overlay behind content for better text readability
+  contentOverlay: {
+    position: 'absolute',
+    top: format.safeMargin * 1.5,
+    left: format.safeMargin * 1.5,
+    right: format.safeMargin * 1.5,
+    bottom: format.safeMargin * 1.5,
+    backgroundColor: theme.backgroundColor,
+    opacity: 0.85,
+    borderRadius: 4,
   },
   // Top decorative accent
   topAccent: {
     position: 'absolute',
     top: format.safeMargin,
     left: '50%',
-    width: 80 * format.scaleFactor,
-    height: 3 * format.scaleFactor,
+    width: 100 * format.scaleFactor,
+    height: 4 * format.scaleFactor,
     backgroundColor: theme.accentColor,
     transform: 'translateX(-50%)',
   },
@@ -48,8 +59,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     bottom: format.safeMargin,
     left: '50%',
-    width: 80 * format.scaleFactor,
-    height: 3 * format.scaleFactor,
+    width: 100 * format.scaleFactor,
+    height: 4 * format.scaleFactor,
     backgroundColor: theme.accentColor,
     transform: 'translateX(-50%)',
   },
@@ -67,33 +78,33 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     alignItems: 'center',
   },
   title: {
-    fontSize: Math.max(24, 28 * format.scaleFactor),
+    fontSize: Math.max(32, 36 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
     color: theme.primaryColor,
     textTransform: 'uppercase',
-    letterSpacing: 3,
+    letterSpacing: 4,
     marginBottom: 24 * format.scaleFactor,
     textAlign: 'center',
   },
   decorativeLine: {
-    width: 100 * format.scaleFactor,
-    height: 2,
+    width: 120 * format.scaleFactor,
+    height: 3,
     backgroundColor: theme.accentColor,
     marginBottom: 40 * format.scaleFactor,
   },
   bodyContainer: {
     maxWidth: '75%',
   },
+  // bodyText style is dynamic - see getBodyFontSize()
   bodyText: {
-    fontSize: Math.max(12, 14 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
-    lineHeight: 1.9,
+    lineHeight: 1.8,
     textAlign: 'center',
-    marginBottom: 8 * format.scaleFactor,
+    marginBottom: 12 * format.scaleFactor,
   },
   author: {
-    fontSize: Math.max(11, 13 * format.scaleFactor),
+    fontSize: Math.max(14, 16 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.accentColor,
     fontStyle: 'italic',
@@ -110,6 +121,32 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     textAlign: 'center',
   },
 })
+
+/**
+ * Calculate body font size based on text length.
+ * Scales from 18pt (short text) down to 12pt (long text).
+ */
+const getBodyFontSize = (text: string, scaleFactor: number): number => {
+  const charCount = text.length
+
+  // Scale down font size as text gets longer
+  // 0-400 chars: 18pt, 400-700: 16pt, 700-1000: 14pt, 1000+: 12pt
+  let baseFontSize: number
+  if (charCount <= 400) {
+    baseFontSize = 18
+  } else if (charCount <= 700) {
+    baseFontSize = 16
+  } else if (charCount <= 1000) {
+    baseFontSize = 14
+  } else {
+    baseFontSize = 12
+  }
+
+  return Math.max(12, baseFontSize * scaleFactor)
+}
+
+// Maximum character limit for foreword text
+export const FOREWORD_MAX_CHARS = 1200
 
 // Page-only version for use in BookDocument (no Document wrapper)
 export const ForewordPage = ({
@@ -157,6 +194,9 @@ export const ForewordPage = ({
         <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
       )}
 
+      {/* Semi-transparent overlay for text readability */}
+      {backgroundPhotoUrl && <View style={styles.contentOverlay} />}
+
       {/* Top decorative accent */}
       <View style={styles.topAccent} />
 
@@ -176,7 +216,9 @@ export const ForewordPage = ({
         )}
 
         <View style={styles.bodyContainer}>
-          <Text style={styles.bodyText}>{body}</Text>
+          <Text style={[styles.bodyText, { fontSize: getBodyFontSize(body, format.scaleFactor) }]}>
+            {body}
+          </Text>
           {author && <Text style={styles.author}>— {author}</Text>}
         </View>
       </View>

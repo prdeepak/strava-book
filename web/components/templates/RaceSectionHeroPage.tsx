@@ -26,51 +26,60 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         left: 0,
         width: '100%',
         height: '100%',
-        opacity: 0.5,
+        opacity: 0.65,
         objectFit: 'cover',
+    },
+    // Full-height gradient overlay for better text readability
+    gradientOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.35)',
     },
     contentOverlay: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         width: '100%',
-        padding: format.safeMargin,
-        paddingTop: format.safeMargin * 1.5,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: format.safeMargin * 1.2,
+        paddingTop: format.safeMargin * 2,
+        backgroundColor: 'rgba(0,0,0,0.6)',
     },
     highlightLabel: {
         color: theme.accentColor,
-        fontSize: Math.max(10, 12 * format.scaleFactor),
-        marginBottom: 8 * format.scaleFactor,
+        fontSize: Math.max(14, 16 * format.scaleFactor),
+        marginBottom: 10 * format.scaleFactor,
         fontFamily: theme.fontPairing.heading,
         textTransform: 'uppercase',
-        letterSpacing: 1.5,
+        letterSpacing: 2,
     },
     meta: {
-        color: 'rgba(255, 255, 255, 0.85)',
-        fontSize: Math.max(11, 14 * format.scaleFactor),
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: Math.max(14, 16 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
         textTransform: 'uppercase',
         letterSpacing: 2,
-        marginBottom: 6 * format.scaleFactor,
+        marginBottom: 8 * format.scaleFactor,
     },
     title: {
-        fontSize: Math.max(28, 42 * format.scaleFactor),
+        fontSize: Math.max(36, 48 * format.scaleFactor),
         fontFamily: theme.fontPairing.heading,
         color: '#ffffff',
         textTransform: 'uppercase',
-        marginBottom: 12 * format.scaleFactor,
-        marginTop: 12 * format.scaleFactor,
+        marginBottom: 16 * format.scaleFactor,
+        marginTop: 14 * format.scaleFactor,
         lineHeight: 1.1,
         maxWidth: '100%',
-        letterSpacing: 1,
+        letterSpacing: 2,
     },
     statsRow: {
         flexDirection: 'row',
-        marginTop: 20 * format.scaleFactor,
-        borderTopWidth: 2,
+        marginTop: 24 * format.scaleFactor,
+        borderTopWidth: 3,
         borderTopColor: theme.accentColor,
-        paddingTop: 18 * format.scaleFactor,
+        paddingTop: 20 * format.scaleFactor,
         gap: format.safeMargin * 0.8,
     },
     stat: {
@@ -79,16 +88,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     statValue: {
         color: '#ffffff',
-        fontSize: Math.max(20, 32 * format.scaleFactor),
+        fontSize: Math.max(28, 38 * format.scaleFactor),
         fontFamily: theme.fontPairing.heading,
         lineHeight: 1.1,
     },
     statLabel: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: Math.max(8, 11 * format.scaleFactor),
-        marginTop: 4 * format.scaleFactor,
+        color: 'rgba(255, 255, 255, 0.75)',
+        fontSize: Math.max(12, 14 * format.scaleFactor),
+        marginTop: 6 * format.scaleFactor,
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
         fontFamily: theme.fontPairing.body,
     }
 })
@@ -154,6 +163,9 @@ export const RaceSectionHeroPage = ({
                     style={styles.backgroundImage}
                 />
             )}
+
+            {/* Full-height gradient overlay for better overall text readability */}
+            <View style={styles.gradientOverlay} />
 
             {/* Content Overlay at Bottom */}
             <View style={styles.contentOverlay}>

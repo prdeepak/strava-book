@@ -216,6 +216,11 @@ test-e2e-local:
 	@echo "Note: Requires local npm install and web dev server running"
 	cd web && npm run e2e
 
+# Quick book integration test with visual scoring (no UI tests)
+test-book:
+	@echo "📚 Running book integration test (generates PDF with photos, runs visual scoring)..."
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts
+
 test-e2e-ci:
 	@echo "🔤 Running font validation..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts

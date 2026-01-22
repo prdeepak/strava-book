@@ -2,10 +2,10 @@ import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookEntry } from '@/lib/curator'
 import { RaceSectionPages } from './RaceSection'
-import { TableOfContentsPage, TOCEntry } from './TableOfContents'
+import { TableOfContentsPage, TOCEntry, getTocPageCount } from './TableOfContents'
 import { CoverPage } from './Cover'
 import { ForewordPage } from './Foreword'
-import { BackCover } from './BackCover'
+import { BackCoverPage } from './BackCover'
 import { YearCalendar } from './YearCalendar'
 import { YearStats } from './YearStats'
 import { MonthlyDividerSpread } from './MonthlyDividerSpread'
@@ -498,17 +498,20 @@ export const BookDocument = ({
                     )
                 }
 
-                // TABLE_OF_CONTENTS
+                // TABLE_OF_CONTENTS (may be multiple pages)
                 if (entry.type === 'TABLE_OF_CONTENTS') {
-                    return (
+                    const tocPageCount = getTocPageCount(tocEntries)
+                    return Array.from({ length: tocPageCount }).map((_, pageIdx) => (
                         <TableOfContentsPage
-                            key={index}
+                            key={`${index}-toc-${pageIdx}`}
                             entries={tocEntries}
                             format={format}
                             theme={theme}
                             backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            pageIndex={pageIdx}
+                            totalPages={tocPageCount}
                         />
-                    )
+                    ))
                 }
 
                 // RACE_PAGE
@@ -669,12 +672,13 @@ export const BookDocument = ({
                 // BACK_COVER
                 if (entry.type === 'BACK_COVER') {
                     return (
-                        <BackCover
+                        <BackCoverPage
                             key={index}
                             yearSummary={computedYearSummary}
                             periodName={displayPeriod}
                             startDate={startDate}
                             endDate={endDate}
+                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
                             format={format}
                             theme={theme}
                         />

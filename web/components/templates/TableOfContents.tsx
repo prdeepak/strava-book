@@ -23,6 +23,22 @@ export interface TableOfContentsProps {
   backgroundPhotoUrl?: string  // Faint background photo (opacity ~0.1)
   format?: BookFormat
   theme?: BookTheme
+  // For multi-page support
+  pageIndex?: number  // Which page of TOC (0-indexed)
+  totalPages?: number // Total TOC pages (for "continued" indicator)
+}
+
+// Constants for calculating page capacity
+const ENTRIES_PER_PAGE_FIRST = 12  // First page has title, fewer entries
+const ENTRIES_PER_PAGE_CONTINUATION = 16  // Continuation pages fit more
+
+/**
+ * Calculate how many TOC pages are needed for given entries
+ */
+export const getTocPageCount = (entries: TOCEntry[]): number => {
+  if (entries.length <= ENTRIES_PER_PAGE_FIRST) return 1
+  const remaining = entries.length - ENTRIES_PER_PAGE_FIRST
+  return 1 + Math.ceil(remaining / ENTRIES_PER_PAGE_CONTINUATION)
 }
 
 const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
@@ -40,8 +56,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: format.dimensions.width,
+    height: format.dimensions.height,
     objectFit: 'cover',
     opacity: 0.1,
   },
@@ -121,6 +137,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     paddingLeft: 12 * format.scaleFactor,
     textAlign: 'right',
   },
+  continuedIndicator: {
+    position: 'absolute',
+    bottom: format.safeMargin,
+    right: format.safeMargin,
+    fontSize: Math.max(9, 10 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: theme.primaryColor,
+    opacity: 0.5,
+    fontStyle: 'italic',
+  },
 })
 
 /**
@@ -151,11 +177,19 @@ export const TableOfContentsPage = ({
   backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
+  pageIndex = 0,
+  totalPages = 1,
 }: TableOfContentsProps) => {
   const styles = createStyles(format, theme)
 
   // Get entries from props, activity fixture, or generate defaults
-  const entries = propEntries || activity?.sections || generateDefaultEntries()
+  const allEntries = propEntries || activity?.sections || generateDefaultEntries()
+
+  // Calculate which entries to show on this page
+  const isFirstPage = pageIndex === 0
+  const entriesPerPage = isFirstPage ? ENTRIES_PER_PAGE_FIRST : ENTRIES_PER_PAGE_CONTINUATION
+  const startIndex = isFirstPage ? 0 : ENTRIES_PER_PAGE_FIRST + (pageIndex - 1) * ENTRIES_PER_PAGE_CONTINUATION
+  const entries = allEntries.slice(startIndex, startIndex + entriesPerPage)
 
   // Group entries by category
   const groupedEntries: Record<string, TOCEntry[]> = {}
@@ -203,7 +237,9 @@ export const TableOfContentsPage = ({
       )}
 
       {/* Title */}
-      <Text style={styles.title}>Contents</Text>
+      <Text style={styles.title}>
+        {isFirstPage ? 'Contents' : 'Contents (cont.)'}
+      </Text>
 
       {/* TOC Entries */}
       <View style={styles.contentContainer}>
@@ -241,6 +277,11 @@ export const TableOfContentsPage = ({
           </View>
         ))}
       </View>
+
+      {/* "Continued" indicator when there are more pages */}
+      {pageIndex < totalPages - 1 && (
+        <Text style={styles.continuedIndicator}>continued →</Text>
+      )}
     </Page>
   )
 }

@@ -32,8 +32,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: format.dimensions.width,
+    height: format.dimensions.height,
     objectFit: 'cover',
     opacity: 0.1,
   },
@@ -145,6 +145,41 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
     opacity: 0.75,
+  },
+  // Monthly bar chart styles
+  chartSection: {
+    marginBottom: 12 * format.scaleFactor,
+  },
+  chartTitle: {
+    fontSize: Math.max(8, 9 * format.scaleFactor),
+    fontFamily: theme.fontPairing.heading,
+    color: theme.primaryColor,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6 * format.scaleFactor,
+    opacity: 0.7,
+  },
+  chartContainer: {
+    height: 60 * format.scaleFactor,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4 * format.scaleFactor,
+  },
+  barWrapper: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bar: {
+    width: '80%',
+    backgroundColor: theme.accentColor,
+    borderRadius: 2,
+  },
+  barLabel: {
+    fontSize: Math.max(6, 7 * format.scaleFactor),
+    fontFamily: theme.fontPairing.body,
+    color: theme.primaryColor,
+    opacity: 0.5,
+    marginTop: 2 * format.scaleFactor,
   },
 })
 
@@ -454,6 +489,36 @@ export const YearCalendar = (props: YearCalendarProps) => {
             <Text style={styles.legendText}>More</Text>
           </View>
         </View>
+
+        {/* Monthly Distance Bar Chart */}
+        {monthsToDisplay.length > 1 && (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>Monthly Distance</Text>
+            <View style={styles.chartContainer}>
+              {(() => {
+                // Calculate monthly distances
+                const monthlyDistances = monthsToDisplay.map(({ year: monthYear, month: monthIndex }) => {
+                  const monthPrefix = `${monthYear}-${String(monthIndex + 1).padStart(2, '0')}`
+                  let distance = 0
+                  dateMap.forEach((value, date) => {
+                    if (date.startsWith(monthPrefix)) {
+                      distance += value
+                    }
+                  })
+                  return { month: MONTH_NAMES[monthIndex], distance }
+                })
+                const maxDistance = Math.max(...monthlyDistances.map(m => m.distance), 1)
+
+                return monthlyDistances.map(({ month, distance }) => (
+                  <View key={month} style={styles.barWrapper}>
+                    <View style={[styles.bar, { height: `${Math.max(2, (distance / maxDistance) * 100)}%` }]} />
+                    <Text style={styles.barLabel}>{month}</Text>
+                  </View>
+                ))
+              })()}
+            </View>
+          </View>
+        )}
 
         {/* Summary Stats */}
         <View style={styles.statsGrid} wrap={false}>
