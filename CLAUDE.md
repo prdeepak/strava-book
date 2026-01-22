@@ -125,7 +125,7 @@ Required in `web/.env.local`:
 
 ### Style Guide (IMPORTANT)
 
-**Always read `web/StyleGuide.md` before modifying any PDF template.** The style guide defines:
+**Always read `docs/StyleGuide.md` before modifying any PDF template.** The style guide defines:
 
 - **Typography system**: Use `resolveTypography(role, theme, format)` - never hardcode font sizes
 - **Color system**: Use `theme.primaryColor`, `theme.accentColor`, `theme.backgroundColor` - never hardcode colors
