@@ -217,9 +217,15 @@ test-e2e-local:
 	cd web && npm run e2e
 
 # Quick book integration test with visual scoring (no UI tests)
+# Usage: make test-book [no_score=1]
 test-book:
+ifdef no_score
+	@echo "📚 Running book integration test (generates PDF, skipping visual scoring)..."
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts --no-score
+else
 	@echo "📚 Running book integration test (generates PDF with photos, runs visual scoring)..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts
+endif
 
 test-e2e-ci:
 	@echo "🔤 Running font validation..."

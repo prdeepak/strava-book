@@ -1,7 +1,17 @@
-import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
+/**
+ * Cover Page Template
+ *
+ * Uses the typography system from BookTheme for consistent text sizing.
+ * Cover photo is displayed as a hero image (full opacity, no overlay).
+ */
+
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { formatPeriodRange } from '@/lib/activity-utils'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
 export interface CoverProps {
   title?: string
@@ -29,121 +39,108 @@ export interface CoverProps {
   }
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
-    padding: 0,
-    position: 'relative',
-  },
-  // Solid color base layer (behind image)
-  colorBase: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.primaryColor,
-  },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    opacity: 0.6,
-    objectFit: 'cover',
-  },
-  // Semi-transparent overlay for text readability
-  textOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  contentContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    padding: format.safeMargin,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Decorative top accent bar
-  topAccent: {
-    position: 'absolute',
-    top: format.safeMargin,
-    left: '50%',
-    width: 80 * format.scaleFactor,
-    height: 4 * format.scaleFactor,
-    backgroundColor: theme.accentColor,
-    transform: 'translateX(-50%)',
-  },
-  // Main title - period name (e.g., "Road to Comrades 2025", "2024", "Summer 2024")
-  // Uses dynamic font sizing to fit longer text
-  yearText: {
-    fontSize: Math.max(48, 72 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    fontWeight: 'bold',
-    marginBottom: 16 * format.scaleFactor,
-    textAlign: 'center',
-    letterSpacing: 2,
-    maxWidth: '90%',
-    lineHeight: 1.1,
-  },
-  periodRangeText: {
-    fontSize: Math.max(14, 18 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 24 * format.scaleFactor,
-    textAlign: 'center',
-    letterSpacing: 1,
-  },
-  // REMOVED: title style - periodName is now the book title, displayed in yearText
-  subtitle: {
-    fontSize: Math.max(16, 20 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 48 * format.scaleFactor,
-    textAlign: 'center',
-    maxWidth: '75%',
-    lineHeight: 1.4,
-  },
-  // Bottom section with athlete name
-  bottomSection: {
-    position: 'absolute',
-    bottom: format.safeMargin,
-    left: format.safeMargin,
-    right: format.safeMargin,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  // REMOVED: athleteLabel style - no longer showing "By" prefix
-  athleteName: {
-    fontSize: Math.max(14, 18 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: 3,
-    textAlign: 'center',
-  },
-  // Decorative bottom accent bar
-  bottomAccent: {
-    width: 60 * format.scaleFactor,
-    height: 3 * format.scaleFactor,
-    backgroundColor: theme.accentColor,
-    marginTop: 12 * format.scaleFactor,
-  },
-})
+/**
+ * Create styles using resolved typography and spacing from theme
+ */
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  // Resolve typography for each text role
+  const displayLarge = resolveTypography('displayLarge', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+
+  // Resolve spacing
+  const spacing = resolveSpacing(theme, format)
+
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: 0,
+      position: 'relative',
+    },
+    contentContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      padding: format.safeMargin,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    // Decorative top accent bar
+    topAccent: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: '50%',
+      width: 80 * format.scaleFactor,
+      height: 4 * format.scaleFactor,
+      backgroundColor: theme.accentColor,
+      transform: 'translateX(-50%)',
+    },
+    // Main title - uses displayLarge typography role
+    titleText: {
+      fontSize: displayLarge.fontSize,
+      fontFamily: displayLarge.fontFamily,
+      color: theme.accentColor,
+      fontWeight: 'bold',
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+      letterSpacing: displayLarge.letterSpacing ?? 2,
+      maxWidth: '90%',
+      lineHeight: displayLarge.lineHeight ?? 1.1,
+    },
+    // Period range text - uses subheading typography role
+    periodRangeText: {
+      fontSize: subheading.fontSize,
+      fontFamily: subheading.fontFamily,
+      color: 'rgba(255, 255, 255, 0.7)',
+      marginBottom: spacing.md,
+      textAlign: 'center',
+      letterSpacing: 1,
+    },
+    // Subtitle - uses body typography role
+    subtitle: {
+      fontSize: body.fontSize,
+      fontFamily: body.fontFamily,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: spacing.lg,
+      textAlign: 'center',
+      maxWidth: '75%',
+      lineHeight: body.lineHeight ?? 1.4,
+    },
+    // Bottom section with athlete name
+    bottomSection: {
+      position: 'absolute',
+      bottom: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    },
+    // Athlete name - uses caption typography role with heading font
+    athleteName: {
+      fontSize: caption.fontSize + 4, // Slightly larger than caption
+      fontFamily: theme.fontPairing.heading,
+      color: '#ffffff',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+      textAlign: 'center',
+    },
+    // Decorative bottom accent bar
+    bottomAccent: {
+      width: 60 * format.scaleFactor,
+      height: 3 * format.scaleFactor,
+      backgroundColor: theme.accentColor,
+      marginTop: spacing.xs + 4,
+    },
+  })
+}
 
 // Page-only version for use in BookDocument (no Document wrapper)
 export const CoverPage = ({
@@ -231,37 +228,90 @@ export const CoverPage = ({
   // Resolve background image path for PDF rendering
   const bgImage = resolveImageForPdf(backgroundImage)
 
+  // Resolve effects for text background opacity
+  const effects = resolveEffects(theme)
+
+  // Determine if we need text backgrounds (when there's an image behind)
+  const hasImageBackground = !!bgImage
+  const textBgOpacity = hasImageBackground ? effects.textOverlayOpacity : 0
+
+  // Resolve typography for AutoResizingPdfText
+  const displayLarge = resolveTypography('displayLarge', theme, format)
+  const subheadingTypo = resolveTypography('subheading', theme, format)
+  const bodyTypo = resolveTypography('body', theme, format)
+  const captionTypo = resolveTypography('caption', theme, format)
+
+  // Calculate content dimensions
+  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+  const titleHeight = displayLarge.fontSize * 1.5
+  const subtitleHeight = bodyTypo.fontSize * 3
+  const athleteNameHeight = (captionTypo.fontSize + 4) * 1.5
+
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Layer 1: Solid color base */}
-      <View style={styles.colorBase} />
-
-      {/* Layer 2: Background image (on top of color, visible) */}
-      {bgImage && (
-        <>
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image src={bgImage} style={styles.backgroundImage} />
-          {/* Layer 3: Semi-transparent overlay for text readability */}
-          <View style={styles.textOverlay} />
-        </>
-      )}
+      {/* Full-bleed background: hero image or solid primary color */}
+      <FullBleedBackground
+        image={bgImage}
+        fallbackColor={theme.primaryColor}
+        role="hero"
+        width={format.dimensions.width}
+        height={format.dimensions.height}
+      />
 
       {/* Top decorative accent */}
       <View style={styles.topAccent} />
 
       {/* Main content layer */}
       <View style={styles.contentContainer}>
-        {/* Period name IS the book title now */}
-        <Text style={styles.yearText}>{mainPeriodDisplay}</Text>
+        {/* Period name IS the book title now - uses AutoResizingPdfText */}
+        <AutoResizingPdfText
+          text={mainPeriodDisplay}
+          width={contentWidth * 0.9}
+          height={titleHeight}
+          font={displayLarge.fontFamily}
+          min_fontsize={displayLarge.minFontSize}
+          max_fontsize={displayLarge.fontSize}
+          h_align="center"
+          v_align="middle"
+          textColor={theme.accentColor}
+          backgroundColor={theme.primaryColor}
+          backgroundOpacity={textBgOpacity}
+        />
         {showPeriodRangeBelow && periodRangeDisplay && (
           <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
         )}
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        {subtitle && (
+          <AutoResizingPdfText
+            text={subtitle}
+            width={contentWidth * 0.75}
+            height={subtitleHeight}
+            font={bodyTypo.fontFamily}
+            min_fontsize={bodyTypo.minFontSize}
+            max_fontsize={bodyTypo.fontSize}
+            h_align="center"
+            v_align="middle"
+            textColor={theme.backgroundColor}
+            backgroundColor={theme.primaryColor}
+            backgroundOpacity={textBgOpacity}
+          />
+        )}
       </View>
 
       {/* Bottom section with athlete name (no "By" prefix) */}
       <View style={styles.bottomSection}>
-        <Text style={styles.athleteName}>{athleteName}</Text>
+        <AutoResizingPdfText
+          text={athleteName}
+          width={contentWidth}
+          height={athleteNameHeight}
+          font={theme.fontPairing.heading}
+          min_fontsize={captionTypo.minFontSize}
+          max_fontsize={captionTypo.fontSize + 4}
+          h_align="center"
+          v_align="middle"
+          textColor={theme.backgroundColor}
+          backgroundColor={theme.primaryColor}
+          backgroundOpacity={textBgOpacity}
+        />
         <View style={styles.bottomAccent} />
       </View>
     </Page>

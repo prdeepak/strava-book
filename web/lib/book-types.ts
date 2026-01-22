@@ -32,6 +32,70 @@ export interface BookConfig {
   aRace?: StravaActivity  // Primary "goal race" for theming
 }
 
+// === TYPOGRAPHY SYSTEM ===
+export type TypographyScaling = 'display' | 'heading' | 'body'
+
+export interface TypographyDefinition {
+  base: number              // Base size in points for 10x10 format
+  min: number               // Minimum size (floor for scaling)
+  scaling: TypographyScaling  // How aggressively to scale with format
+  letterSpacing?: number    // Optional letter spacing
+  lineHeight?: number       // Optional line height multiplier
+}
+
+export interface TypographyScale {
+  displayLarge: TypographyDefinition   // Cover titles, big statements
+  displaySmall: TypographyDefinition   // Section headers
+  heading: TypographyDefinition        // Page titles
+  subheading: TypographyDefinition     // Secondary titles
+  body: TypographyDefinition           // Readable paragraphs
+  caption: TypographyDefinition        // Photo labels, fine print
+  stat: TypographyDefinition           // Big numbers on stats pages
+}
+
+export type TypographyRole = keyof TypographyScale
+
+// Default typography scale (sizes for 10x10 reference format)
+export const DEFAULT_TYPOGRAPHY: TypographyScale = {
+  displayLarge: { base: 72, min: 48, scaling: 'display', letterSpacing: 2, lineHeight: 1.1 },
+  displaySmall: { base: 48, min: 36, scaling: 'display', letterSpacing: 1 },
+  heading: { base: 24, min: 18, scaling: 'heading' },
+  subheading: { base: 18, min: 14, scaling: 'heading' },
+  body: { base: 14, min: 12, scaling: 'body', lineHeight: 1.4 },
+  caption: { base: 10, min: 8, scaling: 'body' },
+  stat: { base: 32, min: 24, scaling: 'display' },
+}
+
+// === EFFECTS SYSTEM ===
+export interface ThemeEffects {
+  // For 'background' role photos (faded behind content)
+  backgroundImageOpacity: number    // e.g., 0.5
+  textOverlayOpacity: number        // Dark scrim for text readability, e.g., 0.3
+  // Hero images use full opacity with no overlay
+}
+
+export const DEFAULT_EFFECTS: ThemeEffects = {
+  backgroundImageOpacity: 0.5,
+  textOverlayOpacity: 0.3,
+}
+
+// === SPACING SYSTEM ===
+export interface SpacingScale {
+  xs: number   // 8pt
+  sm: number   // 16pt
+  md: number   // 24pt
+  lg: number   // 48pt
+  xl: number   // 72pt
+}
+
+export const DEFAULT_SPACING: SpacingScale = {
+  xs: 8,
+  sm: 16,
+  md: 24,
+  lg: 48,
+  xl: 72,
+}
+
 // === AI-GENERATED THEME ===
 export interface BookTheme {
   primaryColor: string      // e.g., "#0D2240" (Boston blue)
@@ -49,6 +113,11 @@ export interface BookTheme {
   }
   motif?: string            // e.g., "boston-marathon", "trail-running"
   backgroundStyle: 'solid' | 'gradient' | 'photo-fade' | 'pattern'
+
+  // Optional overrides (fall back to defaults if not provided)
+  typography?: Partial<TypographyScale>
+  effects?: Partial<ThemeEffects>
+  spacing?: Partial<SpacingScale>
 }
 
 // Default theme for when no theme is provided

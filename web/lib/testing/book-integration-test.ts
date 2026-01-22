@@ -226,7 +226,7 @@ function generateTestBookEntries(
 // Main Test Function
 // ============================================================================
 
-async function runIntegrationTest(): Promise<void> {
+async function runIntegrationTest(skipScoring = false): Promise<void> {
   console.log('='.repeat(60))
   console.log('Book Integration Test')
   console.log('='.repeat(60))
@@ -297,8 +297,8 @@ async function runIntegrationTest(): Promise<void> {
   console.log(`  PDF rendered in ${renderTime}ms`)
   console.log(`  PDF size: ${(pdfBuffer.length / 1024).toFixed(1)} KB`)
 
-  // 6. Run visual scoring and save outputs
-  console.log('\n[6/6] Running visual scoring and saving outputs...')
+  // 6. Save outputs and optionally run visual scoring
+  console.log(`\n[6/6] Saving outputs${skipScoring ? '' : ' and running visual scoring'}...`)
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const baseFilename = 'integration-test'
@@ -308,6 +308,32 @@ async function runIntegrationTest(): Promise<void> {
 
   const outputsDir = await ensureOutputsDir()
   const pagesDir = path.join(outputsDir, pagesFolder)
+
+  // Save PDF first
+  const pdfPath = path.join(outputsDir, pdfFilename)
+  await fs.writeFile(pdfPath, pdfBuffer)
+
+  if (skipScoring) {
+    // Extract page images without scoring
+    const { extractPdfPages } = await import('@/lib/pdf-to-images')
+    console.log('[VisualScoring] Extracting PDF pages (no scoring)...')
+    await fs.mkdir(pagesDir, { recursive: true })
+    const extraction = await extractPdfPages(Buffer.from(pdfBuffer), { outputDir: pagesDir })
+    const pageCount = extraction.totalPages
+    console.log(`  Extracted ${pageCount} page images`)
+
+    // Summary
+    const totalTime = Date.now() - startTime
+    console.log('\n' + '='.repeat(60))
+    console.log('Integration Test Complete (scoring skipped)')
+    console.log('='.repeat(60))
+    console.log(`\nTotal time: ${(totalTime / 1000).toFixed(1)}s`)
+    console.log(`\nOutputs saved to: ${outputsDir}`)
+    console.log(`  - PDF: ${pdfFilename}`)
+    console.log(`  - Pages: ${pagesFolder}/`)
+    console.log('')
+    process.exit(0)
+  }
 
   // Run visual scoring with page images saved
   const scoringResult = await scorePdfPages(
@@ -332,14 +358,9 @@ async function runIntegrationTest(): Promise<void> {
   const scoresReport = createBookScoresReport(BOOK_NAME, scoringResult.pageScores)
   const scoresMarkdown = generateScoresMarkdown(scoresReport)
 
-  // Save files
-  const pdfPath = path.join(outputsDir, pdfFilename)
+  // Save scores report
   const mdPath = path.join(outputsDir, mdFilename)
-
-  await Promise.all([
-    fs.writeFile(pdfPath, pdfBuffer),
-    fs.writeFile(mdPath, scoresMarkdown),
-  ])
+  await fs.writeFile(mdPath, scoresMarkdown)
 
   // Summary
   const totalTime = Date.now() - startTime
@@ -366,8 +387,12 @@ async function runIntegrationTest(): Promise<void> {
   }
 }
 
+// Parse command line args
+const args = process.argv.slice(2)
+const noScore = args.includes('--no-score')
+
 // Run the test
-runIntegrationTest().catch(error => {
+runIntegrationTest(noScore).catch(error => {
   console.error('Integration test failed:', error)
   process.exit(1)
 })
