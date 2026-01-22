@@ -90,7 +90,7 @@ check-docker:
 # --- Standard Docker Commands (workspace-aware) ---
 up:
 	make check-docker
-	$(COMPOSE_CMD) up -d
+	$(COMPOSE_CMD) up -d app web
 
 down:
 	@echo "🛑 Stopping containers (context: $(WORKSPACE_ID))..."
