@@ -123,6 +123,24 @@ Required in `web/.env.local`:
 - Templates receive data via props, not direct API calls
 - Fonts are pre-downloaded in `web/public/fonts/` (41 fonts across 6 categories)
 
+### Style Guide (IMPORTANT)
+
+**Always read `web/StyleGuide.md` before modifying any PDF template.** The style guide defines:
+
+- **Typography system**: Use `resolveTypography(role, theme, format)` - never hardcode font sizes
+- **Color system**: Use `theme.primaryColor`, `theme.accentColor`, `theme.backgroundColor` - never hardcode colors
+- **Spacing system**: Use `resolveSpacing(theme, format)` - never hardcode margins/padding
+- **Effects system**: Use `resolveEffects(theme)` for opacity values
+- **Primitives**: Use `FullBleedBackground`, `AutoResizingPdfText`, `PageHeader` components
+
+When modifying templates:
+1. Import utilities from `@/lib/typography`
+2. Resolve all values from theme, not hardcoded
+3. Use primitive components for backgrounds and text
+4. Apply text background opacity only when there's an image behind
+
+**If you add new design tokens or patterns, update the StyleGuide.md.**
+
 ## Multi-Agent Parallel Development
 
 When running multiple Claude Code sessions in parallel, use isolated workspaces to avoid conflicts.
