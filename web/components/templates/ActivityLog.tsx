@@ -10,7 +10,7 @@
 import { Page, View, Text, Svg, Path, StyleSheet, Document, Image, Polyline } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { formatDistance, formatTime, formatPace, resolveActivityLocation, getMapboxLightUrl } from '@/lib/activity-utils'
+import { formatDistance, formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import polyline from '@mapbox/polyline'
@@ -476,13 +476,13 @@ const ActivityLogConcise = ({
   })
   const location = resolveActivityLocation(activity)
 
-  // Get map
+  // Get map - use satellite view for better visual appeal
   const mapWidth = (format.dimensions.width - format.safeMargin * 2) * 0.55
   const mapHeight = 200 * scale
   const polylineData = activity.map?.summary_polyline
   let mapUrl: string | null = null
   if (mapboxToken && polylineData) {
-    mapUrl = getMapboxLightUrl(polylineData, mapboxToken, Math.round(mapWidth), Math.round(mapHeight))
+    mapUrl = getMapboxSatelliteUrl(polylineData, mapboxToken, Math.round(mapWidth), Math.round(mapHeight))
   }
 
   // Get photo

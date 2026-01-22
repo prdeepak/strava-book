@@ -506,6 +506,7 @@ export const BookDocument = ({
                             entries={tocEntries}
                             format={format}
                             theme={theme}
+                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
                         />
                     )
                 }
@@ -564,6 +565,9 @@ export const BookDocument = ({
                             colorBy="distance"
                             format={format}
                             theme={theme}
+                            startDate={startDate}
+                            endDate={endDate}
+                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
                         />
                     )
                 }
@@ -579,6 +583,7 @@ export const BookDocument = ({
                             endDate={endDate}
                             format={format}
                             theme={theme}
+                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
                         />
                     )
                 }
@@ -612,7 +617,8 @@ export const BookDocument = ({
                         <ForewordPage
                             key={index}
                             title={entry.title || 'Foreword'}
-                            body={entry.forewordText || 'Your story here...'}
+                            body={entry.forewordText}
+                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
                             format={format}
                             theme={theme}
                         />

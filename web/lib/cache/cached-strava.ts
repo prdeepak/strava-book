@@ -16,10 +16,12 @@ import {
   StravaActivity,
   StravaComment,
   StravaLap,
+  StravaPhoto,
   getAthleteActivities as fetchAthleteActivities,
   getActivity as fetchActivity,
   getActivityLaps as fetchLaps,
-  getActivityComments as fetchComments
+  getActivityComments as fetchComments,
+  getActivityPhotos as fetchPhotos
 } from '../strava'
 import {
   getCachedActivity,
@@ -27,6 +29,7 @@ import {
   cacheActivityDetails,
   cacheActivityLaps,
   cacheActivityComments,
+  cacheActivityPhotos,
   cacheActivityList,
   cacheCompleteActivity,
   CachedActivity,
@@ -45,7 +48,7 @@ interface RateLimitInfo {
   lastUpdated: Date
 }
 
-let rateLimitInfo: RateLimitInfo = {
+const rateLimitInfo: RateLimitInfo = {
   shortTermUsage: 0,
   shortTermLimit: 100,
   dailyUsage: 0,
@@ -253,8 +256,39 @@ async function getActivityComments(
 }
 
 /**
+ * Get activity photos with caching
+ * GET /activities/{id}/photos
+ */
+async function getActivityPhotos(
+  accessToken: string,
+  activityId: string,
+  athleteId: string,
+  options?: CacheOptions
+): Promise<CachedResult<StravaPhoto[]>> {
+  if (!options?.forceRefresh) {
+    const cached = await getCachedActivity(activityId)
+    if (cached?.photosFetchedAt) {
+      return {
+        data: cached.photos,
+        fromCache: true,
+        cachedAt: cached.photosFetchedAt
+      }
+    }
+  }
+
+  const photos = await fetchPhotos(accessToken, activityId)
+  await cacheActivityPhotos(activityId, athleteId, photos)
+
+  return {
+    data: photos,
+    fromCache: false,
+    cachedAt: null
+  }
+}
+
+/**
  * Get all data needed for PDF generation with caching
- * Fetches: activity details + laps + comments (only if not cached)
+ * Fetches: activity details + laps + comments + photos (only if not cached)
  */
 async function getActivityForPdf(
   accessToken: string,
@@ -265,6 +299,7 @@ async function getActivityForPdf(
   activity: StravaActivity
   laps: StravaLap[]
   comments: StravaComment[]
+  photos: StravaPhoto[]
 }>> {
   // Check what's already cached
   const cached = options?.forceRefresh ? null : await getCachedActivity(activityId)
@@ -272,14 +307,16 @@ async function getActivityForPdf(
   const needsActivity = !cached?.activityFetchedAt
   const needsLaps = !cached?.lapsFetchedAt
   const needsComments = !cached?.commentsFetchedAt
+  const needsPhotos = !cached?.photosFetchedAt
 
   // If everything is cached, return it
-  if (!needsActivity && !needsLaps && !needsComments && cached) {
+  if (!needsActivity && !needsLaps && !needsComments && !needsPhotos && cached) {
     return {
       data: {
         activity: cached.activity!,
         laps: cached.laps as unknown as StravaLap[],
-        comments: cached.comments
+        comments: cached.comments,
+        photos: cached.photos
       },
       fromCache: true,
       cachedAt: cached.lastUpdatedAt
@@ -287,7 +324,7 @@ async function getActivityForPdf(
   }
 
   // Fetch what's missing in parallel
-  const [activityResult, lapsResult, commentsResult] = await Promise.all([
+  const [activityResult, lapsResult, commentsResult, photosResult] = await Promise.all([
     needsActivity
       ? fetchActivity(accessToken, activityId)
       : Promise.resolve(cached?.activity || null),
@@ -296,21 +333,26 @@ async function getActivityForPdf(
       : Promise.resolve(cached?.laps as unknown as StravaLap[] || []),
     needsComments
       ? fetchComments(accessToken, activityId)
-      : Promise.resolve(cached?.comments || [])
+      : Promise.resolve(cached?.comments || []),
+    needsPhotos
+      ? fetchPhotos(accessToken, activityId)
+      : Promise.resolve(cached?.photos || [])
   ])
 
   // Cache what was fetched
   await cacheCompleteActivity(activityId, athleteId, {
     activity: needsActivity ? (activityResult as StravaActivity) : undefined,
     laps: needsLaps ? (lapsResult as unknown as CachedStravaLap[]) : undefined,
-    comments: needsComments ? commentsResult : undefined
+    comments: needsComments ? commentsResult : undefined,
+    photos: needsPhotos ? photosResult : undefined
   })
 
   return {
     data: {
       activity: (activityResult || cached?.activity) as StravaActivity,
       laps: lapsResult as StravaLap[],
-      comments: commentsResult
+      comments: commentsResult,
+      photos: photosResult
     },
     fromCache: false,
     cachedAt: null
@@ -371,7 +413,8 @@ async function batchFetchForPdf(
     const cached = await getCachedActivity(activityId)
     const isComplete = cached?.activityFetchedAt &&
                       cached?.lapsFetchedAt &&
-                      cached?.commentsFetchedAt
+                      cached?.commentsFetchedAt &&
+                      cached?.photosFetchedAt
 
     if (isComplete && cached) {
       result.fromCache++
@@ -496,6 +539,7 @@ export const cachedStrava = {
   getActivity,
   getActivityLaps,
   getActivityComments,
+  getActivityPhotos,
 
   // Combined fetch for PDF generation
   getActivityForPdf,
@@ -516,6 +560,7 @@ export {
   getActivity,
   getActivityLaps,
   getActivityComments,
+  getActivityPhotos,
   getActivityForPdf,
   batchFetchForPdf,
   enrichActivitiesFromCache

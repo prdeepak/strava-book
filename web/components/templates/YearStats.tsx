@@ -1,4 +1,4 @@
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS, MonthlyStats } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatPeriodRange } from '@/lib/activity-utils'
@@ -20,6 +20,7 @@ interface YearStatsProps {
   periodName?: string  // Display text for time period
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
+  backgroundPhotoUrl?: string  // Background image at 10% opacity
   format?: BookFormat
   theme?: BookTheme
 }
@@ -32,6 +33,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     padding: format.safeMargin,
     backgroundColor: theme.backgroundColor,
     flexDirection: 'column',
+    position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.1,
   },
 
   // Header section
@@ -83,14 +94,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   heroValue: {
     fontSize: Math.max(32, 48 * format.scaleFactor),
-    fontFamily: 'Courier-Bold', // Monospace for tabular figures
+    fontFamily: 'Helvetica-Bold', // Monospace for tabular figures
     color: theme.accentColor,
     lineHeight: 1,
     letterSpacing: -1,
   },
   heroUnit: {
     fontSize: Math.max(11, 14 * format.scaleFactor),
-    fontFamily: 'Courier-Bold',
+    fontFamily: 'Helvetica-Bold',
     color: theme.accentColor,
     opacity: 0.7,
     marginTop: 2 * format.scaleFactor,
@@ -131,7 +142,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   secondaryValue: {
     fontSize: Math.max(20, 26 * format.scaleFactor),
-    fontFamily: 'Courier-Bold', // Monospace for alignment
+    fontFamily: 'Helvetica-Bold', // Monospace for alignment
     color: theme.primaryColor,
     lineHeight: 1.1,
   },
@@ -167,7 +178,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   bestEffortTime: {
     fontSize: Math.max(6, 8 * format.scaleFactor),
-    fontFamily: 'Courier',
+    fontFamily: 'Helvetica',
     color: theme.accentColor,
     textAlign: 'right',
   },
@@ -216,7 +227,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   sportValue: {
     fontSize: Math.max(16, 20 * format.scaleFactor),
-    fontFamily: 'Courier-Bold',
+    fontFamily: 'Helvetica-Bold',
     color: theme.accentColor,
     marginBottom: 2 * format.scaleFactor,
   },
@@ -504,6 +515,7 @@ export const YearStats = ({
   periodName: propPeriodName,
   startDate: propStartDate,
   endDate: propEndDate,
+  backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME
 }: YearStatsProps) => {
@@ -572,6 +584,12 @@ export const YearStats = ({
   return (
     <Document>
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+        {/* Background photo (if provided) */}
+        {backgroundPhotoUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+          <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+        )}
+
         {/* Period Title */}
         <View style={styles.header}>
           <Text style={styles.yearTitle}>{mainPeriodDisplay}</Text>

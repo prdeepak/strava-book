@@ -57,6 +57,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     commentsContainer: {
         flex: 1,
+        flexDirection: 'row',
+        gap: 16 * format.scaleFactor,
+    },
+    commentsColumn: {
+        flex: 1,
     },
     comment: {
         marginBottom: 16 * format.scaleFactor,
@@ -149,36 +154,61 @@ export const RaceSectionCommentsPage = ({
                 </View>
             )}
 
-            {/* Comments */}
+            {/* Comments - Two Column Layout */}
             <View style={styles.commentsContainer}>
                 {displayComments.length > 0 ? (
-                    displayComments.map((comment, index) => (
-                        <View key={index} style={styles.comment}>
-                            <View style={styles.commentHeader}>
-                                <Text style={styles.commentAuthor}>
-                                    {comment.athlete.firstname} {comment.athlete.lastname}
-                                </Text>
-                                <Text style={styles.commentDate}>
-                                    {formatDate(comment.created_at)}
-                                </Text>
-                            </View>
-                            <Text style={styles.commentText}>{comment.text}</Text>
-                            {(comment.reaction_count ?? 0) > 0 && (
-                                <Text style={styles.commentReaction}>
-                                    ❤️ {comment.reaction_count}
+                    <>
+                        {/* Left Column */}
+                        <View style={styles.commentsColumn}>
+                            {displayComments.slice(0, Math.ceil(displayComments.length / 2)).map((comment, index) => (
+                                <View key={index} style={styles.comment}>
+                                    <View style={styles.commentHeader}>
+                                        <Text style={styles.commentAuthor}>
+                                            {comment.athlete.firstname} {comment.athlete.lastname}
+                                        </Text>
+                                        <Text style={styles.commentDate}>
+                                            {formatDate(comment.created_at)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.commentText}>{comment.text}</Text>
+                                    {(comment.reaction_count ?? 0) > 0 && (
+                                        <Text style={styles.commentReaction}>
+                                            ❤️ {comment.reaction_count}
+                                        </Text>
+                                    )}
+                                </View>
+                            ))}
+                        </View>
+                        {/* Right Column */}
+                        <View style={styles.commentsColumn}>
+                            {displayComments.slice(Math.ceil(displayComments.length / 2)).map((comment, index) => (
+                                <View key={index} style={styles.comment}>
+                                    <View style={styles.commentHeader}>
+                                        <Text style={styles.commentAuthor}>
+                                            {comment.athlete.firstname} {comment.athlete.lastname}
+                                        </Text>
+                                        <Text style={styles.commentDate}>
+                                            {formatDate(comment.created_at)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.commentText}>{comment.text}</Text>
+                                    {(comment.reaction_count ?? 0) > 0 && (
+                                        <Text style={styles.commentReaction}>
+                                            ❤️ {comment.reaction_count}
+                                        </Text>
+                                    )}
+                                </View>
+                            ))}
+                            {sortedComments.length > displayComments.length && (
+                                <Text style={[styles.noComments, { color: '#666', textAlign: 'left' }]}>
+                                    +{sortedComments.length - displayComments.length} more comments
                                 </Text>
                             )}
                         </View>
-                    ))
+                    </>
                 ) : (
                     <Text style={styles.noComments}>
                         No comments on this activity yet.
-                    </Text>
-                )}
-
-                {sortedComments.length > displayComments.length && (
-                    <Text style={[styles.noComments, { color: '#666' }]}>
-                        +{sortedComments.length - displayComments.length} more comments
                     </Text>
                 )}
             </View>

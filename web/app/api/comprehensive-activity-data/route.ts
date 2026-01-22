@@ -29,18 +29,20 @@ export async function GET(request: NextRequest) {
             { forceRefresh: skipCache }
         )
 
-        const { activity, laps, comments } = data
+        const { activity, laps, comments, photos } = data
 
-        console.log('[Comprehensive Data] Activity:', activity.name, fromCache ? '(from cache)' : '(fresh)')
+        console.log('[Comprehensive Data] Activity:', activity.name, fromCache ? '(from cache)' : '(fresh)', `(${photos.length} photos)`)
 
         return NextResponse.json({
             activity,
             laps,
             comments,
+            photos,
             metadata: {
                 fetchedAt: cachedAt || new Date().toISOString(),
                 lapCount: laps.length,
                 commentCount: comments.length,
+                photoCount: photos.length,
                 fromCache,
                 cachedAt
             }

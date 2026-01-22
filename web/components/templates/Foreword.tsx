@@ -1,10 +1,11 @@
-import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 
 export interface ForewordProps {
   title?: string
   body?: string
   author?: string
+  backgroundPhotoUrl?: string  // Background photo (relatively prominent, ~0.3 opacity)
   format?: BookFormat
   theme?: BookTheme
   // For test harness compatibility - derive props from activity
@@ -22,6 +23,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     backgroundColor: theme.backgroundColor,
     padding: 0,
     position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.3,
   },
   // Top decorative accent
   topAccent: {
@@ -106,6 +116,7 @@ export const ForewordPage = ({
   title: propTitle,
   body: propBody,
   author: propAuthor,
+  backgroundPhotoUrl,
   format: propFormat,
   theme = DEFAULT_THEME,
   activity,
@@ -140,6 +151,12 @@ export const ForewordPage = ({
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Background photo (if provided) */}
+      {backgroundPhotoUrl && (
+        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+        <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+      )}
+
       {/* Top decorative accent */}
       <View style={styles.topAccent} />
 

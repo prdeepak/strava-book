@@ -1,4 +1,4 @@
-import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary, FORMATS } from '@/lib/book-types'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
@@ -13,6 +13,7 @@ export interface BackCoverProps {
   periodName?: string  // Display text for time period
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
+  backgroundPhotoUrl?: string  // Background photo for the back cover
   format?: BookFormat
   theme?: BookTheme
 }
@@ -29,6 +30,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     alignItems: 'center',
     position: 'relative',
   },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.4,
+  },
   contentContainer: {
     width: '100%',
     height: '100%',
@@ -41,68 +51,68 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 80 * format.scaleFactor,
+    paddingTop: 50 * format.scaleFactor,
   },
   yearText: {
-    fontSize: Math.max(80, 100 * format.scaleFactor),
+    fontSize: 48 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
     marginBottom: 10 * format.scaleFactor,
     textAlign: 'center',
-    letterSpacing: 6,
+    letterSpacing: 4,
     fontWeight: 'bold',
   },
   periodRangeText: {
-    fontSize: Math.max(12, 15 * format.scaleFactor),
+    fontSize: 14 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#cccccc',
-    marginBottom: 30 * format.scaleFactor,
+    marginBottom: 24 * format.scaleFactor,
     textAlign: 'center',
     letterSpacing: 1,
   },
   statsGrid: {
     flexDirection: 'column',
-    gap: 24 * format.scaleFactor,
+    gap: 16 * format.scaleFactor,
     alignItems: 'center',
-    marginTop: 50 * format.scaleFactor,
+    marginTop: 30 * format.scaleFactor,
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 14 * format.scaleFactor,
+    gap: 10 * format.scaleFactor,
   },
   statValue: {
-    fontSize: Math.max(32, 40 * format.scaleFactor),
+    fontSize: 28 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: '#ffffff',
     fontWeight: 'bold',
   },
   statLabel: {
-    fontSize: Math.max(12, 15 * format.scaleFactor),
+    fontSize: 11 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#e0e0e0',
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   divider: {
-    width: Math.max(140, 180 * format.scaleFactor),
-    height: 3,
+    width: 120 * format.scaleFactor,
+    height: 2,
     backgroundColor: theme.accentColor,
     opacity: 0.5,
-    marginVertical: 35 * format.scaleFactor,
+    marginVertical: 24 * format.scaleFactor,
   },
   quoteSection: {
-    marginTop: 60 * format.scaleFactor,
+    marginTop: 40 * format.scaleFactor,
     paddingHorizontal: format.safeMargin * 1.5,
     maxWidth: '70%',
-    marginBottom: 50 * format.scaleFactor,
+    marginBottom: 32 * format.scaleFactor,
   },
   quoteText: {
-    fontSize: Math.max(13, 16 * format.scaleFactor),
+    fontSize: 12 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#ffffff',
     textAlign: 'center',
-    lineHeight: 1.7,
+    lineHeight: 1.6,
     fontStyle: 'italic',
     opacity: 0.85,
   },
@@ -111,17 +121,17 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     paddingBottom: 30 * format.scaleFactor,
   },
   brandingText: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
+    fontSize: 10 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#cccccc',
     textAlign: 'center',
     letterSpacing: 1,
   },
   brandingName: {
-    fontSize: Math.max(13, 16 * format.scaleFactor),
+    fontSize: 14 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
-    marginTop: 8 * format.scaleFactor,
+    marginTop: 6 * format.scaleFactor,
     textAlign: 'center',
     letterSpacing: 2,
   },
@@ -182,6 +192,7 @@ export const BackCover = ({
   periodName: propPeriodName,
   startDate: propStartDate,
   endDate: propEndDate,
+  backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: BackCoverProps) => {
@@ -225,6 +236,11 @@ export const BackCover = ({
   return (
     <Document>
       <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+        {/* Background photo (if provided) */}
+        {backgroundPhotoUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+          <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+        )}
         <View style={styles.contentContainer}>
           {/* Top section with period and stats */}
           <View style={styles.topSection}>

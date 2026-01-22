@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { StravaActivity } from '@/lib/strava'
 import PDFGenerationModal from '@/components/PDFGenerationModal'
-import BookGenerationModal from '@/components/BookGenerationModal'
+import ManualBookGenerationModal from '@/components/ManualBookGenerationModal'
 import PeriodPDFGenerationModal from '@/components/PeriodPDFGenerationModal'
 
 interface BuilderClientProps {
@@ -126,7 +126,7 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
                         onClick={() => setBookModalOpen(true)}
                         className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded shadow hover:from-blue-700 hover:to-indigo-800 transition"
                     >
-                        Generate Year Book
+                        Generate Book
                     </button>
                 </div>
 
@@ -280,7 +280,7 @@ export default function BuilderClient({ initialActivities, athleteName }: Builde
             )}
 
             {/* Book Generation Modal */}
-            <BookGenerationModal
+            <ManualBookGenerationModal
                 activities={activities}
                 isOpen={bookModalOpen}
                 onClose={() => setBookModalOpen(false)}

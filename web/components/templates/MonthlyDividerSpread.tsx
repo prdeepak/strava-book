@@ -507,7 +507,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
-              cellSize={30 * format.scaleFactor}
+              cellSize={22 * format.scaleFactor}
             />
           ) : (
             // Use icon calendar for mixed-sport months
@@ -519,7 +519,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
-              cellSize={30 * format.scaleFactor}
+              cellSize={22 * format.scaleFactor}
             />
           )}
         </View>
