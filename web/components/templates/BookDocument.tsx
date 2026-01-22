@@ -628,7 +628,7 @@ export const BookDocument = ({
                 // BEST_EFFORTS - Placeholder
                 if (entry.type === 'BEST_EFFORTS') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
+                        <Page key={index} size={[format.dimensions.width, format.dimensions.height]} style={styles.placeholderPage}>
                             <Text style={styles.placeholderTitle}>Personal Records</Text>
                             <Text style={styles.placeholderText}>Your best efforts this year</Text>
                         </Page>
@@ -638,7 +638,7 @@ export const BookDocument = ({
                 // ROUTE_HEATMAP - Placeholder
                 if (entry.type === 'ROUTE_HEATMAP') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
+                        <Page key={index} size={[format.dimensions.width, format.dimensions.height]} style={styles.placeholderPage}>
                             <Text style={styles.placeholderTitle}>Route Heatmap</Text>
                             <Text style={styles.placeholderText}>All your routes overlaid</Text>
                         </Page>
@@ -648,7 +648,7 @@ export const BookDocument = ({
                 // STATS_SUMMARY - Placeholder
                 if (entry.type === 'STATS_SUMMARY') {
                     return (
-                        <Page key={index} size="LETTER" style={styles.placeholderPage}>
+                        <Page key={index} size={[format.dimensions.width, format.dimensions.height]} style={styles.placeholderPage}>
                             <Text style={styles.placeholderTitle}>Stats Summary</Text>
                             <Text style={styles.placeholderText}>Overview of your activities</Text>
                         </Page>

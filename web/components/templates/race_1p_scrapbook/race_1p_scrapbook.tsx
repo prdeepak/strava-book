@@ -19,6 +19,7 @@ import {
 } from '@/lib/activity-utils';
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 import { resolveImageForPdf } from '@/lib/pdf-image-loader';
+import { BookFormat, FORMATS } from '@/lib/book-types';
 
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
@@ -52,6 +53,7 @@ export interface ScrapbookPageProps {
   kudosCount: number;
   morePhotosUrls?: string[]; // Array of up to 4 extra photo URLs
   moreComments?: string;
+  format?: BookFormat;
 }
 
 // Standard Letter size points: 612 x 792
@@ -313,7 +315,8 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
     title, titleFontSize, date, location, description, trainingLoad,
     mainPhotoUrl, mapPhotoUrl, stats,
     displaySplits, totalTime, bestEfforts, kudosCount,
-    morePhotosUrls = []
+    morePhotosUrls = [],
+    format = FORMATS['10x10']
   } = props;
 
   // Helper for Best Efforts table rows
@@ -326,7 +329,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
         {/* 1. The Main Background Texture */}
         {/* IMPORTANT: You need this asset in your project */}
         <Image src="/assets/scrapbook-bg.png" style={styles.backgroundImage} fixed />
@@ -466,9 +469,10 @@ const WashiItem = ({ value, label, color }: { value: string, label: string, colo
 interface ScrapbookPDFProps {
   activity: StravaActivity;
   mapboxToken?: string;
+  format?: BookFormat;
 }
 
-const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) => {
+const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken, format = FORMATS['10x10'] }) => {
   // Transform StravaActivity to ScrapbookPageProps
   const location = resolveActivityLocation(activity);
 
@@ -560,7 +564,8 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
     bestEfforts,
     kudosCount: activity.kudos_count || 0,
     morePhotosUrls,
-    moreComments
+    moreComments,
+    format
   };
 
   return <ScrapbookPDFInternal {...scrapbookProps} />;
@@ -570,7 +575,7 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) =>
  * ScrapbookPDFPages - Returns just the page without Document wrapper
  * Use this when embedding inside another Document (like ConcatAllPDF)
  */
-export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken }) => {
+export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken, format = FORMATS['10x10'] }) => {
   // Transform StravaActivity to ScrapbookPageProps (same as ScrapbookPDF)
   const location = resolveActivityLocation(activity);
   const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600']) || '/assets/placeholder-photo.jpg';
@@ -654,7 +659,7 @@ export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapbo
 
   // Return just the page without Document wrapper
   return (
-    <Page size="LETTER" style={styles.page}>
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
       <Image src="/assets/scrapbook-bg.png" style={styles.backgroundImage} fixed />
       <View style={styles.container}>
         <View style={styles.headerWrapper}>
