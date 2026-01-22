@@ -78,8 +78,9 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
       }
     }
 
-    // Check primary photo as fallback
-    if (activity.photos?.primary?.urls) {
+    // Check primary photo as fallback (only if no comprehensive photos)
+    const hasComprehensivePhotos = comprehensivePhotos.length > 0
+    if (!hasComprehensivePhotos && activity.photos?.primary?.urls) {
       const primaryUrls = activity.photos.primary.urls as Record<string, string>
       const url600 = primaryUrls['600']
       if (url600 && !photos.some(p => p.url === url600)) {
@@ -137,7 +138,7 @@ export default function PhotoSelector({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
             {displayPhotos.map((photo, idx) => {
               const isSelected = selectedUrl === photo.url
               return (

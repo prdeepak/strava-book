@@ -1,4 +1,4 @@
-import { Page, Text, View, Document, StyleSheet, Svg, Rect } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet, Svg, Rect, Image } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 
@@ -13,6 +13,10 @@ interface YearCalendarProps {
   colorBy?: 'distance' | 'time' | 'count' | 'elevation'
   format?: BookFormat
   theme?: BookTheme
+  // Date range support
+  startDate?: string
+  endDate?: string
+  backgroundPhotoUrl?: string  // Background image at 10% opacity
 }
 
 // Create styles with format scaling
@@ -22,6 +26,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     height: format.dimensions.height,
     padding: format.safeMargin,
     backgroundColor: theme.backgroundColor,
+    position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.1,
   },
   header: {
     marginBottom: 16 * format.scaleFactor,
@@ -323,12 +337,48 @@ export const YearCalendar = (props: YearCalendarProps) => {
   const cellSize = 7 * format.scaleFactor
   const cellGap = 1.2 * format.scaleFactor
 
+  // Calculate months to display based on date range
+  const startDate = props.startDate ? new Date(props.startDate) : null
+  const endDate = props.endDate ? new Date(props.endDate) : null
+
+  // Generate list of months in the date range
+  interface MonthInfo {
+    year: number
+    month: number  // 0-11
+  }
+  const monthsToDisplay: MonthInfo[] = []
+
+  if (startDate && endDate) {
+    let current = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1)
+    while (current <= end) {
+      monthsToDisplay.push({ year: current.getFullYear(), month: current.getMonth() })
+      current = new Date(current.getFullYear(), current.getMonth() + 1, 1)
+    }
+  } else {
+    // Fallback: show all 12 months of the year
+    for (let m = 0; m < 12; m++) {
+      monthsToDisplay.push({ year, month: m })
+    }
+  }
+
+  // Format date range for header display
+  const dateRangeDisplay = (startDate && endDate)
+    ? `${startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} – ${endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+    : String(year)
+
   return (
     <Document>
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+        {/* Background photo (if provided) */}
+        {props.backgroundPhotoUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+          <Image src={props.backgroundPhotoUrl} style={styles.backgroundImage} />
+        )}
+
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.year}>{year}</Text>
+          <Text style={styles.year}>{dateRangeDisplay}</Text>
           <Text style={styles.subtitle}>
             {formatWithCommas(totalActivities)} Activities • {formatWithCommas(totalDistance)} kilometers
           </Text>
@@ -337,12 +387,12 @@ export const YearCalendar = (props: YearCalendarProps) => {
         {/* Calendar Grid */}
         <View style={styles.calendarSection}>
           <View style={styles.monthsGrid}>
-            {Array.from({ length: 12 }, (_, monthIndex) => {
-              const daysInMonth = getDaysInMonth(year, monthIndex)
-              const firstDay = getFirstDayOfMonth(year, monthIndex)
+            {monthsToDisplay.map(({ year: monthYear, month: monthIndex }) => {
+              const daysInMonth = getDaysInMonth(monthYear, monthIndex)
+              const firstDay = getFirstDayOfMonth(monthYear, monthIndex)
 
               return (
-                <View key={monthIndex} style={styles.monthBlock}>
+                <View key={`${monthYear}-${monthIndex}`} style={styles.monthBlock}>
                   <Text style={styles.monthLabel}>{MONTH_NAMES[monthIndex]}</Text>
 
                   <Svg
@@ -352,7 +402,7 @@ export const YearCalendar = (props: YearCalendarProps) => {
                   >
                     {Array.from({ length: daysInMonth }, (_, dayIndex) => {
                       const day = dayIndex + 1
-                      const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      const dateStr = `${monthYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                       const value = dateMap.get(dateStr) || 0
                       const intensity = getColorIntensity(value, maxValue)
                       const color = getColor(intensity, theme.accentColor, theme.backgroundColor)

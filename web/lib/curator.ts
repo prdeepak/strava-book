@@ -26,6 +26,7 @@ export interface BookEntry {
     year?: number           // For MONTHLY_DIVIDER, YEAR_STATS, YEAR_AT_A_GLANCE
     activityIds?: number[]  // For ACTIVITY_LOG (multiple activities per page)
     forewordText?: string   // For FOREWORD
+    backgroundPhotoUrl?: string  // For FOREWORD, TOC, etc. (background image URL)
     pageNumber?: number     // For TABLE_OF_CONTENTS, ACTIVITY_LOG (pagination)
     heroImage?: string      // For COVER (background image URL)
 }

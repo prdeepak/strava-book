@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { getServerSession } from 'next-auth'
+import { promises as fs } from 'fs'
+import path from 'path'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { BookDocument, computeYearSummary } from '@/components/templates/BookDocument'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { normalizeFontName } from '@/lib/ai-validation'
 import { createBookScoresReport, generateScoresMarkdown, PageScore } from '@/lib/visual-scores-report'
+import { scorePdfPages } from '@/lib/visual-scoring'
 import { BookEntry } from '@/lib/curator'
 // Register fonts for PDF generation
 import '@/lib/pdf-fonts'
+
+// Ensure outputs directory exists
+async function ensureOutputsDir(): Promise<string> {
+  // Use /app/outputs in container (maps to workspace root outputs/)
+  // or fallback to cwd/outputs for local dev
+  const outputsDir = process.env.WORKSPACE_ID
+    ? '/app/outputs'
+    : path.join(process.cwd(), 'outputs')
+  await fs.mkdir(outputsDir, { recursive: true })
+  return outputsDir
+}
 
 /**
  * Normalize fonts in a BookTheme to ensure they are registered
@@ -68,20 +82,20 @@ function generateManualBookEntries(
     heroImage: config.coverPhotoUrl || undefined,
   })
 
-  // 2. FOREWORD (if provided)
-  if (config.forewordText) {
-    entries.push({
-      type: 'FOREWORD',
-      title: 'Foreword',
-      forewordText: config.forewordText,
-      pageNumber: currentPage++,
-    })
-  }
+  // 2. FOREWORD (always included)
+  entries.push({
+    type: 'FOREWORD',
+    title: 'Foreword',
+    forewordText: config.forewordText || undefined,
+    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
+    pageNumber: currentPage++,
+  })
 
   // 3. TABLE OF CONTENTS
   entries.push({
     type: 'TABLE_OF_CONTENTS',
     title: 'Contents',
+    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
     pageNumber: currentPage++,
   })
 
@@ -103,6 +117,7 @@ function generateManualBookEntries(
     type: 'YEAR_STATS',
     year: primaryYear,
     title: 'Summary',
+    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
     pageNumber: currentPage++,
   })
 
@@ -110,6 +125,7 @@ function generateManualBookEntries(
   entries.push({
     type: 'YEAR_AT_A_GLANCE',
     year: primaryYear,
+    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
     title: 'Year at a Glance',
     pageNumber: currentPage++,
   })
@@ -280,31 +296,64 @@ export async function POST(request: NextRequest) {
     console.log('[ManualBook] PDF rendered in', renderTime, 'ms')
     console.log('[ManualBook] PDF size:', pdfBuffer.length, 'bytes')
 
-    // Generate visual scores report (simplified - without actual visual judging for now)
-    // Full visual judging would require PDF-to-image conversion and LLM calls
-    const pageScores: PageScore[] = entries.map((entry, idx) => ({
-      pageNumber: entry.pageNumber || idx + 1,
-      pageType: entry.type,
-      title: entry.title,
-      // Skip actual visual judging for now - it would add significant time and complexity
-      // The infrastructure is in place in visual-judge-iteration.ts for future use
-    }))
+    // Create filenames with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const baseFilename = config.bookName.replace(/\s+/g, '-').toLowerCase()
+    const pdfFilename = `${baseFilename}-${timestamp}.pdf`
+    const mdFilename = `${baseFilename}-${timestamp}-scores.md`
+    const pagesFolder = `${baseFilename}-${timestamp}-pages`
+
+    // Ensure outputs directory exists
+    const outputsDir = await ensureOutputsDir()
+    const pagesDir = path.join(outputsDir, pagesFolder)
+
+    // Generate visual scores report
+    // Visual judging extracts each PDF page as PNG and scores it using an LLM
+    console.log('[ManualBook] Running visual scoring...')
+    const scoringStartTime = Date.now()
+
+    const scoringResult = await scorePdfPages(
+      Buffer.from(pdfBuffer),
+      entries,
+      {
+        primaryColor: theme.primaryColor,
+        accentColor: theme.accentColor,
+        backgroundColor: theme.backgroundColor,
+      },
+      {
+        verbose: true,
+        provider: 'auto',
+        outputDir: pagesDir,
+      }
+    )
+
+    const pageScores = scoringResult.pageScores
+    console.log(`[ManualBook] Visual scoring complete in ${Date.now() - scoringStartTime}ms`)
+    console.log(`[ManualBook] Scored ${scoringResult.scoredPages}/${scoringResult.totalPages} pages, avg score: ${scoringResult.averageScore.toFixed(1)}`)
+    console.log(`[ManualBook] Page images saved to: ${pagesDir}`)
 
     const scoresReport = createBookScoresReport(config.bookName, pageScores)
     const scoresMarkdown = generateScoresMarkdown(scoresReport)
+    const pdfPath = path.join(outputsDir, pdfFilename)
+    const mdPath = path.join(outputsDir, mdFilename)
 
-    // Create response with PDF and scores
-    const filename = config.bookName.replace(/\s+/g, '-').toLowerCase()
+    await Promise.all([
+      fs.writeFile(pdfPath, pdfBuffer),
+      fs.writeFile(mdPath, scoresMarkdown),
+    ])
 
-    // For simplicity, return just the PDF for now
-    // The scores report can be added as a multipart response in future iterations
+    console.log('[ManualBook] Saved PDF to:', pdfPath)
+    console.log('[ManualBook] Saved scores to:', mdPath)
+
+    // Return PDF with metadata about saved files
     const response = new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}.pdf"`,
+        'Content-Disposition': `attachment; filename="${pdfFilename}"`,
         'Cache-Control': 'no-cache',
-        // Include scores in a custom header (base64 encoded for safety)
-        'X-Scores-Report': Buffer.from(scoresMarkdown).toString('base64'),
+        // Include paths to saved files (for reference)
+        'X-Output-PDF': pdfFilename,
+        'X-Output-Scores': mdFilename,
       },
     })
 

@@ -15,7 +15,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import {
   StravaActivity,
-  StravaComment
+  StravaComment,
+  StravaPhoto
 } from '../strava'
 
 // Cache directories
@@ -70,6 +71,10 @@ export interface CachedActivity {
   // Comments from GET /activities/{id}/comments
   comments: StravaComment[]
   commentsFetchedAt: string | null
+
+  // Photos from GET /activities/{id}/photos
+  photos: StravaPhoto[]
+  photosFetchedAt: string | null
 
   // Metadata
   createdAt: string
@@ -172,6 +177,8 @@ async function getOrCreateCacheEntry(activityId: string, athleteId: string): Pro
     lapsFetchedAt: null,
     comments: [],
     commentsFetchedAt: null,
+    photos: [],
+    photosFetchedAt: null,
     createdAt: now,
     lastUpdatedAt: now
   }
@@ -232,6 +239,20 @@ export async function cacheActivityComments(
 }
 
 /**
+ * Cache activity photos (from GET /activities/{id}/photos)
+ */
+export async function cacheActivityPhotos(
+  activityId: string,
+  athleteId: string,
+  photos: StravaPhoto[]
+): Promise<void> {
+  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  cached.photos = photos
+  cached.photosFetchedAt = new Date().toISOString()
+  await saveCachedActivity(cached)
+}
+
+/**
  * Cache all activity data at once (for batch operations)
  */
 export async function cacheCompleteActivity(
@@ -241,6 +262,7 @@ export async function cacheCompleteActivity(
     activity?: StravaActivity
     laps?: StravaLap[]
     comments?: StravaComment[]
+    photos?: StravaPhoto[]
   }
 ): Promise<void> {
   const cached = await getOrCreateCacheEntry(activityId, athleteId)
@@ -257,6 +279,10 @@ export async function cacheCompleteActivity(
   if (data.comments !== undefined) {
     cached.comments = data.comments
     cached.commentsFetchedAt = now
+  }
+  if (data.photos !== undefined) {
+    cached.photos = data.photos
+    cached.photosFetchedAt = now
   }
 
   await saveCachedActivity(cached)
@@ -504,8 +530,10 @@ export async function getCacheStatus(activityId: string): Promise<{
   hasDetails: boolean
   hasLaps: boolean
   hasComments: boolean
+  hasPhotos: boolean
   lapCount: number
   commentCount: number
+  photoCount: number
   lastUpdated: string | null
 }> {
   const cached = await getCachedActivity(activityId)
@@ -516,8 +544,10 @@ export async function getCacheStatus(activityId: string): Promise<{
       hasDetails: false,
       hasLaps: false,
       hasComments: false,
+      hasPhotos: false,
       lapCount: 0,
       commentCount: 0,
+      photoCount: 0,
       lastUpdated: null
     }
   }
@@ -527,8 +557,10 @@ export async function getCacheStatus(activityId: string): Promise<{
     hasDetails: cached.activity !== null,
     hasLaps: cached.lapsFetchedAt !== null,
     hasComments: cached.commentsFetchedAt !== null,
+    hasPhotos: cached.photosFetchedAt !== null,
     lapCount: cached.laps.length,
     commentCount: cached.comments.length,
+    photoCount: cached.photos?.length || 0,
     lastUpdated: cached.lastUpdatedAt
   }
 }

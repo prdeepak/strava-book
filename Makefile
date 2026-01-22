@@ -219,6 +219,8 @@ test-e2e-local:
 test-e2e-ci:
 	@echo "🔤 Running font validation..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+	@echo "📚 Running book integration test (generates PDF with photos, runs visual scoring)..."
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts
 	@echo "🎭 Running self-contained e2e tests in Docker..."
 	@echo "Using cached node_modules and Next.js build (run 'make e2e-rebuild' if deps changed)"
 	$(COMPOSE_CMD) run --rm e2e

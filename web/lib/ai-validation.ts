@@ -6,7 +6,7 @@
  */
 
 import { HEADING_FONTS, BODY_FONTS } from './theme-defaults'
-import { getAllFontFamilies, fontHasItalic, getBodyFonts } from './font-registry'
+import { getAllFontFamilies, getAllFontFamiliesWithVariants, fontHasItalic, getBodyFonts } from './font-registry'
 
 // ============================================================================
 // Safe Default Fonts
@@ -44,9 +44,10 @@ export const DEFAULT_BODY_FONT = PREFERRED_BODY_FONT
  * Fallback order: BarlowCondensed -> Helvetica
  */
 export function normalizeFontName(font: string, isBodyFont: boolean = false): string {
-  const allFonts = getAllFontFamilies()
+  // Use variant-aware list to recognize built-in font variants like Helvetica-Bold
+  const allFonts = getAllFontFamiliesWithVariants()
 
-  // If font is valid, return it
+  // If font is valid (including variants like Helvetica-Bold), return it
   if (allFonts.includes(font)) {
     return font
   }

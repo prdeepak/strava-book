@@ -101,7 +101,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     heroStatValue: {
         fontSize: Math.max(28, 36 * format.scaleFactor),
-        fontFamily: 'Courier-Bold', // Monospace for stats
+        fontFamily: 'Helvetica-Bold', // Monospace for stats
         color: theme.accentColor,
         lineHeight: 1,
     },
@@ -133,7 +133,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     giantStatValue: {
         fontSize: Math.max(36, 48 * format.scaleFactor),
-        fontFamily: 'Courier-Bold',
+        fontFamily: 'Helvetica-Bold',
         color: theme.accentColor,
         lineHeight: 1,
         textAlign: 'center',
@@ -218,7 +218,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     splitValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Courier', // Monospace for alignment
+        fontFamily: 'Helvetica', // Sans-serif for stats
         color: '#ffffff',
     },
 
@@ -239,7 +239,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     effortValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Courier-Bold',
+        fontFamily: 'Helvetica-Bold',
         color: '#ffffff',
     },
     prBadge: {

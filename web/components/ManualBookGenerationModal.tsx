@@ -314,15 +314,11 @@ export default function ManualBookGenerationModal({
       const url = URL.createObjectURL(pdfBlob)
       setPdfUrl(url)
 
-      // Check for scores report in header
-      const scoresHeader = response.headers.get('X-Scores-Report')
-      if (scoresHeader) {
-        try {
-          const decoded = atob(scoresHeader)
-          setScoresMarkdown(decoded)
-        } catch (e) {
-          console.warn('Failed to decode scores report:', e)
-        }
+      // Check for scores filename in header (file saved on server)
+      const scoresFilename = response.headers.get('X-Output-Scores')
+      if (scoresFilename) {
+        // Store the filename for download via API
+        setScoresMarkdown(scoresFilename)
       }
 
       setGenerateProgress(100)
@@ -360,15 +356,13 @@ export default function ManualBookGenerationModal({
 
   const handleDownloadScores = () => {
     if (scoresMarkdown) {
-      const blob = new Blob([scoresMarkdown], { type: 'text/markdown' })
-      const url = URL.createObjectURL(blob)
+      // scoresMarkdown now contains the filename, download via API
       const link = document.createElement('a')
-      link.href = url
-      link.download = `${config.bookName.replace(/\s+/g, '-').toLowerCase()}-scores.md`
+      link.href = `/api/outputs/${encodeURIComponent(scoresMarkdown)}`
+      link.download = scoresMarkdown
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      URL.revokeObjectURL(url)
     }
   }
 
@@ -385,7 +379,7 @@ export default function ManualBookGenerationModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold mb-2">Generate Book</h2>
@@ -557,8 +551,8 @@ export default function ManualBookGenerationModal({
                   photos={generatedData.allPhotos}
                   selectedUrl={config.backgroundPhotoUrl}
                   onSelect={(url) => setConfig(prev => ({ ...prev, backgroundPhotoUrl: url }))}
-                  label="Foreword Background"
-                  description="Background photo for the foreword page (will be faded)"
+                  label="Page Background"
+                  description="Background photo for foreword, TOC, and stats pages (faded)"
                 />
 
                 <PhotoSelector

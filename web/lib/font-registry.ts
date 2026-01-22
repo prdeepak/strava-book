@@ -154,13 +154,49 @@ export const BUILTIN_FONTS: FontDefinition[] = [
 // ============================================================================
 
 /**
- * Get all font families
+ * Get all font families (base names only)
  */
 export function getAllFontFamilies(): string[] {
     return [
         ...FONT_REGISTRY.map(f => f.family),
         ...BUILTIN_FONTS.map(f => f.family),
     ]
+}
+
+/**
+ * Get all font families including built-in variant names
+ * Built-in fonts like Helvetica have variants: Helvetica-Bold, Helvetica-Oblique, Helvetica-BoldOblique
+ * These are valid font family names in react-pdf
+ */
+export function getAllFontFamiliesWithVariants(): string[] {
+    const fonts: string[] = [
+        ...FONT_REGISTRY.map(f => f.family),
+    ]
+
+    // Add built-in fonts and their variant names
+    for (const font of BUILTIN_FONTS) {
+        fonts.push(font.family)
+        if (font.variants.bold) {
+            fonts.push(`${font.family}-Bold`)
+        }
+        if (font.variants.italic) {
+            // Helvetica uses "Oblique", Times uses "Italic"
+            if (font.family === 'Helvetica' || font.family === 'Courier') {
+                fonts.push(`${font.family}-Oblique`)
+            } else if (font.family === 'Times-Roman') {
+                fonts.push('Times-Italic')
+            }
+        }
+        if (font.variants.boldItalic) {
+            if (font.family === 'Helvetica' || font.family === 'Courier') {
+                fonts.push(`${font.family}-BoldOblique`)
+            } else if (font.family === 'Times-Roman') {
+                fonts.push('Times-BoldItalic')
+            }
+        }
+    }
+
+    return fonts
 }
 
 /**

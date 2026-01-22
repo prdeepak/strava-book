@@ -115,7 +115,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   tocPageNumber: {
     fontSize: Math.max(12, 14 * format.scaleFactor),
-    fontFamily: 'Courier-Bold',
+    fontFamily: 'Helvetica-Bold',
     color: theme.primaryColor,
     marginLeft: 'auto',
     paddingLeft: 12 * format.scaleFactor,
