@@ -39,43 +39,35 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: format.dimensions.width,
+    height: format.dimensions.height,
     objectFit: 'cover',
     opacity: 0.1,
   },
 
   // Header section
   header: {
-    marginBottom: 16 * format.scaleFactor,
+    marginBottom: 20 * format.scaleFactor,
   },
-  yearTitle: {
-    fontSize: Math.max(60, 84 * format.scaleFactor),
+  // Page title - matches TOC "Contents" style for consistency
+  pageTitle: {
+    fontSize: Math.max(32, 42 * format.scaleFactor),
     fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    textAlign: 'center',
-    marginBottom: 2 * format.scaleFactor,
-    letterSpacing: 4,
+    color: theme.primaryColor,
     fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: Math.max(9, 11 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    textAlign: 'center',
-    marginBottom: 2 * format.scaleFactor,
-    opacity: 0.6,
+    marginBottom: 12 * format.scaleFactor,
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 4,
   },
+  // Date range subtitle
   periodRangeText: {
-    fontSize: Math.max(11, 14 * format.scaleFactor),
+    fontSize: Math.max(10, 12 * format.scaleFactor),
     fontFamily: theme.fontPairing.body,
     color: theme.primaryColor,
-    textAlign: 'center',
     marginBottom: 8 * format.scaleFactor,
-    opacity: 0.5,
-    letterSpacing: 1,
+    opacity: 0.55,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 
   // Hero stats - Big Three
@@ -543,21 +535,6 @@ export const YearStats = ({
     }
   }
 
-  // Determine what to display as main period text
-  let mainPeriodDisplay: string
-  let showPeriodRangeBelow: boolean
-
-  if (propPeriodName) {
-    mainPeriodDisplay = propPeriodName
-    showPeriodRangeBelow = periodRangeDisplay !== null && periodRangeDisplay !== propPeriodName
-  } else if (periodRangeDisplay) {
-    mainPeriodDisplay = periodRangeDisplay
-    showPeriodRangeBelow = false
-  } else {
-    mainPeriodDisplay = String(yearSummary.year)
-    showPeriodRangeBelow = false
-  }
-
   const distance = formatDistance(yearSummary.totalDistance)
   const time = formatTime(yearSummary.totalTime)
   const elevation = formatElevation(yearSummary.totalElevation)
@@ -590,13 +567,12 @@ export const YearStats = ({
           <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
         )}
 
-        {/* Period Title */}
+        {/* Page Title */}
         <View style={styles.header}>
-          <Text style={styles.yearTitle}>{mainPeriodDisplay}</Text>
-          {showPeriodRangeBelow && periodRangeDisplay && (
+          <Text style={styles.pageTitle}>In Review</Text>
+          {periodRangeDisplay && (
             <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
           )}
-          <Text style={styles.subtitle}>In Review</Text>
         </View>
 
         {/* Hero Stats - Big Three in a row */}
@@ -661,20 +637,6 @@ export const YearStats = ({
             )}
           </View>
         </View>
-
-        {/* Monthly Distance Chart */}
-        {yearSummary.monthlyStats && yearSummary.monthlyStats.length > 0 && (
-          <View style={styles.graphSection}>
-            <Text style={styles.graphTitle}>Monthly Distance</Text>
-            <MonthlyBarChart
-              monthlyStats={yearSummary.monthlyStats}
-              theme={theme}
-              format={format}
-              startMonth={propStartDate ? new Date(propStartDate).getMonth() : undefined}
-              endMonth={propEndDate ? new Date(propEndDate).getMonth() : undefined}
-            />
-          </View>
-        )}
 
         {/* Best Efforts Section */}
         {bestEfforts.length > 0 && (

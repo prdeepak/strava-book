@@ -11,7 +11,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { BookDocument, computeYearSummary } from '@/components/templates/BookDocument'
-import { FORMATS, BookTheme } from '@/lib/book-types'
+import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { BookEntry } from '@/lib/curator'
 import { scorePdfPages } from '@/lib/visual-scoring'
 import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-scores-report'
@@ -37,14 +37,6 @@ import '@/lib/pdf-fonts'
 const BOOK_NAME = 'Integration Test Book'
 const ATHLETE_NAME = 'Test Athlete'
 
-// Use the marathon theme for visual appeal
-const TEST_THEME: BookTheme = {
-  primaryColor: '#0D2240',
-  accentColor: '#FFD200',
-  backgroundColor: '#ffffff',
-  fontPairing: { heading: 'BebasNeue', body: 'BarlowCondensed' },
-  backgroundStyle: 'solid',
-}
 
 // ============================================================================
 // Helpers
@@ -113,6 +105,7 @@ function generateTestBookEntries(
     bookName: string
     startDate: string
     endDate: string
+    coverPhotoUrl?: string | null
     backgroundPhotoUrl?: string | null
   }
 ): BookEntry[] {
@@ -125,6 +118,7 @@ function generateTestBookEntries(
   entries.push({
     type: 'COVER',
     title: config.bookName,
+    heroImage: config.coverPhotoUrl || undefined,
     pageNumber: currentPage++,
   })
 
@@ -271,6 +265,7 @@ async function runIntegrationTest(): Promise<void> {
     bookName: BOOK_NAME,
     startDate: startDate.toISOString().slice(0, 10),
     endDate: endDate.toISOString().slice(0, 10),
+    coverPhotoUrl: photos.coverPhotoUrl,
     backgroundPhotoUrl: photos.backgroundPhotoUrl,
   })
   console.log(`  Generated ${entries.length} book entries`)
@@ -286,7 +281,7 @@ async function runIntegrationTest(): Promise<void> {
       entries,
       activities: allActivities,
       format: FORMATS['10x10'],
-      theme: TEST_THEME,
+      theme: DEFAULT_THEME,
       athleteName: ATHLETE_NAME,
       periodName: BOOK_NAME,
       year,
@@ -319,9 +314,9 @@ async function runIntegrationTest(): Promise<void> {
     Buffer.from(pdfBuffer),
     entries,
     {
-      primaryColor: TEST_THEME.primaryColor,
-      accentColor: TEST_THEME.accentColor,
-      backgroundColor: TEST_THEME.backgroundColor,
+      primaryColor: DEFAULT_THEME.primaryColor,
+      accentColor: DEFAULT_THEME.accentColor,
+      backgroundColor: DEFAULT_THEME.backgroundColor,
     },
     {
       verbose: true,

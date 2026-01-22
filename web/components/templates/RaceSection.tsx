@@ -120,10 +120,14 @@ const renderCompactPages = (props: Required<Omit<RaceSectionProps, 'variant'>>) 
 /**
  * Render pages for the 'minimal' variant (2 pages)
  * - Stats/map page (no hero photo)
- * - Description page (if description exists)
+ * - Description page OR comments page (always 2 pages)
  */
 const renderMinimalPages = (props: Required<Omit<RaceSectionProps, 'variant'>>) => {
     const { activity, format, theme, mapboxToken } = props
+    const hasDescription = !!activity.description
+    const hasComments = (activity.comprehensiveData?.comments?.length || activity.comments?.length || 0) > 0 ||
+        (activity.kudos_count || 0) > 0
+
     return (
         <>
             <RaceSectionStatsPage
@@ -132,11 +136,26 @@ const renderMinimalPages = (props: Required<Omit<RaceSectionProps, 'variant'>>) 
                 theme={theme}
                 mapboxToken={mapboxToken}
             />
-            {activity.description && (
+            {/* Second page: prefer description, fallback to comments for kudos display */}
+            {hasDescription ? (
                 <RaceSectionDescriptionPage
                     activity={activity}
                     format={format}
                     theme={theme}
+                />
+            ) : hasComments ? (
+                <RaceSectionCommentsPage
+                    activity={activity}
+                    format={format}
+                    theme={theme}
+                />
+            ) : (
+                /* Fallback: render a minimal stats page duplicate to ensure 2 pages */
+                <RaceSectionStatsPage
+                    activity={activity}
+                    format={format}
+                    theme={theme}
+                    mapboxToken={mapboxToken}
                 />
             )}
         </>

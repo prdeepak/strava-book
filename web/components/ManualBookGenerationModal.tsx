@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, FORMATS, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
+import { FOREWORD_MAX_CHARS } from '@/components/templates/Foreword'
 import { generatePeriodName, getDefaultDateRange } from '@/lib/period-name-generator'
 import { getRaces, getMonthlyHighlights } from '@/lib/activity-scoring'
 import PhotoSelector, { extractPhotosFromActivities, PhotoOption } from './PhotoSelector'
@@ -525,13 +526,22 @@ export default function ManualBookGenerationModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Foreword (Optional)</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs text-stone-500">Foreword (Optional)</label>
+                    <span className={`text-xs ${config.forewordText.length > FOREWORD_MAX_CHARS * 0.9 ? 'text-orange-500' : 'text-stone-400'}`}>
+                      {config.forewordText.length}/{FOREWORD_MAX_CHARS}
+                    </span>
+                  </div>
                   <textarea
                     value={config.forewordText}
-                    onChange={(e) => setConfig(prev => ({ ...prev, forewordText: e.target.value }))}
+                    onChange={(e) => setConfig(prev => ({ ...prev, forewordText: e.target.value.slice(0, FOREWORD_MAX_CHARS) }))}
+                    maxLength={FOREWORD_MAX_CHARS}
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
                     placeholder="Write a personal message for your book..."
                   />
+                  <p className="text-xs text-stone-400 mt-1">
+                    Tip: Shorter forewords (under 400 chars) display in larger, more readable font.
+                  </p>
                 </div>
               </div>
 

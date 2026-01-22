@@ -34,8 +34,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    width: format.dimensions.width,
+    height: format.dimensions.height,
     objectFit: 'cover',
     opacity: 0.4,
   },
@@ -54,18 +54,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     paddingTop: 50 * format.scaleFactor,
   },
   yearText: {
-    fontSize: 48 * format.scaleFactor,
+    fontSize: 56 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
-    marginBottom: 10 * format.scaleFactor,
+    marginBottom: 12 * format.scaleFactor,
     textAlign: 'center',
-    letterSpacing: 4,
+    letterSpacing: 5,
     fontWeight: 'bold',
   },
   periodRangeText: {
-    fontSize: 14 * format.scaleFactor,
+    fontSize: 16 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
-    color: '#cccccc',
+    color: '#e0e0e0',
     marginBottom: 24 * format.scaleFactor,
     textAlign: 'center',
     letterSpacing: 1,
@@ -82,23 +82,23 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     gap: 10 * format.scaleFactor,
   },
   statValue: {
-    fontSize: 28 * format.scaleFactor,
+    fontSize: 32 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: '#ffffff',
     fontWeight: 'bold',
   },
   statLabel: {
-    fontSize: 11 * format.scaleFactor,
+    fontSize: 14 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#e0e0e0',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   divider: {
-    width: 120 * format.scaleFactor,
-    height: 2,
+    width: 150 * format.scaleFactor,
+    height: 3,
     backgroundColor: theme.accentColor,
-    opacity: 0.5,
+    opacity: 0.7,
     marginVertical: 24 * format.scaleFactor,
   },
   quoteSection: {
@@ -108,32 +108,32 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     marginBottom: 32 * format.scaleFactor,
   },
   quoteText: {
-    fontSize: 12 * format.scaleFactor,
+    fontSize: 16 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     color: '#ffffff',
     textAlign: 'center',
-    lineHeight: 1.6,
+    lineHeight: 1.7,
     fontStyle: 'italic',
-    opacity: 0.85,
+    opacity: 0.9,
   },
   bottomSection: {
     alignItems: 'center',
     paddingBottom: 30 * format.scaleFactor,
   },
   brandingText: {
-    fontSize: 10 * format.scaleFactor,
+    fontSize: 12 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
-    color: '#cccccc',
+    color: '#e0e0e0',
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   brandingName: {
-    fontSize: 14 * format.scaleFactor,
+    fontSize: 18 * format.scaleFactor,
     fontFamily: theme.fontPairing.heading,
     color: theme.accentColor,
-    marginTop: 6 * format.scaleFactor,
+    marginTop: 8 * format.scaleFactor,
     textAlign: 'center',
-    letterSpacing: 2,
+    letterSpacing: 3,
   },
 })
 
@@ -186,7 +186,8 @@ const generateMockYearSummary = (activity?: Partial<StravaActivity>): YearSummar
   }
 }
 
-export const BackCover = ({
+// Page-only version for use in BookDocument (no Document wrapper)
+export const BackCoverPage = ({
   activity,
   yearSummary: directYearSummary,
   periodName: propPeriodName,
@@ -234,67 +235,72 @@ export const BackCover = ({
     : 0
 
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-        {/* Background photo (if provided) */}
-        {backgroundPhotoUrl && (
-          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-          <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
-        )}
-        <View style={styles.contentContainer}>
-          {/* Top section with period and stats */}
-          <View style={styles.topSection}>
-            <Text style={styles.yearText}>{mainPeriodDisplay}</Text>
-            {showPeriodRangeBelow && periodRangeDisplay && (
-              <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Background photo (if provided) */}
+      {backgroundPhotoUrl && (
+        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
+        <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
+      )}
+      <View style={styles.contentContainer}>
+        {/* Top section with period and stats */}
+        <View style={styles.topSection}>
+          <Text style={styles.yearText}>{mainPeriodDisplay}</Text>
+          {showPeriodRangeBelow && periodRangeDisplay && (
+            <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
+          )}
+
+          <View style={styles.divider} />
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
+              <Text style={styles.statLabel}>traveled</Text>
+            </View>
+
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
+              <Text style={styles.statLabel}>in motion</Text>
+            </View>
+
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
+              <Text style={styles.statLabel}>climbed</Text>
+            </View>
+
+            <View style={styles.statRow}>
+              <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
+              <Text style={styles.statLabel}>activities</Text>
+            </View>
+
+            {activeDays > 0 && (
+              <View style={styles.statRow}>
+                <Text style={styles.statValue}>{activeDays}</Text>
+                <Text style={styles.statLabel}>active days</Text>
+              </View>
             )}
-
-            <View style={styles.divider} />
-
-            <View style={styles.statsGrid}>
-              <View style={styles.statRow}>
-                <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
-                <Text style={styles.statLabel}>traveled</Text>
-              </View>
-
-              <View style={styles.statRow}>
-                <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
-                <Text style={styles.statLabel}>in motion</Text>
-              </View>
-
-              <View style={styles.statRow}>
-                <Text style={styles.statValue}>{formatElevation(yearSummary.totalElevation)}</Text>
-                <Text style={styles.statLabel}>climbed</Text>
-              </View>
-
-              <View style={styles.statRow}>
-                <Text style={styles.statValue}>{yearSummary.activityCount}</Text>
-                <Text style={styles.statLabel}>activities</Text>
-              </View>
-
-              {activeDays > 0 && (
-                <View style={styles.statRow}>
-                  <Text style={styles.statValue}>{activeDays}</Text>
-                  <Text style={styles.statLabel}>active days</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Optional inspirational quote */}
-            <View style={styles.quoteSection}>
-              <Text style={styles.quoteText}>
-                &ldquo;Every mile is a memory, every step a story worth telling.&rdquo;
-              </Text>
-            </View>
           </View>
 
-          {/* Bottom section with branding */}
-          <View style={styles.bottomSection}>
-            <Text style={styles.brandingText}>CREATED WITH</Text>
-            <Text style={styles.brandingName}>STRAVA BOOK</Text>
+          {/* Optional inspirational quote */}
+          <View style={styles.quoteSection}>
+            <Text style={styles.quoteText}>
+              &ldquo;Every mile is a memory, every step a story worth telling.&rdquo;
+            </Text>
           </View>
         </View>
-      </Page>
-    </Document>
+
+        {/* Bottom section with branding */}
+        <View style={styles.bottomSection}>
+          <Text style={styles.brandingText}>CREATED WITH</Text>
+          <Text style={styles.brandingName}>STRAVA BOOK</Text>
+        </View>
+      </View>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const BackCover = (props: BackCoverProps) => (
+  <Document>
+    <BackCoverPage {...props} />
+  </Document>
+)
