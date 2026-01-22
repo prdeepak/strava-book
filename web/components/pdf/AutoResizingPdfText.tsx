@@ -45,7 +45,7 @@ const getTextWidth = (text: string, fontSize: number, fontFamily: string): numbe
 
 /**
  * Simulates word wrapping to check if text fits within dimensions.
- * Returns { fits: boolean }
+ * Returns { fits: boolean, textWidth: number, textHeight: number }
  */
 const calculateLayout = (
   text: string,
@@ -53,30 +53,42 @@ const calculateLayout = (
   font: string,
   containerWidth: number,
   containerHeight: number
-): { fits: boolean } => {
+): { fits: boolean; textWidth: number; textHeight: number } => {
   const words = text.split(' ')
   const spaceWidth = getTextWidth(' ', fontSize, font)
   const lineHeight = fontSize * 1.2 // Standard PDF line-height factor
 
   let currentLineW = 0
+  let maxLineWidth = 0
   let lines = 1
 
   for (const word of words) {
     const wordW = getTextWidth(word, fontSize, font)
 
     // Fail immediately if a single word is wider than the container
-    if (wordW > containerWidth) return { fits: false }
+    if (wordW > containerWidth) {
+      return { fits: false, textWidth: wordW, textHeight: lineHeight }
+    }
 
     if (currentLineW + wordW <= containerWidth) {
       currentLineW += wordW + spaceWidth
     } else {
+      // Track max width before wrapping
+      maxLineWidth = Math.max(maxLineWidth, currentLineW - spaceWidth)
       lines++
       currentLineW = wordW + spaceWidth
     }
   }
 
+  // Account for the last line
+  maxLineWidth = Math.max(maxLineWidth, currentLineW - spaceWidth)
   const totalHeight = lines * lineHeight
-  return { fits: totalHeight <= containerHeight }
+
+  return {
+    fits: totalHeight <= containerHeight,
+    textWidth: Math.min(maxLineWidth, containerWidth),
+    textHeight: totalHeight,
+  }
 }
 
 /**
@@ -100,11 +112,17 @@ interface AutoResizingPdfTextProps {
   textColor?: string
   backgroundColor?: string
   backgroundOpacity?: number
+  /** When true (default), background hugs the text. When false, fills entire container. */
+  resize_to_text?: boolean
+  /** Padding around text when resize_to_text is true. Default: 8 */
+  text_padding?: number
 }
 
 interface CalculatedState {
   fontSize: number
   text: string
+  textWidth: number
+  textHeight: number
 }
 
 export const AutoResizingPdfText = ({
@@ -119,15 +137,23 @@ export const AutoResizingPdfText = ({
   textColor = 'black',
   backgroundColor = 'transparent',
   backgroundOpacity = 1,
+  resize_to_text = true,
+  text_padding = 8,
 }: AutoResizingPdfTextProps) => {
   const calculatedState = useMemo<CalculatedState>(() => {
     // Helper wrapper for the specific inputs
-    const checkFit = (size: number, str: string) =>
-      calculateLayout(str, size, font, width, height).fits
+    const getLayout = (size: number, str: string) =>
+      calculateLayout(str, size, font, width, height)
 
     // 1. Quick Check: Does Max Fit?
-    if (checkFit(max_fontsize, text)) {
-      return { fontSize: max_fontsize, text }
+    const maxLayout = getLayout(max_fontsize, text)
+    if (maxLayout.fits) {
+      return {
+        fontSize: max_fontsize,
+        text,
+        textWidth: maxLayout.textWidth,
+        textHeight: maxLayout.textHeight,
+      }
     }
 
     // 2. Binary Search for Optimal Font Size
@@ -137,7 +163,7 @@ export const AutoResizingPdfText = ({
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2)
-      if (checkFit(mid, text)) {
+      if (getLayout(mid, text).fits) {
         optimalSize = mid // Fits, try larger
         low = mid + 1
       } else {
@@ -147,7 +173,8 @@ export const AutoResizingPdfText = ({
 
     // 3. Truncation Logic (If text overflows even at min_fontsize)
     // If optimalSize (which might be min_fontsize) doesn't actually fit the full text:
-    if (!checkFit(optimalSize, text)) {
+    const optimalLayout = getLayout(optimalSize, text)
+    if (!optimalLayout.fits) {
       const words = text.split(' ')
       let lowIdx = 0
       let highIdx = words.length - 1
@@ -157,7 +184,7 @@ export const AutoResizingPdfText = ({
         const midIdx = Math.floor((lowIdx + highIdx) / 2)
         const attemptStr = words.slice(0, midIdx + 1).join(' ') + '...'
 
-        if (checkFit(min_fontsize, attemptStr)) {
+        if (getLayout(min_fontsize, attemptStr).fits) {
           validCount = midIdx + 1
           lowIdx = midIdx + 1
         } else {
@@ -165,15 +192,58 @@ export const AutoResizingPdfText = ({
         }
       }
 
+      const truncatedText = words.slice(0, validCount).join(' ') + '...'
+      const truncatedLayout = getLayout(min_fontsize, truncatedText)
+
       return {
         fontSize: min_fontsize,
-        text: words.slice(0, validCount).join(' ') + '...',
+        text: truncatedText,
+        textWidth: truncatedLayout.textWidth,
+        textHeight: truncatedLayout.textHeight,
       }
     }
 
     // 4. Normal Fit
-    return { fontSize: optimalSize, text }
+    return {
+      fontSize: optimalSize,
+      text,
+      textWidth: optimalLayout.textWidth,
+      textHeight: optimalLayout.textHeight,
+    }
   }, [text, width, height, font, min_fontsize, max_fontsize])
+
+  // Calculate background dimensions and position when resize_to_text is enabled
+  const bgWidth = calculatedState.textWidth + 2 * text_padding
+  const bgHeight = calculatedState.textHeight + 2 * text_padding
+
+  // Calculate horizontal position based on alignment
+  const getHorizontalPosition = () => {
+    if (!resize_to_text) return { left: 0 }
+    switch (h_align) {
+      case 'left':
+        return { left: 0 }
+      case 'right':
+        return { right: 0 }
+      case 'center':
+      case 'justify':
+      default:
+        return { left: (width - bgWidth) / 2 }
+    }
+  }
+
+  // Calculate vertical position based on alignment
+  const getVerticalPosition = () => {
+    if (!resize_to_text) return { top: 0 }
+    switch (v_align) {
+      case 'top':
+        return { top: 0 }
+      case 'bottom':
+        return { bottom: 0 }
+      case 'middle':
+      default:
+        return { top: (height - bgHeight) / 2 }
+    }
+  }
 
   const styles = StyleSheet.create({
     container: {
@@ -183,10 +253,10 @@ export const AutoResizingPdfText = ({
     },
     background: {
       position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
+      ...getHorizontalPosition(),
+      ...getVerticalPosition(),
+      width: resize_to_text ? bgWidth : '100%',
+      height: resize_to_text ? bgHeight : '100%',
       backgroundColor: backgroundColor,
       opacity: backgroundOpacity,
     },
