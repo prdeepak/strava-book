@@ -1,6 +1,8 @@
-import { Page, Text, View, Document, StyleSheet, Svg, Rect, Image } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet, Svg, Rect } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
 
 // Support both direct props and test harness interface
 interface YearCalendarProps {
@@ -19,178 +21,180 @@ interface YearCalendarProps {
   backgroundPhotoUrl?: string  // Background image at 10% opacity
 }
 
-// Create styles with format scaling
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    padding: 0,  // Use contentContainer for padding to avoid react-pdf layout bug
-    backgroundColor: theme.backgroundColor,
-    position: 'relative',
-  },
-  // Content container with safe margins (avoids react-pdf bug with page padding + absolute elements)
-  contentContainer: {
-    position: 'absolute',
-    top: format.safeMargin,
-    left: format.safeMargin,
-    right: format.safeMargin,
-    bottom: format.safeMargin,
-    flexDirection: 'column',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    objectFit: 'cover',
-    opacity: 0.1,
-  },
-  header: {
-    marginBottom: 16 * format.scaleFactor,
-  },
-  year: {
-    fontSize: Math.max(42, 54 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    marginBottom: 4 * format.scaleFactor,
-    letterSpacing: -2,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.55,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  calendarSection: {
-    marginBottom: 12 * format.scaleFactor,
-  },
-  monthsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 12 * format.scaleFactor,
-    columnGap: 12 * format.scaleFactor,
-    marginBottom: 12 * format.scaleFactor,
-  },
-  monthBlock: {
-    width: '23%',
-    alignItems: 'flex-start',
-  },
-  monthLabel: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    marginBottom: 4 * format.scaleFactor,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
-  },
-  weekLabels: {
-    flexDirection: 'row',
-    marginBottom: 4 * format.scaleFactor,
-    gap: 1,
-  },
-  weekLabel: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.4,
-    width: 12,
-    textAlign: 'center',
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10 * format.scaleFactor,
-    gap: 8 * format.scaleFactor,
-  },
-  legendText: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.65,
-    letterSpacing: 0.5,
-  },
-  legendBoxes: {
-    flexDirection: 'row',
-    gap: 4,
-    marginHorizontal: 8,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12 * format.scaleFactor,
-    borderTopWidth: 2,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
-  },
-  statItem: {
-    flex: 1,
-    paddingHorizontal: 12 * format.scaleFactor,
-  },
-  statValue: {
-    fontSize: Math.max(24, 32 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    fontWeight: 'bold',
-    lineHeight: 1,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  statLabel: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  statUnit: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.75,
-  },
-  // Monthly bar chart styles
-  chartSection: {
-    marginBottom: 12 * format.scaleFactor,
-  },
-  chartTitle: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 6 * format.scaleFactor,
-    opacity: 0.7,
-  },
-  chartContainer: {
-    height: 60 * format.scaleFactor,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 4 * format.scaleFactor,
-  },
-  barWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  bar: {
-    width: '80%',
-    backgroundColor: theme.accentColor,
-    borderRadius: 2,
-  },
-  barLabel: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    marginTop: 2 * format.scaleFactor,
-  },
-})
+// Create styles with format scaling using typography utilities
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  // Resolve design tokens from theme
+  const displayTypo = resolveTypography('displaySmall', theme, format)
+  const headingTypo = resolveTypography('heading', theme, format)
+  const bodyTypo = resolveTypography('body', theme, format)
+  const captionTypo = resolveTypography('caption', theme, format)
+  const statTypo = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
+
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      padding: 0,  // Use contentContainer for padding to avoid react-pdf layout bug
+      backgroundColor: theme.backgroundColor,
+      position: 'relative',
+    },
+    // Content container with safe margins (avoids react-pdf bug with page padding + absolute elements)
+    contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
+    },
+    header: {
+      marginBottom: spacing.sm,
+    },
+    year: {
+      fontSize: displayTypo.fontSize,
+      fontFamily: displayTypo.fontFamily,
+      color: theme.primaryColor,
+      marginBottom: spacing.xs / 2,
+      letterSpacing: displayTypo.letterSpacing ?? -2,
+      fontWeight: 'bold',
+    },
+    subtitle: {
+      fontSize: captionTypo.fontSize,
+      fontFamily: captionTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: captionTypo.letterSpacing ?? 0.8,
+      textTransform: 'uppercase',
+    },
+    calendarSection: {
+      marginBottom: spacing.sm * 0.75,
+    },
+    monthsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      rowGap: spacing.sm * 0.75,
+      columnGap: spacing.sm * 0.75,
+      marginBottom: spacing.sm * 0.75,
+    },
+    monthBlock: {
+      width: '23%',
+      alignItems: 'flex-start',
+    },
+    monthLabel: {
+      fontSize: captionTypo.fontSize * 0.9,
+      fontFamily: headingTypo.fontFamily,
+      color: theme.primaryColor,
+      marginBottom: spacing.xs / 2,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      fontWeight: 'bold',
+    },
+    weekLabels: {
+      flexDirection: 'row',
+      marginBottom: spacing.xs / 2,
+      gap: 1,
+    },
+    weekLabel: {
+      fontSize: captionTypo.fontSize * 0.7,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.textOverlayOpacity + 0.1,
+      width: 12,
+      textAlign: 'center',
+    },
+    legendContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.sm * 0.6,
+      gap: spacing.xs,
+    },
+    legendText: {
+      fontSize: captionTypo.fontSize * 0.9,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity + 0.15,
+      letterSpacing: 0.5,
+    },
+    legendBoxes: {
+      flexDirection: 'row',
+      gap: 4,
+      marginHorizontal: 8,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: spacing.sm * 0.75,
+      borderTopWidth: 2,
+      borderTopColor: theme.primaryColor,
+      borderTopStyle: 'solid',
+    },
+    statItem: {
+      flex: 1,
+      paddingHorizontal: spacing.sm * 0.75,
+    },
+    statValue: {
+      fontSize: statTypo.fontSize,
+      fontFamily: headingTypo.fontFamily,
+      color: theme.accentColor,
+      fontWeight: 'bold',
+      lineHeight: 1,
+      marginBottom: spacing.xs / 2,
+    },
+    statLabel: {
+      fontSize: captionTypo.fontSize * 0.9,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity + 0.1,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    statUnit: {
+      fontSize: captionTypo.fontSize,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity + 0.25,
+    },
+    // Monthly bar chart styles
+    chartSection: {
+      marginBottom: spacing.sm * 0.75,
+    },
+    chartTitle: {
+      fontSize: captionTypo.fontSize * 0.9,
+      fontFamily: headingTypo.fontFamily,
+      color: theme.primaryColor,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      marginBottom: spacing.xs * 0.75,
+      opacity: effects.backgroundImageOpacity + 0.2,
+    },
+    chartContainer: {
+      height: spacing.xl * 0.8,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: spacing.xs / 2,
+    },
+    barWrapper: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    bar: {
+      width: '80%',
+      backgroundColor: theme.accentColor,
+      borderRadius: 2,
+    },
+    barLabel: {
+      fontSize: captionTypo.fontSize * 0.7,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      marginTop: spacing.xs / 4,
+    },
+  })
+}
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -255,20 +259,22 @@ const getColorIntensity = (value: number, maxValue: number): number => {
 }
 
 // Helper to get color based on intensity with better contrast
-const getColor = (intensity: number, accentColor: string, backgroundColor: string): string => {
-  const isLightBg = backgroundColor === '#ffffff' || backgroundColor === '#fff'
-
+// Uses theme colors instead of hardcoded values
+const getColor = (intensity: number, accentColor: string, primaryColor: string, backgroundColor: string): string => {
+  // For zero intensity, use a subtle shade derived from primary color
+  // This creates a light gray on white backgrounds or dark gray on dark backgrounds
   if (intensity === 0) {
-    return isLightBg ? '#f0f0f0' : '#2a2a2a'
+    // Use primaryColor with very low opacity for empty cells
+    return `${primaryColor}15`
   }
 
   // Create proper opacity-based shades for better visual hierarchy
   const shades = [
-    isLightBg ? '#f0f0f0' : '#2a2a2a',  // 0 - no activity
-    `${accentColor}40`,  // 1 - lightest (25% opacity)
-    `${accentColor}70`,  // 2 - light (44% opacity)
-    `${accentColor}A0`,  // 3 - medium (63% opacity)
-    `${accentColor}`,    // 4 - full intensity
+    `${primaryColor}15`,  // 0 - no activity (subtle background)
+    `${accentColor}40`,   // 1 - lightest (25% opacity)
+    `${accentColor}70`,   // 2 - light (44% opacity)
+    `${accentColor}A0`,   // 3 - medium (63% opacity)
+    `${accentColor}`,     // 4 - full intensity
   ]
 
   return shades[intensity]
@@ -414,11 +420,16 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
 
   return (
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-        {/* Background photo (if provided) */}
-        {props.backgroundPhotoUrl && (
-          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-          <Image src={props.backgroundPhotoUrl} style={styles.backgroundImage} />
-        )}
+        {/* Background: solid color or faded photo */}
+        <FullBleedBackground
+          image={props.backgroundPhotoUrl}
+          fallbackColor={theme.backgroundColor}
+          role="background"
+          imageOpacity={resolveEffects(theme).backgroundImageOpacity * 0.2}
+          overlayOpacity={0}
+          width={format.dimensions.width}
+          height={format.dimensions.height}
+        />
 
         {/* Content container with safe margins */}
         <View style={styles.contentContainer}>
@@ -451,7 +462,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
                       const dateStr = `${monthYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                       const value = dateMap.get(dateStr) || 0
                       const intensity = getColorIntensity(value, maxValue)
-                      const color = getColor(intensity, theme.accentColor, theme.backgroundColor)
+                      const color = getColor(intensity, theme.accentColor, theme.primaryColor, theme.backgroundColor)
 
                       // Calculate position
                       const dayOfWeek = (firstDay + dayIndex) % 7
@@ -490,7 +501,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
                     y={0}
                     width={16}
                     height={16}
-                    fill={getColor(intensity, theme.accentColor, theme.backgroundColor)}
+                    fill={getColor(intensity, theme.accentColor, theme.primaryColor, theme.backgroundColor)}
                     rx={2}
                     ry={2}
                   />
