@@ -217,15 +217,17 @@ test-e2e-local:
 	cd web && npm run e2e
 
 # Quick book integration test with visual scoring (no UI tests)
-# Usage: make test-book [no_score=1]
+# Usage: make test-book [no_score=1] [pdfByPage=1] [filter=COVER,YEAR_STATS]
+# Examples:
+#   make test-book no_score=1                           # Skip scoring
+#   make test-book pdfByPage=1 no_score=1               # Individual PDFs, no scoring
+#   make test-book filter=RACE_PAGE pdfByPage=1         # Only race pages as individual PDFs
 test-book:
-ifdef no_score
-	@echo "📚 Running book integration test (generates PDF, skipping visual scoring)..."
-	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts --no-score
-else
-	@echo "📚 Running book integration test (generates PDF with photos, runs visual scoring)..."
-	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts
-endif
+	@echo "📚 Running book integration test..."
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts \
+		$(if $(no_score),--no-score) \
+		$(if $(pdfByPage),--pdfByPage) \
+		$(if $(filter),--filter=$(filter))
 
 test-e2e-ci:
 	@echo "🔤 Running font validation..."

@@ -130,13 +130,19 @@ export const TableOfContentsPage = ({
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
-      paddingTop: format.safeMargin,
-      paddingBottom: format.safeMargin,
-      flexDirection: 'column',
+      padding: 0,  // Use contentContainer for padding to avoid react-pdf layout bug
       position: 'relative',
     },
+    // Content container with safe margins (avoids react-pdf bug with page padding + absolute elements)
     contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
+    },
+    entriesContainer: {
       flexGrow: 1,
       flexShrink: 0,
     },
@@ -205,8 +211,8 @@ export const TableOfContentsPage = ({
     },
     continuedIndicator: {
       position: 'absolute',
-      bottom: format.safeMargin,
-      right: format.safeMargin,
+      bottom: 0,  // Relative to contentContainer which already has margins
+      right: 0,
       fontSize: caption.fontSize,
       fontFamily: caption.fontFamily,
       color: theme.primaryColor,
@@ -224,57 +230,60 @@ export const TableOfContentsPage = ({
         height={format.dimensions.height}
       />
 
-      {/* Header */}
-      <PageHeader
-        title={isFirstPage ? 'Contents' : 'Contents (cont.)'}
-        size="large"
-        alignment="left"
-        showBorder={true}
-        format={format}
-        theme={theme}
-      />
-
-      {/* TOC Entries */}
+      {/* Content container with safe margins */}
       <View style={styles.contentContainer}>
-        {sortedCategories.map((category, categoryIndex) => (
-          <View key={category}>
-            {/* Category Header */}
-            <Text style={
-              categoryIndex === 0
-                ? [styles.categoryHeader, styles.categoryHeaderFirst]
-                : styles.categoryHeader
-            }>{category}</Text>
+        {/* Header */}
+        <PageHeader
+          title={isFirstPage ? 'Contents' : 'Contents (cont.)'}
+          size="large"
+          alignment="left"
+          showBorder={true}
+          format={format}
+          theme={theme}
+        />
 
-            {/* Entries in Category */}
-            {groupedEntries[category]?.map((entry, idx) => {
-              const isHighlighted = entry.isARace
-              const entryStyle = isHighlighted ? styles.tocEntryHighlight : styles.tocEntry
-              const titleStyle = isHighlighted ? styles.tocTitleHighlight : styles.tocTitle
+        {/* TOC Entries */}
+        <View style={styles.entriesContainer}>
+          {sortedCategories.map((category, categoryIndex) => (
+            <View key={category}>
+              {/* Category Header */}
+              <Text style={
+                categoryIndex === 0
+                  ? [styles.categoryHeader, styles.categoryHeaderFirst]
+                  : styles.categoryHeader
+              }>{category}</Text>
 
-              // Build subtitle if not provided but we have activityCount
-              let subtitle = entry.subtitle
-              if (!subtitle && entry.activityCount) {
-                subtitle = `${entry.activityCount} activities`
-              }
+              {/* Entries in Category */}
+              {groupedEntries[category]?.map((entry, idx) => {
+                const isHighlighted = entry.isARace
+                const entryStyle = isHighlighted ? styles.tocEntryHighlight : styles.tocEntry
+                const titleStyle = isHighlighted ? styles.tocTitleHighlight : styles.tocTitle
 
-              return (
-                <View key={`${category}-${idx}`} style={entryStyle}>
-                  <View style={styles.tocTitleContainer}>
-                    <Text style={titleStyle}>{entry.title}</Text>
-                    {subtitle && <Text style={styles.tocSubtitle}>{subtitle}</Text>}
+                // Build subtitle if not provided but we have activityCount
+                let subtitle = entry.subtitle
+                if (!subtitle && entry.activityCount) {
+                  subtitle = `${entry.activityCount} activities`
+                }
+
+                return (
+                  <View key={`${category}-${idx}`} style={entryStyle}>
+                    <View style={styles.tocTitleContainer}>
+                      <Text style={titleStyle}>{entry.title}</Text>
+                      {subtitle && <Text style={styles.tocSubtitle}>{subtitle}</Text>}
+                    </View>
+                    <Text style={styles.tocPageNumber}>{entry.pageNumber}</Text>
                   </View>
-                  <Text style={styles.tocPageNumber}>{entry.pageNumber}</Text>
-                </View>
-              )
-            })}
-          </View>
-        ))}
-      </View>
+                )
+              })}
+            </View>
+          ))}
+        </View>
 
-      {/* "Continued" indicator when there are more pages */}
-      {pageIndex < totalPages - 1 && (
-        <Text style={styles.continuedIndicator}>continued →</Text>
-      )}
+        {/* "Continued" indicator when there are more pages */}
+        {pageIndex < totalPages - 1 && (
+          <Text style={styles.continuedIndicator}>continued →</Text>
+        )}
+      </View>
     </Page>
   )
 }

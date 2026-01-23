@@ -24,9 +24,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   page: {
     width: format.dimensions.width,
     height: format.dimensions.height,
-    padding: format.safeMargin,
+    padding: 0,  // Use contentContainer for padding to avoid react-pdf layout bug
     backgroundColor: theme.backgroundColor,
     position: 'relative',
+  },
+  // Content container with safe margins (avoids react-pdf bug with page padding + absolute elements)
+  contentContainer: {
+    position: 'absolute',
+    top: format.safeMargin,
+    left: format.safeMargin,
+    right: format.safeMargin,
+    bottom: format.safeMargin,
+    flexDirection: 'column',
   },
   backgroundImage: {
     position: 'absolute',
@@ -411,6 +420,8 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
           <Image src={props.backgroundPhotoUrl} style={styles.backgroundImage} />
         )}
 
+        {/* Content container with safe margins */}
+        <View style={styles.contentContainer}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.year}>{dateRangeDisplay}</Text>
@@ -547,6 +558,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
             <Text style={styles.statValue}>{formatWithCommas(activities.length)}</Text>
             <Text style={styles.statLabel}>Activities</Text>
           </View>
+        </View>
         </View>
     </Page>
   )

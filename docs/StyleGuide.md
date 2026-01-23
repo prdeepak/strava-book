@@ -224,34 +224,103 @@ import { PageHeader } from '@/components/pdf/PageHeader'
 />
 ```
 
+## Page Layout Pattern
+
+### The Problem
+
+react-pdf has a layout bug when combining:
+- Page with `padding` (e.g., `padding: format.safeMargin`)
+- Absolutely positioned elements (e.g., `FullBleedBackground`)
+- Complex content (e.g., `PageHeader` with `AutoResizingPdfText`)
+
+This combination causes content to overflow to additional pages, creating unwanted blank pages or split content.
+
+### The Solution: Content Container Pattern
+
+**Always use `padding: 0` on the Page and wrap content in an absolutely positioned container:**
+
+```tsx
+const styles = StyleSheet.create({
+  page: {
+    width: format.dimensions.width,
+    height: format.dimensions.height,
+    backgroundColor: theme.backgroundColor,
+    padding: 0,  // IMPORTANT: No padding on Page
+    position: 'relative',
+  },
+  // Content container with safe margins
+  contentContainer: {
+    position: 'absolute',
+    top: format.safeMargin,
+    left: format.safeMargin,
+    right: format.safeMargin,
+    bottom: format.safeMargin,
+    flexDirection: 'column',
+  },
+})
+
+// In JSX:
+<Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+  {/* Background - absolutely positioned, covers full page */}
+  <FullBleedBackground
+    fallbackColor={theme.backgroundColor}
+    width={format.dimensions.width}
+    height={format.dimensions.height}
+  />
+
+  {/* All content inside container */}
+  <View style={styles.contentContainer}>
+    <PageHeader ... />
+    {/* Rest of content */}
+  </View>
+</Page>
+```
+
+### Key Rules
+
+1. **Page padding must be 0** - Never use `padding: format.safeMargin` directly on Page
+2. **Background first** - `FullBleedBackground` or background images go directly under Page
+3. **Content in container** - All other content wrapped in `contentContainer`
+4. **Container uses absolute positioning** - With `top/left/right/bottom` set to `format.safeMargin`
+
+### Exceptions
+
+Templates without `FullBleedBackground` or complex headers (e.g., simple single-element pages) may work with page padding, but for consistency, prefer the content container pattern for all templates.
+
 ## Template Checklist
 
 When creating or modifying a template:
 
-1. **Import typography utilities:**
+1. **Use the content container pattern:**
+   - Set `padding: 0` on Page style
+   - Add `contentContainer` with absolute positioning and safe margins
+   - Place `FullBleedBackground` directly under Page
+   - Wrap all other content in `contentContainer`
+
+2. **Import typography utilities:**
    ```tsx
    import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
    ```
 
-2. **Resolve all values from theme:**
+3. **Resolve all values from theme:**
    ```tsx
    const displayLarge = resolveTypography('displayLarge', theme, format)
    const spacing = resolveSpacing(theme, format)
    const effects = resolveEffects(theme)
    ```
 
-3. **Use primitives for backgrounds and text:**
+4. **Use primitives for backgrounds and text:**
    - `FullBleedBackground` for full-page images
    - `AutoResizingPdfText` for dynamic text sizing
    - `PageHeader` for section headers
 
-4. **Never hardcode:**
+5. **Never hardcode:**
    - Colors (use `theme.*`)
    - Font sizes (use `resolveTypography`)
    - Spacing (use `resolveSpacing`)
    - Opacity values (use `resolveEffects`)
 
-5. **Conditional text backgrounds:**
+6. **Conditional text backgrounds:**
    ```tsx
    const textBgOpacity = hasImageBackground ? effects.textOverlayOpacity : 0
    ```

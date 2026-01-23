@@ -694,7 +694,7 @@ export const BookDocument = ({
                         <Text>Unknown Page Type: {entry.type}</Text>
                     </Page>
                 )
-            })}
+            }).filter(Boolean)}
         </Document>
     )
 }
@@ -702,7 +702,7 @@ export const BookDocument = ({
 /**
  * Get category for a page type
  */
-function getCategoryForType(type: BookEntry['type']): string {
+export function getCategoryForType(type: BookEntry['type']): string {
     switch (type) {
         case 'COVER':
         case 'FOREWORD':

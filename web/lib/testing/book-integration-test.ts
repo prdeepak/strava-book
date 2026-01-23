@@ -4,18 +4,25 @@
  * Generates a full test book using fixtures with photos, runs visual scoring,
  * and saves all outputs to /outputs for inspection.
  *
- * Usage: npx tsx lib/testing/book-integration-test.ts
+ * Usage:
+ *   npx tsx lib/testing/book-integration-test.ts                    # Full book with scoring
+ *   npx tsx lib/testing/book-integration-test.ts --no-score         # Skip scoring
+ *   npx tsx lib/testing/book-integration-test.ts --pdfByPage        # Generate individual PDFs per template
+ *   npx tsx lib/testing/book-integration-test.ts --filter=COVER,YEAR_STATS  # Only specific templates
+ *   npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE --no-score
  */
 
 import { renderToBuffer } from '@react-pdf/renderer'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { BookDocument, computeYearSummary } from '@/components/templates/BookDocument'
+import { BookDocument, computeYearSummary, getCategoryForType } from '@/components/templates/BookDocument'
 import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { BookEntry } from '@/lib/curator'
 import { scorePdfPages } from '@/lib/visual-scoring'
 import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-scores-report'
 import { StravaActivity } from '@/lib/strava'
+import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
+import { TOCEntry } from '@/components/templates/TableOfContents'
 // Import directly to avoid circular dependency issues
 import allFixturesJson from './fixtures/all-fixtures.json'
 
@@ -226,10 +233,19 @@ function generateTestBookEntries(
 // Main Test Function
 // ============================================================================
 
-async function runIntegrationTest(skipScoring = false): Promise<void> {
+interface TestOptions {
+  skipScoring: boolean
+  pdfByPage: boolean
+  filterTypes?: BookEntry['type'][]
+}
+
+async function runIntegrationTest(options: TestOptions): Promise<void> {
+  const { skipScoring, pdfByPage, filterTypes } = options
+
   console.log('='.repeat(60))
   console.log('Book Integration Test')
   console.log('='.repeat(60))
+  console.log(`Options: skipScoring=${skipScoring}, pdfByPage=${pdfByPage}, filter=${filterTypes?.join(',') || 'all'}`)
 
   const startTime = Date.now()
 
@@ -261,7 +277,7 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
 
   // 4. Generate book entries
   console.log('\n[4/6] Generating book entries...')
-  const entries = generateTestBookEntries(allActivities, races, {
+  let entries = generateTestBookEntries(allActivities, races, {
     bookName: BOOK_NAME,
     startDate: startDate.toISOString().slice(0, 10),
     endDate: endDate.toISOString().slice(0, 10),
@@ -270,11 +286,82 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
   })
   console.log(`  Generated ${entries.length} book entries`)
 
-  // 5. Render PDF
-  console.log('\n[5/6] Rendering PDF...')
-  const renderStart = Date.now()
+  // Filter entries if filterTypes is specified
+  if (filterTypes && filterTypes.length > 0) {
+    entries = entries.filter(e => filterTypes.includes(e.type))
+    console.log(`  Filtered to ${entries.length} entries of types: ${filterTypes.join(', ')}`)
+  }
+
+  // Setup output directories
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+  const baseFilename = filterTypes ? `test-${filterTypes.join('-').toLowerCase()}` : 'integration-test'
+  const pdfFilename = `${baseFilename}-${timestamp}.pdf`
+  const mdFilename = `${baseFilename}-${timestamp}-scores.md`
+  const pagesFolder = `${baseFilename}-${timestamp}-pages`
+
+  const outputsDir = await ensureOutputsDir()
+  const pagesDir = path.join(outputsDir, pagesFolder)
+  await fs.mkdir(pagesDir, { recursive: true })
 
   const yearSummary = computeYearSummary(allActivities, year)
+  const startDateStr = startDate.toISOString().slice(0, 10)
+  const endDateStr = endDate.toISOString().slice(0, 10)
+
+  // Build TOC entries for page renderer
+  const tocEntries: TOCEntry[] = entries
+    .filter(entry =>
+      entry.type !== 'COVER' &&
+      entry.type !== 'TABLE_OF_CONTENTS' &&
+      entry.type !== 'ACTIVITY_LOG' &&
+      entry.type !== 'BLANK_PAGE' &&
+      entry.type !== 'BACK_COVER'
+    )
+    .map(entry => ({
+      title: entry.title || entry.type,
+      pageNumber: entry.pageNumber || 0,
+      type: entry.type,
+      category: getCategoryForType(entry.type),
+    }))
+
+  // 5. Generate individual page PDFs if pdfByPage is enabled
+  if (pdfByPage) {
+    console.log('\n[5/7] Generating individual page PDFs...')
+
+    const pageRenderContext: PageRenderContext = {
+      activities: allActivities,
+      format: FORMATS['10x10'],
+      theme: DEFAULT_THEME,
+      athleteName: ATHLETE_NAME,
+      periodName: BOOK_NAME,
+      year,
+      startDate: startDateStr,
+      endDate: endDateStr,
+      yearSummary,
+      mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+      tocEntries,
+    }
+
+    const renderedPages = await renderAllEntriesAsPdfs(entries, pageRenderContext, {
+      onProgress: (current, total, entry) => {
+        console.log(`  Rendering page ${current + 1}/${total}: ${entry.type}`)
+      },
+    })
+
+    // Save each page PDF
+    for (const page of renderedPages) {
+      const pagePdfPath = path.join(pagesDir, `${page.filename}.pdf`)
+      await fs.writeFile(pagePdfPath, page.buffer)
+      console.log(`  Saved: ${page.filename}.pdf`)
+    }
+
+    console.log(`  Generated ${renderedPages.length} individual page PDFs`)
+  }
+
+  // 6. Render main PDF
+  const stepNum = pdfByPage ? 6 : 5
+  const totalSteps = pdfByPage ? 7 : 6
+  console.log(`\n[${stepNum}/${totalSteps}] Rendering main PDF...`)
+  const renderStart = Date.now()
 
   const pdfBuffer = await renderToBuffer(
     BookDocument({
@@ -285,8 +372,8 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
       athleteName: ATHLETE_NAME,
       periodName: BOOK_NAME,
       year,
-      startDate: startDate.toISOString().slice(0, 10),
-      endDate: endDate.toISOString().slice(0, 10),
+      startDate: startDateStr,
+      endDate: endDateStr,
       yearSummary,
       mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
       printReady: false,
@@ -297,27 +384,18 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
   console.log(`  PDF rendered in ${renderTime}ms`)
   console.log(`  PDF size: ${(pdfBuffer.length / 1024).toFixed(1)} KB`)
 
-  // 6. Save outputs and optionally run visual scoring
-  console.log(`\n[6/6] Saving outputs${skipScoring ? '' : ' and running visual scoring'}...`)
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const baseFilename = 'integration-test'
-  const pdfFilename = `${baseFilename}-${timestamp}.pdf`
-  const mdFilename = `${baseFilename}-${timestamp}-scores.md`
-  const pagesFolder = `${baseFilename}-${timestamp}-pages`
-
-  const outputsDir = await ensureOutputsDir()
-  const pagesDir = path.join(outputsDir, pagesFolder)
-
-  // Save PDF first
+  // Save PDF
   const pdfPath = path.join(outputsDir, pdfFilename)
   await fs.writeFile(pdfPath, pdfBuffer)
+
+  // 7. Save outputs and optionally run visual scoring
+  const lastStep = pdfByPage ? 7 : 6
+  console.log(`\n[${lastStep}/${totalSteps}] Saving outputs${skipScoring ? '' : ' and running visual scoring'}...`)
 
   if (skipScoring) {
     // Extract page images without scoring
     const { extractPdfPages } = await import('@/lib/pdf-to-images')
-    console.log('[VisualScoring] Extracting PDF pages (no scoring)...')
-    await fs.mkdir(pagesDir, { recursive: true })
+    console.log('  Extracting PDF pages (no scoring)...')
     const extraction = await extractPdfPages(Buffer.from(pdfBuffer), { outputDir: pagesDir })
     const pageCount = extraction.totalPages
     console.log(`  Extracted ${pageCount} page images`)
@@ -331,6 +409,9 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
     console.log(`\nOutputs saved to: ${outputsDir}`)
     console.log(`  - PDF: ${pdfFilename}`)
     console.log(`  - Pages: ${pagesFolder}/`)
+    if (pdfByPage) {
+      console.log(`  - Individual PDFs: ${pagesFolder}/*.pdf`)
+    }
     console.log('')
     process.exit(0)
   }
@@ -372,6 +453,9 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
   console.log(`  - PDF: ${pdfFilename}`)
   console.log(`  - Scores: ${mdFilename}`)
   console.log(`  - Pages: ${pagesFolder}/`)
+  if (pdfByPage) {
+    console.log(`  - Individual PDFs: ${pagesFolder}/*.pdf`)
+  }
   console.log('')
 
   // Exit with appropriate code based on scoring
@@ -389,10 +473,46 @@ async function runIntegrationTest(skipScoring = false): Promise<void> {
 
 // Parse command line args
 const args = process.argv.slice(2)
-const noScore = args.includes('--no-score')
+
+const testOptions: TestOptions = {
+  skipScoring: args.includes('--no-score'),
+  pdfByPage: args.includes('--pdfByPage'),
+  filterTypes: undefined,
+}
+
+// Parse --filter=TYPE1,TYPE2
+const filterArg = args.find(a => a.startsWith('--filter='))
+if (filterArg) {
+  const filterStr = filterArg.split('=')[1]
+  testOptions.filterTypes = filterStr.split(',') as BookEntry['type'][]
+}
+
+// Show help
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`
+Book Integration Test
+
+Usage: npx tsx lib/testing/book-integration-test.ts [options]
+
+Options:
+  --no-score       Skip visual scoring (faster)
+  --pdfByPage      Generate individual PDFs for each template
+  --filter=TYPES   Only generate specific template types (comma-separated)
+                   Valid types: COVER, FOREWORD, TABLE_OF_CONTENTS, YEAR_STATS,
+                   YEAR_AT_A_GLANCE, RACE_PAGE, MONTHLY_DIVIDER, ACTIVITY_LOG,
+                   BACK_COVER
+  --help, -h       Show this help
+
+Examples:
+  npx tsx lib/testing/book-integration-test.ts --no-score
+  npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=COVER,YEAR_STATS
+  npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE --no-score
+`)
+  process.exit(0)
+}
 
 // Run the test
-runIntegrationTest(noScore).catch(error => {
+runIntegrationTest(testOptions).catch(error => {
   console.error('Integration test failed:', error)
   process.exit(1)
 })

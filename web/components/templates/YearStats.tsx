@@ -332,10 +332,18 @@ export const YearStatsPage = ({
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      padding: format.safeMargin,
+      padding: 0,  // Use contentContainer for padding to avoid react-pdf layout bug
       backgroundColor: theme.backgroundColor,
-      flexDirection: 'column',
       position: 'relative',
+    },
+    // Content container with safe margins (avoids react-pdf bug with page padding + absolute elements)
+    contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     // Hero stats - Big Three
     heroStatsRow: {
@@ -456,7 +464,7 @@ export const YearStatsPage = ({
   })
 
   return (
-    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
       {/* Background: faded photo or solid color */}
       <FullBleedBackground
         image={backgroundPhotoUrl}
@@ -468,96 +476,98 @@ export const YearStatsPage = ({
         height={format.dimensions.height}
       />
 
-      {/* Header */}
-      <PageHeader
-        title="In Review"
-        subtitle={periodRangeDisplay || undefined}
-        size="large"
-        alignment="left"
-        showBorder={true}
-        format={format}
-        theme={theme}
-      />
+      {/* Content container with safe margins */}
+      <View style={styles.contentContainer}>
+        {/* Header */}
+        <PageHeader
+          title="In Review"
+          subtitle={periodRangeDisplay || undefined}
+          size="large"
+          alignment="left"
+          showBorder={true}
+          format={format}
+          theme={theme}
+        />
 
-      {/* Hero Stats - Big Three in a row */}
-      <View style={styles.heroStatsRow}>
-        <View style={styles.heroStat}>
-          <Text style={styles.heroValue}>{formatWithCommas(distance.value)}</Text>
-          <Text style={styles.heroUnit}>{distance.unit}</Text>
-          <Text style={styles.heroLabel}>Distance</Text>
+        {/* Hero Stats - Big Three in a row */}
+        <View style={styles.heroStatsRow}>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroValue}>{formatWithCommas(distance.value)}</Text>
+            <Text style={styles.heroUnit}>{distance.unit}</Text>
+            <Text style={styles.heroLabel}>Distance</Text>
+          </View>
+
+          <View style={styles.heroStat}>
+            <Text style={styles.heroValue}>{formatWithCommas(time.value)}</Text>
+            <Text style={styles.heroUnit}>{time.unit}</Text>
+            <Text style={styles.heroLabel}>Time</Text>
+          </View>
+
+          <View style={styles.heroStat}>
+            <Text style={styles.heroValue}>{formatWithCommas(elevation.value)}</Text>
+            <Text style={styles.heroUnit}>{elevation.unit}</Text>
+            <Text style={styles.heroLabel}>Elevation</Text>
+          </View>
         </View>
 
-        <View style={styles.heroStat}>
-          <Text style={styles.heroValue}>{formatWithCommas(time.value)}</Text>
-          <Text style={styles.heroUnit}>{time.unit}</Text>
-          <Text style={styles.heroLabel}>Time</Text>
-        </View>
-
-        <View style={styles.heroStat}>
-          <Text style={styles.heroValue}>{formatWithCommas(elevation.value)}</Text>
-          <Text style={styles.heroUnit}>{elevation.unit}</Text>
-          <Text style={styles.heroLabel}>Elevation</Text>
-        </View>
-      </View>
-
-      {/* Secondary Stats Grid */}
-      <View style={styles.secondarySection}>
-        <View style={styles.secondaryStatsGrid}>
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
-            <Text style={styles.secondaryLabel}>Activities</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{activeDays}</Text>
-            <Text style={styles.secondaryLabel}>Active Days</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{avgDistancePerActivity}</Text>
-            <Text style={styles.secondaryLabel}>Avg Distance (km)</Text>
-          </View>
-
-          <View style={styles.secondaryStat}>
-            <Text style={styles.secondaryValue}>{avgTimePerActivity}</Text>
-            <Text style={styles.secondaryLabel}>Avg Time (hrs)</Text>
-          </View>
-
-          {yearSummary.races && yearSummary.races.length > 0 && (
+        {/* Secondary Stats Grid */}
+        <View style={styles.secondarySection}>
+          <View style={styles.secondaryStatsGrid}>
             <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
-              <Text style={styles.secondaryLabel}>Races</Text>
+              <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
+              <Text style={styles.secondaryLabel}>Activities</Text>
             </View>
-          )}
 
-          {totalKudos > 0 && (
             <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{totalKudos}</Text>
-              <Text style={styles.secondaryLabel}>Total Kudos</Text>
+              <Text style={styles.secondaryValue}>{activeDays}</Text>
+              <Text style={styles.secondaryLabel}>Active Days</Text>
             </View>
-          )}
-        </View>
-      </View>
 
-      {/* Best Efforts Section */}
-      {bestEfforts.length > 0 && (
-        <View style={styles.bestEffortsSection}>
-          <Text style={styles.sectionTitle}>Best Efforts</Text>
-          {bestEfforts.slice(0, 4).map((effort, i) => {
-            const minutes = Math.floor(effort.elapsed_time / 60)
-            const seconds = effort.elapsed_time % 60
-            const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{avgDistancePerActivity}</Text>
+              <Text style={styles.secondaryLabel}>Avg Distance (km)</Text>
+            </View>
 
-            return (
-              <View key={i} style={styles.bestEffortRow}>
-                <Text style={styles.bestEffortName}>{effort.name}</Text>
-                <Text style={styles.bestEffortTime}>{timeStr}</Text>
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{avgTimePerActivity}</Text>
+              <Text style={styles.secondaryLabel}>Avg Time (hrs)</Text>
+            </View>
+
+            {yearSummary.races && yearSummary.races.length > 0 && (
+              <View style={styles.secondaryStat}>
+                <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
+                <Text style={styles.secondaryLabel}>Races</Text>
               </View>
-            )
-          })}
-        </View>
-      )}
+            )}
 
+            {totalKudos > 0 && (
+              <View style={styles.secondaryStat}>
+                <Text style={styles.secondaryValue}>{totalKudos}</Text>
+                <Text style={styles.secondaryLabel}>Total Kudos</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Best Efforts Section */}
+        {bestEfforts.length > 0 && (
+          <View style={styles.bestEffortsSection}>
+            <Text style={styles.sectionTitle}>Best Efforts</Text>
+            {bestEfforts.slice(0, 4).map((effort, i) => {
+              const minutes = Math.floor(effort.elapsed_time / 60)
+              const seconds = effort.elapsed_time % 60
+              const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
+
+              return (
+                <View key={i} style={styles.bestEffortRow}>
+                  <Text style={styles.bestEffortName}>{effort.name}</Text>
+                  <Text style={styles.bestEffortTime}>{timeStr}</Text>
+                </View>
+              )
+            })}
+          </View>
+        )}
+      </View>
     </Page>
   )
 }
