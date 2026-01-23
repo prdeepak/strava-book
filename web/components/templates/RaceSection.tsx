@@ -197,19 +197,20 @@ const renderStandardPages = (props: Required<Omit<RaceSectionProps, 'variant'>>)
                     pageIndex={0}
                 />
             )}
-            {hasDescription ? (
+            {hasDescription && (
                 <RaceSectionDescriptionPage
                     activity={activity}
                     format={format}
                     theme={theme}
                 />
-            ) : hasComments ? (
+            )}
+            {!hasDescription && hasComments && (
                 <RaceSectionCommentsPage
                     activity={activity}
                     format={format}
                     theme={theme}
                 />
-            ) : null}
+            )}
         </>
     )
 }

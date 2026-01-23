@@ -1,4 +1,3 @@
-import React, { useMemo } from 'react'
 import { Text, View, StyleSheet } from '@react-pdf/renderer'
 
 /**
@@ -8,39 +7,17 @@ import { Text, View, StyleSheet } from '@react-pdf/renderer'
  */
 
 /**
- * Measures text width using an offscreen canvas.
- * ENVIRONMENT NOTE:
- * - Browser: Uses native <canvas>.
- * - Node.js: Requires the 'canvas' package (npm install canvas) for accurate results.
- * If 'canvas' is missing, falls back to a rough character width approximation.
+ * Estimates text width based on character count and font size.
+ * This is a simplified approach that works well for react-pdf since:
+ * 1. react-pdf handles actual text layout during rendering
+ * 2. This is just used for pre-calculating optimal font sizes
+ * 3. Avoids dependencies on canvas (Node.js native module)
  */
-const getTextWidth = (text: string, fontSize: number, fontFamily: string): number => {
-  let canvas: HTMLCanvasElement | { getContext: (type: string) => CanvasRenderingContext2D } | null
-
-  if (typeof document !== 'undefined') {
-    // Browser environment
-    canvas = document.createElement('canvas')
-  } else {
-    // Node environment
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createCanvas } = require('canvas')
-      canvas = createCanvas(1, 1)
-    } catch {
-      // Fallback if 'canvas' package is not installed
-      canvas = null
-    }
-  }
-
-  // Safe fallback if canvas isn't available
-  if (!canvas) {
-    // Rough estimate: average character width is ~0.5 of font size
-    return text.length * (fontSize * 0.5)
-  }
-
-  const context = canvas.getContext('2d') as CanvasRenderingContext2D
-  context.font = `${fontSize}px ${fontFamily}`
-  return context.measureText(text).width
+const getTextWidth = (text: string, fontSize: number, _fontFamily: string): number => {
+  // Average character width varies by font, but ~0.55 of font size is reasonable
+  // for most fonts used in PDF generation (sans-serif tends to be ~0.5, serif ~0.55)
+  const avgCharWidth = fontSize * 0.55
+  return text.length * avgCharWidth
 }
 
 /**
@@ -140,11 +117,13 @@ export const AutoResizingPdfText = ({
   resize_to_text = true,
   text_padding = 8,
 }: AutoResizingPdfTextProps) => {
-  const calculatedState = useMemo<CalculatedState>(() => {
-    // Helper wrapper for the specific inputs
-    const getLayout = (size: number, str: string) =>
-      calculateLayout(str, size, font, width, height)
+  // Note: react-pdf doesn't support React hooks, so we compute directly
+  // Helper wrapper for the specific inputs
+  const getLayout = (size: number, str: string) =>
+    calculateLayout(str, size, font, width, height)
 
+  // Calculate state directly (no useMemo - react-pdf doesn't support hooks)
+  const calculatedState: CalculatedState = (() => {
     // 1. Quick Check: Does Max Fit?
     const maxLayout = getLayout(max_fontsize, text)
     if (maxLayout.fits) {
@@ -210,7 +189,7 @@ export const AutoResizingPdfText = ({
       textWidth: optimalLayout.textWidth,
       textHeight: optimalLayout.textHeight,
     }
-  }, [text, width, height, font, min_fontsize, max_fontsize])
+  })()
 
   // Calculate background dimensions and position when resize_to_text is enabled
   const bgWidth = calculatedState.textWidth + 2 * text_padding

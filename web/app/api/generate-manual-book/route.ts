@@ -4,13 +4,15 @@ import { getServerSession } from 'next-auth'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { BookDocument, computeYearSummary } from '@/components/templates/BookDocument'
+import { BookDocument, computeYearSummary, getCategoryForType } from '@/components/templates/BookDocument'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { normalizeFontName } from '@/lib/ai-validation'
 import { createBookScoresReport, generateScoresMarkdown, PageScore } from '@/lib/visual-scores-report'
 import { scorePdfPages } from '@/lib/visual-scoring'
 import { BookEntry } from '@/lib/curator'
+import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
+import { TOCEntry } from '@/components/templates/TableOfContents'
 // Register fonts for PDF generation
 import '@/lib/pdf-fonts'
 
@@ -56,6 +58,13 @@ interface ManualBookRequest {
     backCoverPhotoUrl?: string | null
     format?: BookFormat
     theme?: BookTheme
+    // Debug/testing options
+    /** Skip visual scoring (faster generation) */
+    skipScoring?: boolean
+    /** Generate individual PDFs for each template/page */
+    pdfByPage?: boolean
+    /** Only generate specific entry types (e.g., ['COVER', 'YEAR_STATS']) */
+    filterTypes?: BookEntry['type'][]
   }
 }
 
@@ -238,10 +247,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Extract debug options
+    const skipScoring = config.skipScoring ?? false
+    const pdfByPage = config.pdfByPage ?? false
+    const filterTypes = config.filterTypes
+
     console.log('[ManualBook] Starting book generation')
     console.log('[ManualBook] Activities:', activities.length)
     console.log('[ManualBook] Races:', races.length)
     console.log('[ManualBook] Date range:', config.startDate, 'to', config.endDate)
+    console.log('[ManualBook] Options: skipScoring=%s, pdfByPage=%s, filterTypes=%s',
+      skipScoring, pdfByPage, filterTypes?.join(',') || 'all')
 
     // Ensure format and theme
     const format = config.format || FORMATS['10x10']
@@ -257,20 +273,88 @@ export async function POST(request: NextRequest) {
     highlightActivityIds.forEach(h => highlightMap.set(h.month, h.activityId))
 
     // Generate book entries
-    const entries = generateManualBookEntries(
+    let entries = generateManualBookEntries(
       activities,
       races,
       highlightMap,
       config
     )
 
+    // Filter entries if filterTypes is specified
+    if (filterTypes && filterTypes.length > 0) {
+      entries = entries.filter(e => filterTypes.includes(e.type))
+      console.log('[ManualBook] Filtered to', entries.length, 'entries of types:', filterTypes.join(', '))
+    }
+
     console.log('[ManualBook] Generated', entries.length, 'book entries')
 
     // Compute year summary
     const yearSummary = computeYearSummary(activities, primaryYear)
 
-    // Render PDF
-    console.log('[ManualBook] Rendering PDF...')
+    // Create filenames with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const baseFilename = config.bookName.replace(/\s+/g, '-').toLowerCase()
+    const pdfFilename = `${baseFilename}-${timestamp}.pdf`
+    const mdFilename = `${baseFilename}-${timestamp}-scores.md`
+    const pagesFolder = `${baseFilename}-${timestamp}-pages`
+
+    // Ensure outputs directory exists
+    const outputsDir = await ensureOutputsDir()
+    const pagesDir = path.join(outputsDir, pagesFolder)
+    await fs.mkdir(pagesDir, { recursive: true })
+
+    // Build TOC entries for page renderer (needed for TABLE_OF_CONTENTS)
+    const tocEntries: TOCEntry[] = entries
+      .filter(entry =>
+        entry.type !== 'COVER' &&
+        entry.type !== 'TABLE_OF_CONTENTS' &&
+        entry.type !== 'ACTIVITY_LOG' &&
+        entry.type !== 'BLANK_PAGE' &&
+        entry.type !== 'BACK_COVER'
+      )
+      .map(entry => ({
+        title: entry.title || entry.type,
+        pageNumber: entry.pageNumber || 0,
+        type: entry.type,
+        category: getCategoryForType(entry.type),
+      }))
+
+    // Render individual page PDFs if pdfByPage is enabled
+    if (pdfByPage) {
+      console.log('[ManualBook] Generating individual page PDFs...')
+
+      const pageRenderContext: PageRenderContext = {
+        activities,
+        format,
+        theme,
+        athleteName: config.athleteName,
+        periodName: config.bookName,
+        year: primaryYear,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        yearSummary,
+        mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+        tocEntries,
+      }
+
+      const renderedPages = await renderAllEntriesAsPdfs(entries, pageRenderContext, {
+        onProgress: (current, total, entry) => {
+          console.log(`[ManualBook] Rendering page ${current + 1}/${total}: ${entry.type}`)
+        },
+      })
+
+      // Save each page PDF
+      for (const page of renderedPages) {
+        const pagePdfPath = path.join(pagesDir, `${page.filename}.pdf`)
+        await fs.writeFile(pagePdfPath, page.buffer)
+        console.log(`[ManualBook] Saved: ${pagePdfPath}`)
+      }
+
+      console.log(`[ManualBook] Generated ${renderedPages.length} individual page PDFs in ${pagesDir}`)
+    }
+
+    // Render main PDF
+    console.log('[ManualBook] Rendering main PDF...')
     const startTime = Date.now()
 
     const pdfBuffer = await renderToBuffer(
@@ -287,8 +371,6 @@ export async function POST(request: NextRequest) {
         yearSummary,
         mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
         printReady: false,
-        // Pass photo URLs to templates that support them
-        // These will be picked up by the template rendering in BookDocument
       })
     )
 
@@ -296,54 +378,45 @@ export async function POST(request: NextRequest) {
     console.log('[ManualBook] PDF rendered in', renderTime, 'ms')
     console.log('[ManualBook] PDF size:', pdfBuffer.length, 'bytes')
 
-    // Create filenames with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const baseFilename = config.bookName.replace(/\s+/g, '-').toLowerCase()
-    const pdfFilename = `${baseFilename}-${timestamp}.pdf`
-    const mdFilename = `${baseFilename}-${timestamp}-scores.md`
-    const pagesFolder = `${baseFilename}-${timestamp}-pages`
-
-    // Ensure outputs directory exists
-    const outputsDir = await ensureOutputsDir()
-    const pagesDir = path.join(outputsDir, pagesFolder)
-
-    // Generate visual scores report
-    // Visual judging extracts each PDF page as PNG and scores it using an LLM
-    console.log('[ManualBook] Running visual scoring...')
-    const scoringStartTime = Date.now()
-
-    const scoringResult = await scorePdfPages(
-      Buffer.from(pdfBuffer),
-      entries,
-      {
-        primaryColor: theme.primaryColor,
-        accentColor: theme.accentColor,
-        backgroundColor: theme.backgroundColor,
-      },
-      {
-        verbose: true,
-        provider: 'auto',
-        outputDir: pagesDir,
-      }
-    )
-
-    const pageScores = scoringResult.pageScores
-    console.log(`[ManualBook] Visual scoring complete in ${Date.now() - scoringStartTime}ms`)
-    console.log(`[ManualBook] Scored ${scoringResult.scoredPages}/${scoringResult.totalPages} pages, avg score: ${scoringResult.averageScore.toFixed(1)}`)
-    console.log(`[ManualBook] Page images saved to: ${pagesDir}`)
-
-    const scoresReport = createBookScoresReport(config.bookName, pageScores)
-    const scoresMarkdown = generateScoresMarkdown(scoresReport)
+    // Save main PDF
     const pdfPath = path.join(outputsDir, pdfFilename)
-    const mdPath = path.join(outputsDir, mdFilename)
-
-    await Promise.all([
-      fs.writeFile(pdfPath, pdfBuffer),
-      fs.writeFile(mdPath, scoresMarkdown),
-    ])
-
+    await fs.writeFile(pdfPath, pdfBuffer)
     console.log('[ManualBook] Saved PDF to:', pdfPath)
-    console.log('[ManualBook] Saved scores to:', mdPath)
+
+    // Visual scoring (optional)
+    let scoresMarkdown = ''
+    if (!skipScoring) {
+      console.log('[ManualBook] Running visual scoring...')
+      const scoringStartTime = Date.now()
+
+      const scoringResult = await scorePdfPages(
+        Buffer.from(pdfBuffer),
+        entries,
+        {
+          primaryColor: theme.primaryColor,
+          accentColor: theme.accentColor,
+          backgroundColor: theme.backgroundColor,
+        },
+        {
+          verbose: true,
+          provider: 'auto',
+          outputDir: pagesDir,
+        }
+      )
+
+      const pageScores = scoringResult.pageScores
+      console.log(`[ManualBook] Visual scoring complete in ${Date.now() - scoringStartTime}ms`)
+      console.log(`[ManualBook] Scored ${scoringResult.scoredPages}/${scoringResult.totalPages} pages, avg score: ${scoringResult.averageScore.toFixed(1)}`)
+      console.log(`[ManualBook] Page images saved to: ${pagesDir}`)
+
+      const scoresReport = createBookScoresReport(config.bookName, pageScores)
+      scoresMarkdown = generateScoresMarkdown(scoresReport)
+      const mdPath = path.join(outputsDir, mdFilename)
+      await fs.writeFile(mdPath, scoresMarkdown)
+      console.log('[ManualBook] Saved scores to:', mdPath)
+    } else {
+      console.log('[ManualBook] Skipping visual scoring (skipScoring=true)')
+    }
 
     // Return PDF with metadata about saved files
     const response = new NextResponse(new Uint8Array(pdfBuffer), {
@@ -351,9 +424,9 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${pdfFilename}"`,
         'Cache-Control': 'no-cache',
-        // Include paths to saved files (for reference)
         'X-Output-PDF': pdfFilename,
-        'X-Output-Scores': mdFilename,
+        'X-Output-Scores': skipScoring ? '' : mdFilename,
+        'X-Output-Pages': pdfByPage ? pagesFolder : '',
       },
     })
 
