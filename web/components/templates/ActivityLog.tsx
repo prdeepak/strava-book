@@ -941,3 +941,143 @@ export const ActivityLog = ({
 // Export page versions for embedding
 export const ActivityLogConcisePage = ActivityLogConcise
 export const ActivityLogFullPage = ActivityLogFull
+
+// Grid variant page-only component for embedding in BookDocument
+export const ActivityLogPage = ({
+  activities: activitiesProp,
+  activity: activityProp,
+  startIndex = 0,
+  activitiesPerPage = 6,
+  format = FORMATS['10x10'],
+  theme = DEFAULT_THEME,
+  units = 'metric',
+  title = 'Activity Log',
+}: Omit<ActivityLogProps, 'variant' | 'mapboxToken'>) => {
+  const styles = createStyles(format, theme)
+
+  const activities = activitiesProp || (activityProp ? [activityProp] : [])
+  const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
+
+  return (
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Page Header */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>{title}</Text>
+      </View>
+
+      {/* Activity Cards Grid */}
+      <View style={styles.cardsContainer}>
+        {pageActivities.map((activity, index) => {
+          const date = new Date(activity.start_date_local)
+          const dateStr = date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          })
+          const location = resolveActivityLocation(activity)
+
+          const time = formatTime(activity.moving_time)
+          const pace = formatPace(activity.moving_time, activity.distance, units)
+
+          const pathData = createMiniMapPath(activity.map?.summary_polyline)
+          const photoUrl = activity.photos?.primary?.urls?.['600']
+            ? resolveImageUrl(activity.photos.primary.urls['600'])
+            : null
+          const hasTopEfforts = hasTopBestEfforts(activity)
+
+          return (
+            <View key={activity.id || index} style={styles.activityCard}>
+              {/* Card Header */}
+              <View style={styles.cardHeader}>
+                <Text style={styles.activityName}>{activity.name}</Text>
+                <Text style={styles.activityMeta}>
+                  {dateStr} • {location}
+                </Text>
+              </View>
+
+              {/* Description */}
+              {activity.description && (
+                <Text style={styles.description}>
+                  {activity.description.length > 120
+                    ? activity.description.substring(0, 120) + '...'
+                    : activity.description
+                  }
+                </Text>
+              )}
+
+              {/* Photo or Map */}
+              {photoUrl && (
+                <View style={styles.photoContainer}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image
+                    src={photoUrl}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </View>
+              )}
+              {!photoUrl && pathData && (
+                <View style={styles.mapContainer}>
+                  <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                    <Path
+                      d={pathData}
+                      stroke={theme.accentColor}
+                      strokeWidth={2.5}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                </View>
+              )}
+
+              {/* Key Stats */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>
+                    {units === 'metric'
+                      ? (activity.distance / 1000).toFixed(1)
+                      : (activity.distance / 1609.34).toFixed(1)
+                    }
+                  </Text>
+                  <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{time}</Text>
+                  <Text style={styles.statLabel}>time</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{pace}</Text>
+                  <Text style={styles.statLabel}>pace</Text>
+                </View>
+                {activity.total_elevation_gain > 0 && (
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
+                    <Text style={styles.statLabel}>elev</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Social/Engagement Row */}
+              <View style={styles.socialRow}>
+                <View style={{ flexDirection: 'row' }}>
+                  {activity.kudos_count > 0 && (
+                    <Text style={[styles.kudos, { marginRight: 8 }]}>
+                      {activity.kudos_count} kudos
+                    </Text>
+                  )}
+                  {(activity.comment_count ?? 0) > 0 && (
+                    <Text style={styles.comments}>
+                      {activity.comment_count} comments
+                    </Text>
+                  )}
+                </View>
+                {hasTopEfforts && (
+                  <Text style={styles.bestEffortBadge}>PR</Text>
+                )}
+              </View>
+            </View>
+          )
+        })}
+      </View>
+    </Page>
+  )
+}
