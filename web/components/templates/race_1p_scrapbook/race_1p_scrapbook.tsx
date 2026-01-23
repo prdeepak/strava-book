@@ -621,7 +621,8 @@ export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapbo
     .filter((url): url is string => url !== null)
 
   const comments = (activity.comments || []).slice(0, 3);
-  const moreComments = comments.map(c => `${c.athlete.firstname}: ${c.text}`).join('\n\n');
+  // moreComments available for variants that display extended comments
+  void comments.map(c => `${c.athlete.firstname}: ${c.text}`).join('\n\n');
 
   const titleLength = activity.name.length;
   let titleFontSize = 28;

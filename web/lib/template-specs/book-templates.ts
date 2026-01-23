@@ -4,7 +4,7 @@
  * Specs for Cover, YearStats, MonthlyDivider, and other book structure pages.
  */
 
-import { TemplateSpec, TemplateGuidelines, VariantGuideline } from './types'
+import { TemplateSpec, VariantGuideline } from './types'
 
 // ============================================================================
 // Cover Template

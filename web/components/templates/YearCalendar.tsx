@@ -193,8 +193,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
 })
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+// Full names and weekday labels available from heatmap-utils if needed
 
 // Helper to format numbers with thousands separators
 const formatWithCommas = (num: number): string => {

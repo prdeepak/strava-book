@@ -224,7 +224,6 @@ export function generateSmartDraft(activities: StravaActivity[]): BookEntry[] {
     // 7. Insert Table of Contents as second page (before other content)
     // Calculate final page numbers for all entries
     let currentPage = 1
-    const finalEntries = []
     const tocEntries = []
 
     // Cover is page 1

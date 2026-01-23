@@ -11,8 +11,6 @@ import { View, Text, Svg, Path, Circle, Rect, G } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from './book-types'
 import { StravaActivity } from './strava'
 import {
-  CalendarCell,
-  MonthCalendar,
   MONTH_NAMES_SHORT,
   WEEKDAY_LABELS,
   getDaysInMonth,

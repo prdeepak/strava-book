@@ -59,8 +59,8 @@ interface ManualBookRequest {
     format?: BookFormat
     theme?: BookTheme
     // Debug/testing options
-    /** Skip visual scoring (faster generation) */
-    skipScoring?: boolean
+    /** Enable visual scoring (off by default) */
+    scoring?: boolean
     /** Generate individual PDFs for each template/page */
     pdfByPage?: boolean
     /** Only generate specific entry types (e.g., ['COVER', 'YEAR_STATS']) */
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract debug options
-    const skipScoring = config.skipScoring ?? false
+    const enableScoring = config.scoring ?? false
     const pdfByPage = config.pdfByPage ?? false
     const filterTypes = config.filterTypes
 
@@ -256,8 +256,8 @@ export async function POST(request: NextRequest) {
     console.log('[ManualBook] Activities:', activities.length)
     console.log('[ManualBook] Races:', races.length)
     console.log('[ManualBook] Date range:', config.startDate, 'to', config.endDate)
-    console.log('[ManualBook] Options: skipScoring=%s, pdfByPage=%s, filterTypes=%s',
-      skipScoring, pdfByPage, filterTypes?.join(',') || 'all')
+    console.log('[ManualBook] Options: scoring=%s, pdfByPage=%s, filterTypes=%s',
+      enableScoring, pdfByPage, filterTypes?.join(',') || 'all')
 
     // Ensure format and theme
     const format = config.format || FORMATS['10x10']
@@ -383,9 +383,9 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(pdfPath, pdfBuffer)
     console.log('[ManualBook] Saved PDF to:', pdfPath)
 
-    // Visual scoring (optional)
+    // Visual scoring (optional, off by default)
     let scoresMarkdown = ''
-    if (!skipScoring) {
+    if (enableScoring) {
       console.log('[ManualBook] Running visual scoring...')
       const scoringStartTime = Date.now()
 
@@ -415,7 +415,7 @@ export async function POST(request: NextRequest) {
       await fs.writeFile(mdPath, scoresMarkdown)
       console.log('[ManualBook] Saved scores to:', mdPath)
     } else {
-      console.log('[ManualBook] Skipping visual scoring (skipScoring=true)')
+      console.log('[ManualBook] Skipping visual scoring (scoring not enabled)')
     }
 
     // Return PDF with metadata about saved files
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${pdfFilename}"`,
         'Cache-Control': 'no-cache',
         'X-Output-PDF': pdfFilename,
-        'X-Output-Scores': skipScoring ? '' : mdFilename,
+        'X-Output-Scores': enableScoring ? mdFilename : '',
         'X-Output-Pages': pdfByPage ? pagesFolder : '',
       },
     })

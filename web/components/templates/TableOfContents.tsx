@@ -23,7 +23,7 @@ export interface TableOfContentsProps {
     bookTitle?: string
     athleteName?: string
   }
-  backgroundPhotoUrl?: string
+  backgroundPhotoUrl?: string  // Reserved for future background image support
   format?: BookFormat
   theme?: BookTheme
   // For multi-page support
@@ -68,7 +68,7 @@ const generateDefaultEntries = (): TOCEntry[] => [
 export const TableOfContentsPage = ({
   entries: propEntries,
   activity,
-  backgroundPhotoUrl,
+  // backgroundPhotoUrl reserved for future background image support
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
   pageIndex = 0,

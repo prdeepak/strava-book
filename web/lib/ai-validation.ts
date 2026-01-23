@@ -5,7 +5,7 @@
  * before being used for PDF generation.
  */
 
-import { HEADING_FONTS, BODY_FONTS } from './theme-defaults'
+// Font lists available from theme-defaults if needed
 import { getAllFontFamilies, getAllFontFamiliesWithVariants, fontHasItalic, getBodyFonts } from './font-registry'
 
 // ============================================================================

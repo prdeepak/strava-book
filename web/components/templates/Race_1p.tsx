@@ -731,7 +731,6 @@ export const Race_1pPages = ({
     // Prepare splits and best efforts (limit to 6 for single page)
     const displaySplits = processSplits(activity, 6)
     const bestEfforts = processBestEfforts(activity, 6)
-    const hasDescription = activity.description && activity.description.trim().length > 0
 
     // Decode polyline for SVG rendering
     let polylinePoints: { lat: number; lng: number }[] = []
@@ -848,6 +847,7 @@ export const Race_1pPages = ({
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
             {stravaPhoto && (
                 <View style={styles.heroPhotoContainer}>
+                    {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                     <Image src={stravaPhoto} style={styles.heroPhoto} />
                     <View style={styles.photoOverlay} />
                 </View>
@@ -867,6 +867,7 @@ export const Race_1pPages = ({
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
             {satelliteMapUrl && (
                 <View style={styles.heroPhotoContainer}>
+                    {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                     <Image src={satelliteMapUrl} style={styles.heroPhoto} />
                     <View style={styles.photoOverlay} />
                 </View>

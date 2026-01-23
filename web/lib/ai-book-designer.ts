@@ -16,7 +16,6 @@ import { validateAll, DesignSpec } from './ai-validation'
 import { findARace, generateSmartDraft, BookEntry } from './curator'
 import {
   getTemplateSpec,
-  suggestTemplate,
   validateOutputSpec,
   TemplateInputSpec,
   TemplateOutputSpec,

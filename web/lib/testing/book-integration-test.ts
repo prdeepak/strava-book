@@ -1,15 +1,15 @@
 /**
  * Book Integration Test
  *
- * Generates a full test book using fixtures with photos, runs visual scoring,
- * and saves all outputs to /outputs for inspection.
+ * Generates a full test book using fixtures with photos and saves all outputs
+ * to /outputs for inspection. Visual scoring is optional (off by default).
  *
  * Usage:
- *   npx tsx lib/testing/book-integration-test.ts                    # Full book with scoring
- *   npx tsx lib/testing/book-integration-test.ts --no-score         # Skip scoring
+ *   npx tsx lib/testing/book-integration-test.ts                    # Full book (no scoring)
+ *   npx tsx lib/testing/book-integration-test.ts --score            # With visual scoring
  *   npx tsx lib/testing/book-integration-test.ts --pdfByPage        # Generate individual PDFs per template
  *   npx tsx lib/testing/book-integration-test.ts --filter=COVER,YEAR_STATS  # Only specific templates
- *   npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE --no-score
+ *   npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE
  */
 
 import { renderToBuffer } from '@react-pdf/renderer'
@@ -234,18 +234,18 @@ function generateTestBookEntries(
 // ============================================================================
 
 interface TestOptions {
-  skipScoring: boolean
+  enableScoring: boolean
   pdfByPage: boolean
   filterTypes?: BookEntry['type'][]
 }
 
 async function runIntegrationTest(options: TestOptions): Promise<void> {
-  const { skipScoring, pdfByPage, filterTypes } = options
+  const { enableScoring, pdfByPage, filterTypes } = options
 
   console.log('='.repeat(60))
   console.log('Book Integration Test')
   console.log('='.repeat(60))
-  console.log(`Options: skipScoring=${skipScoring}, pdfByPage=${pdfByPage}, filter=${filterTypes?.join(',') || 'all'}`)
+  console.log(`Options: scoring=${enableScoring}, pdfByPage=${pdfByPage}, filter=${filterTypes?.join(',') || 'all'}`)
 
   const startTime = Date.now()
 
@@ -390,9 +390,9 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
 
   // 7. Save outputs and optionally run visual scoring
   const lastStep = pdfByPage ? 7 : 6
-  console.log(`\n[${lastStep}/${totalSteps}] Saving outputs${skipScoring ? '' : ' and running visual scoring'}...`)
+  console.log(`\n[${lastStep}/${totalSteps}] Saving outputs${enableScoring ? ' and running visual scoring' : ''}...`)
 
-  if (skipScoring) {
+  if (!enableScoring) {
     // Extract page images without scoring
     const { extractPdfPages } = await import('@/lib/pdf-to-images')
     console.log('  Extracting PDF pages (no scoring)...')
@@ -475,7 +475,7 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
 const args = process.argv.slice(2)
 
 const testOptions: TestOptions = {
-  skipScoring: args.includes('--no-score'),
+  enableScoring: args.includes('--score'),
   pdfByPage: args.includes('--pdfByPage'),
   filterTypes: undefined,
 }
@@ -495,7 +495,7 @@ Book Integration Test
 Usage: npx tsx lib/testing/book-integration-test.ts [options]
 
 Options:
-  --no-score       Skip visual scoring (faster)
+  --score          Enable visual scoring (off by default)
   --pdfByPage      Generate individual PDFs for each template
   --filter=TYPES   Only generate specific template types (comma-separated)
                    Valid types: COVER, FOREWORD, TABLE_OF_CONTENTS, YEAR_STATS,
@@ -504,9 +504,9 @@ Options:
   --help, -h       Show this help
 
 Examples:
-  npx tsx lib/testing/book-integration-test.ts --no-score
+  npx tsx lib/testing/book-integration-test.ts --score
   npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=COVER,YEAR_STATS
-  npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE --no-score
+  npx tsx lib/testing/book-integration-test.ts --pdfByPage --filter=RACE_PAGE --score
 `)
   process.exit(0)
 }
