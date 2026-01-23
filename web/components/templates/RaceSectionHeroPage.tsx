@@ -1,9 +1,10 @@
-import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -29,25 +30,6 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             justifyContent: 'flex-end',
             padding: 0,
             position: 'relative',
-        },
-        backgroundImage: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            opacity: effects.backgroundImageOpacity + 0.15,
-            objectFit: 'cover',
-        },
-        // Full-height gradient overlay for better text readability
-        gradientOverlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: theme.primaryColor,
-            opacity: effects.textOverlayOpacity + 0.05,
         },
         contentOverlay: {
             position: 'absolute',
@@ -168,19 +150,22 @@ export const RaceSectionHeroPage = ({
     const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
     const pace = paceMinPerKm > 0 ? `${paceMin}:${paceSec.toString().padStart(2, '0')}` : 'N/A'
 
+    const effects = resolveEffects(theme)
+
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-            {/* Background Image Layer */}
-            {bgImage && (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <Image
-                    src={bgImage}
-                    style={styles.backgroundImage}
-                />
-            )}
+            {/* Background Image Layer using FullBleedBackground */}
+            <FullBleedBackground
+                image={bgImage || undefined}
+                fallbackColor={theme.primaryColor}
+                role="background"
+                imageOpacity={effects.backgroundImageOpacity + 0.15}
+                overlayOpacity={effects.textOverlayOpacity + 0.05}
+                width={format.dimensions.width}
+                height={format.dimensions.height}
+            />
 
-            {/* Full-height gradient overlay for better overall text readability */}
-            <View style={styles.gradientOverlay} />
+            {/* Note: gradient overlay handled by FullBleedBackground */}
 
             {/* Content Overlay at Bottom */}
             <View style={styles.contentOverlay}>

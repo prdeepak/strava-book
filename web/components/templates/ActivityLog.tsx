@@ -14,6 +14,7 @@ import { formatDistance, formatTime, formatPace, resolveActivityLocation, getMap
 import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import polyline from '@mapbox/polyline'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // ============================================================================
 // TYPES
@@ -38,7 +39,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   page: {
     width: format.dimensions.width,
     height: format.dimensions.height,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: `${theme.primaryColor}05`,
     padding: format.safeMargin,
   },
   pageHeader: {
@@ -61,11 +62,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   activityCard: {
     width: '48%',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.backgroundColor,
     padding: 12 * format.scaleFactor,
     marginBottom: 12 * format.scaleFactor,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: `${theme.primaryColor}20`,
   },
   cardHeader: {
     marginBottom: 8 * format.scaleFactor,
@@ -118,13 +119,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   mapContainer: {
     width: '100%',
     height: 80 * format.scaleFactor,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: theme.primaryColor,
     marginBottom: 8 * format.scaleFactor,
   },
   photoContainer: {
     width: '100%',
     height: 100 * format.scaleFactor,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: `${theme.primaryColor}10`,
     marginBottom: 8 * format.scaleFactor,
   },
   socialRow: {
@@ -134,7 +135,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     marginTop: 6 * format.scaleFactor,
     paddingTop: 6 * format.scaleFactor,
     borderTopWidth: 0.5,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: `${theme.primaryColor}20`,
   },
   kudos: {
     fontSize: Math.max(7, 8 * format.scaleFactor),
@@ -217,7 +218,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.backgroundColor,
       padding: format.safeMargin,
     },
     header: {
@@ -245,13 +246,13 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     mapSection: {
       width: '55%',
       height: 200 * scale,
-      backgroundColor: '#f5f5f5',
+      backgroundColor: `${theme.primaryColor}08`,
       overflow: 'hidden',
     },
     photoSection: {
       width: '45%',
       height: 200 * scale,
-      backgroundColor: '#f0f0f0',
+      backgroundColor: `${theme.primaryColor}10`,
       overflow: 'hidden',
     },
     mapImage: {
@@ -267,7 +268,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     },
     statBox: {
       width: '23%',
-      backgroundColor: '#f8f9fa',
+      backgroundColor: `${theme.primaryColor}05`,
       padding: 12 * scale,
       alignItems: 'center',
     },
@@ -289,7 +290,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
       marginTop: 16 * scale,
       paddingTop: 12 * scale,
       borderTopWidth: 1,
-      borderTopColor: '#e0e0e0',
+      borderTopColor: `${theme.primaryColor}20`,
       gap: 16 * scale,
     },
     socialItem: {
@@ -321,7 +322,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      backgroundColor: '#fafafa',
+      backgroundColor: `${theme.primaryColor}05`,
       padding: format.safeMargin,
     },
     header: {
@@ -363,9 +364,9 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 16 * scale,
       paddingVertical: 12 * scale,
       paddingHorizontal: 8 * scale,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.backgroundColor,
       borderWidth: 1,
-      borderColor: '#e0e0e0',
+      borderColor: `${theme.primaryColor}20`,
     },
     statItem: {
       alignItems: 'center',
@@ -408,7 +409,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 8 * scale,
       paddingBottom: 8 * scale,
       borderBottomWidth: 1,
-      borderBottomColor: '#e0e0e0',
+      borderBottomColor: `${theme.primaryColor}20`,
     },
     commentsTitle: {
       fontSize: Math.max(10, 12 * scale),
@@ -425,7 +426,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 10 * scale,
       paddingBottom: 8 * scale,
       borderBottomWidth: 0.5,
-      borderBottomColor: '#e8e8e8',
+      borderBottomColor: `${theme.primaryColor}18`,
     },
     commentAuthor: {
       fontSize: Math.max(9, 10 * scale),
@@ -534,9 +535,9 @@ const ActivityLogConcise = ({
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: `${theme.primaryColor}05`,
               borderWidth: 1,
-              borderColor: '#e0e0e0',
+              borderColor: `${theme.primaryColor}20`,
               padding: 16 * scale,
             }}>
               <Text style={{

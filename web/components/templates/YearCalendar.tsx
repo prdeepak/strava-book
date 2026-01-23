@@ -260,7 +260,7 @@ const getColorIntensity = (value: number, maxValue: number): number => {
 
 // Helper to get color based on intensity with better contrast
 // Uses theme colors instead of hardcoded values
-const getColor = (intensity: number, accentColor: string, primaryColor: string, backgroundColor: string): string => {
+const getColor = (intensity: number, accentColor: string, primaryColor: string): string => {
   // For zero intensity, use a subtle shade derived from primary color
   // This creates a light gray on white backgrounds or dark gray on dark backgrounds
   if (intensity === 0) {
@@ -462,7 +462,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
                       const dateStr = `${monthYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                       const value = dateMap.get(dateStr) || 0
                       const intensity = getColorIntensity(value, maxValue)
-                      const color = getColor(intensity, theme.accentColor, theme.primaryColor, theme.backgroundColor)
+                      const color = getColor(intensity, theme.accentColor, theme.primaryColor)
 
                       // Calculate position
                       const dayOfWeek = (firstDay + dayIndex) % 7
@@ -501,7 +501,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
                     y={0}
                     width={16}
                     height={16}
-                    fill={getColor(intensity, theme.accentColor, theme.primaryColor, theme.backgroundColor)}
+                    fill={getColor(intensity, theme.accentColor, theme.primaryColor)}
                     rx={2}
                     ry={2}
                   />
