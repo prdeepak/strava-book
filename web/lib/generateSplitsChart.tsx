@@ -30,8 +30,8 @@ export type ChartOptions = {
     baseElevation?: number  // Starting elevation above sea level
 }
 
-/** Internal type for chart options with defaults applied */
-type ChartOptionsResolved = Required<Omit<ChartOptions, 'baseElevation'>> & { baseElevation?: number }
+// Internal type for chart options with defaults applied - available if needed
+// type ChartOptionsResolved = Required<Omit<ChartOptions, 'baseElevation'>> & { baseElevation?: number }
 
 export type ProgressMarker = {
     x: number

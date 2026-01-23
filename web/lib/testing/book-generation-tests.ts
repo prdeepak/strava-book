@@ -9,12 +9,14 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
+// React is required for react-pdf element creation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { FullBookDocument, estimatePageCount, generateBookEntries, BookGenerationConfig } from '../../components/templates/BookDocument'
 import { BookPageType } from '../curator'
 import { yearFixtures } from './fixtures/yearFixtures'
-import { FORMATS, DEFAULT_THEME, BookFormat, BookTheme } from '../book-types'
+import { FORMATS, DEFAULT_THEME } from '../book-types'
 import { StravaActivity } from '../strava'
 import { generateRunId, getRunOutputDir } from './test-harness'
 // Register fonts for PDF generation (must be imported before rendering)
@@ -506,6 +508,7 @@ function testApiRequestValidation(): BookGenerationTestResult {
  * 7. [MONTHLY_DIVIDER + ACTIVITY_LOG]* (repeating for each month with non-race activities)
  * 8. BACK_COVER (always last)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const EXPECTED_PAGE_ORDER: BookPageType[] = [
     'COVER',
     'TABLE_OF_CONTENTS',

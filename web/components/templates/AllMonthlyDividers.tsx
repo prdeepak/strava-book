@@ -59,7 +59,7 @@ export const AllMonthlyDividers = ({
 
   return (
     <Document>
-      {monthGroups.map((group, index) => (
+      {monthGroups.map((group) => (
         <MonthlyDivider
           key={`${group.year}-${group.month}`}
           activities={group.activities}

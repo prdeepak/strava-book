@@ -5,7 +5,7 @@ import { StravaActivity } from '@/lib/strava'
 import { BookTheme, FORMATS, BookFormat } from '@/lib/book-types'
 import { estimatePageCount } from '@/components/templates/BookDocument'
 import AIBookDesignerModal from '@/components/AIBookDesignerModal'
-import { generatePeriodName, getDefaultDateRange, formatDateRange } from '@/lib/period-name-generator'
+import { generatePeriodName, getDefaultDateRange } from '@/lib/period-name-generator'
 
 interface BookGenerationModalProps {
     activities: StravaActivity[]

@@ -5,6 +5,7 @@
  * Each entry is wrapped in its own Document container for independent rendering.
  */
 
+import React from 'react'
 import { Document } from '@react-pdf/renderer'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { BookEntry } from '@/lib/curator'
@@ -93,7 +94,7 @@ export async function renderEntryAsPdf(
 ): Promise<RenderedPage | null> {
   const { activities, format, theme, athleteName, periodName, year, startDate, endDate, yearSummary, mapboxToken, tocEntries } = context
 
-  let pageElement: JSX.Element | null = null
+  let pageElement: React.ReactElement | null = null
 
   try {
     switch (entry.type) {
@@ -275,7 +276,8 @@ export async function renderEntryAsPdf(
     }
 
     console.log(`[PageRenderer] Rendering ${entry.type} (entry ${index})...`)
-    const buffer = await renderToBuffer(pageElement)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(pageElement as any)
 
     return {
       filename: getEntryFilename(entry, index, activities),

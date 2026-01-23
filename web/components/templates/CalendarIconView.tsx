@@ -3,7 +3,7 @@
  * Shows Q1 (3 months) with large, prominent sport icons
  */
 
-import { Page, View, Text, Document, StyleSheet } from '@react-pdf/renderer'
+import { Page, View, Text, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { SportIcon, SportLegend, DayActivity, SportType, SPORT_COLORS, getSportCategory } from '@/lib/calendar-views'
 import { getDaysInMonth, getFirstDayOfMonth, MONTH_NAMES_FULL } from '@/lib/heatmap-utils'
@@ -47,9 +47,6 @@ export const CalendarIconView = ({
 
   // Calculate stats
   const q1Activities = monthsToShow.reduce((sum, m) => sum + (activitiesByMonth.get(m)?.length || 0), 0)
-  const totalDistance = allActivities
-    .filter(a => monthsToShow.includes(new Date(a.date).getMonth()))
-    .reduce((sum, a) => sum + a.distance, 0) / 1000
 
   const cellSize = 28 * format.scaleFactor
   const iconSize = 20 * format.scaleFactor

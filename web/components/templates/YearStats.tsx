@@ -171,6 +171,8 @@ interface MonthlyBarChartProps {
   endMonth?: number
 }
 
+// MonthlyBarChart is available for variants that need it
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MonthlyBarChart = ({ monthlyStats, theme, format, startMonth, endMonth }: MonthlyBarChartProps) => {
   const spacing = resolveSpacing(theme, format)
   const caption = resolveTypography('caption', theme, format)

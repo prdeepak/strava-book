@@ -11,8 +11,6 @@ import { View, Text, Svg, Path, Circle, Rect, G } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from './book-types'
 import { StravaActivity } from './strava'
 import {
-  CalendarCell,
-  MonthCalendar,
   MONTH_NAMES_SHORT,
   WEEKDAY_LABELS,
   getDaysInMonth,
@@ -108,8 +106,7 @@ export const SportIcon = ({ sport, size, color }: SportIconProps) => {
   const iconColor = color || SPORT_COLORS[category] || '#6C757D'
   const strokeWidth = Math.max(1.5, size / 10)
 
-  // All icons designed for 24x24 viewBox, scaled to size
-  const scale = size / 24
+  // All icons designed for 24x24 viewBox
 
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -476,6 +473,7 @@ export const HeatmapCalendarMonth = ({
   theme = DEFAULT_THEME,
   cellSize: propCellSize,
   showMonthLabel = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   showWeekdayLabels = false,
   colorBy = 'distance',
   maxValue: propMaxValue,
@@ -667,7 +665,7 @@ export const BubbleCalendarMonth = ({
 
       {/* Bubble grid */}
       <View style={{ position: 'relative', height: gridHeight }}>
-        {days.map(({ day, dayOfWeek, weekRow, primaryActivity, allActivities }) => {
+        {days.map(({ day, dayOfWeek, weekRow, primaryActivity }) => {
           const x = dayOfWeek * (cellSize + cellGap)
           const y = weekRow * (cellSize + cellGap + (showActivityNames ? 10 * format.scaleFactor : 0))
 

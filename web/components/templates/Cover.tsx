@@ -192,7 +192,7 @@ export const CoverPage = ({
     <Page size={[pageWidth, pageHeight]} style={styles.page}>
       {/* Full-bleed photo */}
       <FullBleedBackground
-        image={bgImage}
+        image={bgImage ?? undefined}
         fallbackColor={theme.primaryColor}
         role="hero"
         width={pageWidth}
