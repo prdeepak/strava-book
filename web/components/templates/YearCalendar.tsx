@@ -311,7 +311,8 @@ interface YearCalendarActivity {
   total_elevation_gain?: number
 }
 
-export const YearCalendar = (props: YearCalendarProps) => {
+// Page-only version for use in BookDocument (no Document wrapper)
+export const YearCalendarPage = (props: YearCalendarProps) => {
   // Handle both test harness interface and direct props
   const format = props.format || FORMATS['10x10']
   const theme = props.theme || DEFAULT_THEME
@@ -403,8 +404,7 @@ export const YearCalendar = (props: YearCalendarProps) => {
     : String(year)
 
   return (
-    <Document>
-      <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
         {/* Background photo (if provided) */}
         {props.backgroundPhotoUrl && (
           // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
@@ -548,7 +548,13 @@ export const YearCalendar = (props: YearCalendarProps) => {
             <Text style={styles.statLabel}>Activities</Text>
           </View>
         </View>
-      </Page>
-    </Document>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const YearCalendar = (props: YearCalendarProps) => (
+  <Document>
+    <YearCalendarPage {...props} />
+  </Document>
+)

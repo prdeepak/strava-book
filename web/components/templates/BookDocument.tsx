@@ -6,9 +6,9 @@ import { TableOfContentsPage, TOCEntry, getTocPageCount } from './TableOfContent
 import { CoverPage } from './Cover'
 import { ForewordPage } from './Foreword'
 import { BackCoverPage } from './BackCover'
-import { YearCalendar } from './YearCalendar'
-import { YearStats } from './YearStats'
-import { MonthlyDividerSpread } from './MonthlyDividerSpread'
+import { YearCalendarPage } from './YearCalendar'
+import { YearStatsPage } from './YearStats'
+import { MonthlyDividerSpreadPages } from './MonthlyDividerSpread'
 import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
@@ -480,7 +480,9 @@ export const BookDocument = ({
 
     return (
         <Document>
-            {processedEntries.map((entry, index) => {
+            {processedEntries.flatMap((entry, index) => {
+                console.log(`[BookDocument] Rendering entry ${index}: ${entry.type}`)
+
                 // COVER
                 if (entry.type === 'COVER') {
                     return (
@@ -501,6 +503,7 @@ export const BookDocument = ({
                 // TABLE_OF_CONTENTS (may be multiple pages)
                 if (entry.type === 'TABLE_OF_CONTENTS') {
                     const tocPageCount = getTocPageCount(tocEntries)
+                    console.log(`[BookDocument] TOC entries: ${tocEntries.length}, pages: ${tocPageCount}`)
                     return Array.from({ length: tocPageCount }).map((_, pageIdx) => (
                         <TableOfContentsPage
                             key={`${index}-toc-${pageIdx}`}
@@ -545,9 +548,9 @@ export const BookDocument = ({
                         return activityMonth === entry.month && activityYear === entry.year
                     })
 
-                    // MonthlyDividerSpread is a 2-page spread with photos and calendar
+                    // MonthlyDividerSpreadPages is a 2-page spread with photos and calendar (no Document wrapper)
                     return (
-                        <MonthlyDividerSpread
+                        <MonthlyDividerSpreadPages
                             key={index}
                             activities={monthActivities}
                             month={entry.month!}
@@ -561,7 +564,7 @@ export const BookDocument = ({
                 // YEAR_AT_A_GLANCE
                 if (entry.type === 'YEAR_AT_A_GLANCE') {
                     return (
-                        <YearCalendar
+                        <YearCalendarPage
                             key={index}
                             year={entry.year ?? year}
                             activities={activities}
@@ -578,7 +581,7 @@ export const BookDocument = ({
                 // YEAR_STATS
                 if (entry.type === 'YEAR_STATS') {
                     return (
-                        <YearStats
+                        <YearStatsPage
                             key={index}
                             yearSummary={computedYearSummary}
                             periodName={displayPeriod}

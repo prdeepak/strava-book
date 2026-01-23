@@ -123,6 +123,35 @@ Required in `web/.env.local`:
 - Templates receive data via props, not direct API calls
 - Fonts are pre-downloaded in `web/public/fonts/` (41 fonts across 6 categories)
 
+### react-pdf Limitations
+
+**`objectFit: cover` does not work.** To crop images to fit a container, use a clipping pattern:
+
+```tsx
+// Container clips overflow
+<View style={{
+  width: 300,
+  height: 200,
+  overflow: 'hidden',
+  position: 'relative',
+}}>
+  {/* Image fills width, vertically centered, excess clipped */}
+  <Image
+    src={imageUrl}
+    style={{
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      width: 300,
+      minHeight: 200,
+      transform: 'translateY(-50%)',
+    }}
+  />
+</View>
+```
+
+See `FullBleedBackground` component for the standard implementation.
+
 ### Style Guide (IMPORTANT)
 
 **Always read `docs/StyleGuide.md` before modifying any PDF template.** The style guide defines:

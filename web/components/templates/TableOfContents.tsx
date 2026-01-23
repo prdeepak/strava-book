@@ -1,5 +1,8 @@
-import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, BookPageType, FORMATS } from '@/lib/book-types'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
+import { PageHeader } from '@/components/pdf/PageHeader'
 
 export interface TOCEntry {
   title: string
@@ -20,7 +23,7 @@ export interface TableOfContentsProps {
     bookTitle?: string
     athleteName?: string
   }
-  backgroundPhotoUrl?: string  // Faint background photo (opacity ~0.1)
+  backgroundPhotoUrl?: string
   format?: BookFormat
   theme?: BookTheme
   // For multi-page support
@@ -41,114 +44,6 @@ export const getTocPageCount = (entries: TOCEntry[]): number => {
   return 1 + Math.ceil(remaining / ENTRIES_PER_PAGE_CONTINUATION)
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
-    padding: format.safeMargin,
-    paddingTop: format.safeMargin * 1.5,
-    paddingBottom: format.safeMargin,
-    flexDirection: 'column',
-    position: 'relative',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    objectFit: 'cover',
-    opacity: 0.1,
-  },
-  title: {
-    fontSize: Math.max(32, 42 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    fontWeight: 'bold',
-    marginBottom: 32 * format.scaleFactor,
-    textTransform: 'uppercase',
-    letterSpacing: 4,
-  },
-  contentContainer: {
-    flexGrow: 1,
-    flexShrink: 0,
-  },
-  categoryHeader: {
-    fontSize: Math.max(11, 13 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    fontWeight: 'bold',
-    marginTop: 28 * format.scaleFactor,
-    marginBottom: 14 * format.scaleFactor,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.accentColor,
-    paddingBottom: 6 * format.scaleFactor,
-  },
-  categoryHeaderFirst: {
-    marginTop: 0,
-  },
-  tocEntry: {
-    flexDirection: 'row',
-    marginBottom: 14 * format.scaleFactor,
-    alignItems: 'center',
-    paddingLeft: 12 * format.scaleFactor,
-  },
-  tocEntryHighlight: {
-    flexDirection: 'row',
-    marginBottom: 14 * format.scaleFactor,
-    alignItems: 'center',
-    paddingLeft: 12 * format.scaleFactor,
-    backgroundColor: `${theme.accentColor}12`,
-    paddingVertical: 8 * format.scaleFactor,
-    paddingRight: 12 * format.scaleFactor,
-    borderRadius: 4,
-    marginRight: -12 * format.scaleFactor,
-  },
-  tocTitleContainer: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  tocTitle: {
-    fontSize: Math.max(12, 14 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-  },
-  tocTitleHighlight: {
-    fontSize: Math.max(12, 14 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    fontWeight: 'bold',
-  },
-  tocSubtitle: {
-    fontSize: Math.max(8, 10 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  tocPageNumber: {
-    fontSize: Math.max(12, 14 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: theme.primaryColor,
-    marginLeft: 'auto',
-    paddingLeft: 12 * format.scaleFactor,
-    textAlign: 'right',
-  },
-  continuedIndicator: {
-    position: 'absolute',
-    bottom: format.safeMargin,
-    right: format.safeMargin,
-    fontSize: Math.max(9, 10 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    fontStyle: 'italic',
-  },
-})
-
 /**
  * TableOfContents - Section-based TOC page
  * Lists sections (months, races) rather than individual pages
@@ -156,7 +51,6 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
  */
 
 // Generate default entries for testing when no data provided
-// Order: Overview → Races → Training Log (dividers only) → Highlights
 const generateDefaultEntries = (): TOCEntry[] => [
   { title: 'Year Overview', category: 'Overview', pageNumber: 3, type: 'year_stats' },
   { title: 'Activity Calendar', category: 'Overview', pageNumber: 5, type: 'year_calendar' },
@@ -180,7 +74,12 @@ export const TableOfContentsPage = ({
   pageIndex = 0,
   totalPages = 1,
 }: TableOfContentsProps) => {
-  const styles = createStyles(format, theme)
+  // Resolve design tokens
+  const heading = resolveTypography('heading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
 
   // Get entries from props, activity fixture, or generate defaults
   const allEntries = propEntries || activity?.sections || generateDefaultEntries()
@@ -193,15 +92,13 @@ export const TableOfContentsPage = ({
 
   // Group entries by category
   const groupedEntries: Record<string, TOCEntry[]> = {}
-  // Category order - Races come before Training Log (monthly sections)
   const categoryOrder = [
-    'Front Matter',   // Cover, Foreword
-    'Overview',       // Year at a Glance, Year Stats
-    'Races',          // Race pages
-    'Training Log',   // Monthly Dividers only (not Activity Log)
-    'Highlights',     // Best Efforts, Route Heatmap
-    'Back Matter',    // Back Cover
-    // Legacy categories for backwards compatibility
+    'Front Matter',
+    'Overview',
+    'Races',
+    'Training Log',
+    'Highlights',
+    'Back Matter',
     'Monthly',
     'Journal',
     'Appendix',
@@ -228,24 +125,120 @@ export const TableOfContentsPage = ({
     return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
   })
 
+  const styles = StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+      paddingTop: format.safeMargin,
+      paddingBottom: format.safeMargin,
+      flexDirection: 'column',
+      position: 'relative',
+    },
+    contentContainer: {
+      flexGrow: 1,
+      flexShrink: 0,
+    },
+    categoryHeader: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      fontWeight: 'bold',
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: caption.letterSpacing ?? 2,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.accentColor,
+      paddingBottom: spacing.xs,
+    },
+    categoryHeaderFirst: {
+      marginTop: 0,
+    },
+    tocEntry: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+      alignItems: 'center',
+      paddingLeft: spacing.sm,
+    },
+    tocEntryHighlight: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+      alignItems: 'center',
+      paddingLeft: spacing.sm,
+      backgroundColor: `${theme.accentColor}12`,
+      paddingVertical: spacing.xs,
+      paddingRight: spacing.sm,
+      borderRadius: 4,
+      marginRight: -spacing.sm,
+    },
+    tocTitleContainer: {
+      flex: 1,
+      flexDirection: 'column',
+    },
+    tocTitle: {
+      fontSize: body.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor,
+    },
+    tocTitleHighlight: {
+      fontSize: body.fontSize,
+      fontFamily: heading.fontFamily,
+      color: theme.primaryColor,
+      fontWeight: 'bold',
+    },
+    tocSubtitle: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      marginTop: 2,
+    },
+    tocPageNumber: {
+      fontSize: body.fontSize,
+      fontFamily: heading.fontFamily,
+      color: theme.primaryColor,
+      marginLeft: 'auto',
+      paddingLeft: spacing.sm,
+      textAlign: 'right',
+    },
+    continuedIndicator: {
+      position: 'absolute',
+      bottom: format.safeMargin,
+      right: format.safeMargin,
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      fontStyle: 'italic',
+    },
+  })
+
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Background photo (if provided) */}
-      {backgroundPhotoUrl && (
-        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-        <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
-      )}
+      {/* Solid background - differentiates TOC from photo-heavy pages */}
+      <FullBleedBackground
+        fallbackColor={theme.backgroundColor}
+        width={format.dimensions.width}
+        height={format.dimensions.height}
+      />
 
-      {/* Title */}
-      <Text style={styles.title}>
-        {isFirstPage ? 'Contents' : 'Contents (cont.)'}
-      </Text>
+      {/* Header */}
+      <PageHeader
+        title={isFirstPage ? 'Contents' : 'Contents (cont.)'}
+        size="large"
+        alignment="left"
+        showBorder={true}
+        format={format}
+        theme={theme}
+      />
 
       {/* TOC Entries */}
       <View style={styles.contentContainer}>
         {sortedCategories.map((category, categoryIndex) => (
           <View key={category}>
-            {/* Category Header - no top margin for first category */}
+            {/* Category Header */}
             <Text style={
               categoryIndex === 0
                 ? [styles.categoryHeader, styles.categoryHeaderFirst]
