@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
-import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS, TypographyRole } from '@/lib/book-types'
+import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { AutoResizingPdfText } from './AutoResizingPdfText'
 
 /**
@@ -38,18 +39,48 @@ export interface PageHeaderProps {
   theme?: BookTheme
 }
 
-// Size presets define font size ranges for AutoResizingPdfText
-const SIZE_PRESETS: Record<HeaderSize, { minFont: number; maxFont: number; subtitleSize: number }> = {
-  medium: { minFont: 18, maxFont: 28, subtitleSize: 10 },
-  large: { minFont: 28, maxFont: 44, subtitleSize: 12 },
-  hero: { minFont: 48, maxFont: 84, subtitleSize: 14 },
+// Map header sizes to typography roles for consistent font sizing
+const SIZE_TO_TYPOGRAPHY_ROLE: Record<HeaderSize, TypographyRole> = {
+  medium: 'heading',
+  large: 'displaySmall',
+  hero: 'displayLarge',
 }
 
-// Height allocated for title based on size (before scaling)
-const TITLE_HEIGHTS: Record<HeaderSize, number> = {
-  medium: 36,
-  large: 52,
-  hero: 96,
+// Title height multiplier relative to font size (accounts for line height + padding)
+const TITLE_HEIGHT_MULTIPLIER = 1.5
+
+/**
+ * Calculate the total height occupied by a PageHeader.
+ * Use this to reserve space when laying out page content.
+ */
+export function getPageHeaderHeight(
+  size: HeaderSize,
+  format: BookFormat,
+  theme: BookTheme,
+  options?: { showBorder?: boolean; hasSubtitle?: boolean }
+): number {
+  const { showBorder = false, hasSubtitle = false } = options ?? {}
+  const spacing = resolveSpacing(theme, format)
+  const titleTypo = resolveTypography(SIZE_TO_TYPOGRAPHY_ROLE[size], theme, format)
+  const captionTypo = resolveTypography('caption', theme, format)
+
+  // Title container height based on typography
+  let height = titleTypo.fontSize * TITLE_HEIGHT_MULTIPLIER
+
+  // Subtitle adds caption font size + small spacing
+  if (hasSubtitle) {
+    height += captionTypo.fontSize + spacing.xs
+  }
+
+  // Border adds xs spacing (for margin) + 2pt line
+  if (showBorder) {
+    height += spacing.sm + 2
+  }
+
+  // Bottom margin
+  height += spacing.sm
+
+  return height
 }
 
 export const PageHeader = ({
@@ -63,12 +94,14 @@ export const PageHeader = ({
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: PageHeaderProps) => {
-  const scale = format.scaleFactor
-  const preset = SIZE_PRESETS[size]
+  // Resolve design tokens
+  const spacing = resolveSpacing(theme, format)
+  const titleTypo = resolveTypography(SIZE_TO_TYPOGRAPHY_ROLE[size], theme, format)
+  const captionTypo = resolveTypography('caption', theme, format)
 
   // Calculate dimensions
   const contentWidth = format.dimensions.width - (format.safeMargin * 2)
-  const titleHeight = TITLE_HEIGHTS[size] * scale
+  const titleHeight = titleTypo.fontSize * TITLE_HEIGHT_MULTIPLIER
 
   // Resolve colors from theme
   const resolvedTitleColor = titleColor ?? (size === 'hero' ? theme.accentColor : theme.primaryColor)
@@ -80,7 +113,7 @@ export const PageHeader = ({
   const styles = StyleSheet.create({
     container: {
       width: contentWidth,
-      marginBottom: 16 * scale,
+      marginBottom: spacing.sm,
     },
     titleContainer: {
       width: '100%',
@@ -88,20 +121,20 @@ export const PageHeader = ({
     },
     subtitle: {
       width: '100%',
-      fontSize: Math.max(preset.subtitleSize * 0.8, preset.subtitleSize * scale),
-      fontFamily: theme.fontPairing.body,
+      fontSize: captionTypo.fontSize,
+      fontFamily: captionTypo.fontFamily,
       color: resolvedSubtitleColor,
       opacity: 0.6,
       textTransform: 'uppercase',
-      letterSpacing: 2,
-      marginTop: 4 * scale,
+      letterSpacing: captionTypo.letterSpacing ?? 2,
+      marginTop: spacing.xs,
       textAlign: textAlign,
     },
     border: {
       width: '100%',
-      height: 2 * scale,
+      height: 2,
       backgroundColor: theme.primaryColor,
-      marginTop: 12 * scale,
+      marginTop: spacing.sm,
     },
   })
 
@@ -112,9 +145,9 @@ export const PageHeader = ({
           text={title}
           width={contentWidth}
           height={titleHeight}
-          font={theme.fontPairing.heading}
-          min_fontsize={Math.max(preset.minFont * 0.8, preset.minFont * scale)}
-          max_fontsize={Math.max(preset.maxFont * 0.8, preset.maxFont * scale)}
+          font={titleTypo.fontFamily}
+          min_fontsize={titleTypo.minFontSize}
+          max_fontsize={titleTypo.fontSize}
           h_align={textAlign}
           v_align="bottom"
           textColor={resolvedTitleColor}

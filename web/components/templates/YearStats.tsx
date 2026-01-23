@@ -1,15 +1,18 @@
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, YearSummary, DEFAULT_THEME, FORMATS, MonthlyStats } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { MONTH_NAMES_SHORT } from '@/lib/heatmap-utils'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
+import { PageHeader } from '@/components/pdf/PageHeader'
 
 // Helper to format numbers with thousands separators
 const formatWithCommas = (num: number): string => {
   return num.toLocaleString('en-US')
 }
 
-interface YearStatsProps {
+export interface YearStatsProps {
   // Primary input: array of activities for the period
   activities?: StravaActivity[]
   // Legacy: single activity wrapper
@@ -20,332 +23,9 @@ interface YearStatsProps {
   periodName?: string  // Display text for time period
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
-  backgroundPhotoUrl?: string  // Background image at 10% opacity
+  backgroundPhotoUrl?: string
   format?: BookFormat
   theme?: BookTheme
-}
-
-// Create styles with format scaling
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    padding: format.safeMargin,
-    backgroundColor: theme.backgroundColor,
-    flexDirection: 'column',
-    position: 'relative',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    objectFit: 'cover',
-    opacity: 0.1,
-  },
-
-  // Header section
-  header: {
-    marginBottom: 20 * format.scaleFactor,
-  },
-  // Page title - matches TOC "Contents" style for consistency
-  pageTitle: {
-    fontSize: Math.max(32, 42 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    fontWeight: 'bold',
-    marginBottom: 12 * format.scaleFactor,
-    textTransform: 'uppercase',
-    letterSpacing: 4,
-  },
-  // Date range subtitle
-  periodRangeText: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    marginBottom: 8 * format.scaleFactor,
-    opacity: 0.55,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-
-  // Hero stats - Big Three
-  heroStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20 * format.scaleFactor,
-    paddingBottom: 16 * format.scaleFactor,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.primaryColor,
-    borderBottomStyle: 'solid',
-  },
-  heroStat: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  heroValue: {
-    fontSize: Math.max(32, 48 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold', // Monospace for tabular figures
-    color: theme.accentColor,
-    lineHeight: 1,
-    letterSpacing: -1,
-  },
-  heroUnit: {
-    fontSize: Math.max(11, 14 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: theme.accentColor,
-    opacity: 0.7,
-    marginTop: 2 * format.scaleFactor,
-  },
-  heroLabel: {
-    fontSize: Math.max(7, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginTop: 6 * format.scaleFactor,
-    opacity: 0.6,
-  },
-
-  // Secondary stats grid
-  secondarySection: {
-    marginBottom: 14 * format.scaleFactor,
-  },
-  sectionTitle: {
-    fontSize: Math.max(11, 14 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: 16 * format.scaleFactor,
-    opacity: 0.7,
-  },
-  secondaryStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 6 * format.scaleFactor,
-  },
-  secondaryStat: {
-    alignItems: 'center',
-    width: '22%',
-    marginBottom: 6 * format.scaleFactor,
-  },
-  secondaryValue: {
-    fontSize: Math.max(20, 26 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold', // Monospace for alignment
-    color: theme.primaryColor,
-    lineHeight: 1.1,
-  },
-  secondaryLabel: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    marginTop: 2 * format.scaleFactor,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  // Best efforts section
-  bestEffortsSection: {
-    marginTop: 12 * format.scaleFactor,
-  },
-  bestEffortRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3 * format.scaleFactor,
-    borderBottomWidth: 0.5,
-    borderBottomColor: theme.primaryColor,
-    borderBottomStyle: 'solid',
-    opacity: 0.8,
-  },
-  bestEffortName: {
-    fontSize: Math.max(6, 8 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    flex: 1,
-  },
-  bestEffortTime: {
-    fontSize: Math.max(6, 8 * format.scaleFactor),
-    fontFamily: 'Helvetica',
-    color: theme.accentColor,
-    textAlign: 'right',
-  },
-
-  // Monthly graph section
-  graphSection: {
-    marginTop: 12 * format.scaleFactor,
-    marginBottom: 8 * format.scaleFactor,
-  },
-  graphTitle: {
-    fontSize: Math.max(8, 10 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 8 * format.scaleFactor,
-    opacity: 0.7,
-  },
-  chartContainer: {
-    height: 80 * format.scaleFactor,
-    width: '100%',
-  },
-
-  // Sport breakdown section
-  sportSection: {
-    marginTop: 12 * format.scaleFactor,
-    paddingTop: 10 * format.scaleFactor,
-    borderTopWidth: 1,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
-    opacity: 0.9,
-  },
-  sportRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  sportItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  sportIcon: {
-    width: 24 * format.scaleFactor,
-    height: 24 * format.scaleFactor,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  sportValue: {
-    fontSize: Math.max(16, 20 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: theme.accentColor,
-    marginBottom: 2 * format.scaleFactor,
-  },
-  sportLabel: {
-    fontSize: Math.max(7, 8 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-})
-
-/**
- * Inline MonthlyBarChart component for YearStats
- * Renders a simple bar chart using View components (no SVG Text issues)
- * Shows only the months in the actual period, in order
- */
-interface MonthlyBarChartProps {
-  monthlyStats: MonthlyStats[]
-  theme: BookTheme
-  format: BookFormat
-  startMonth?: number  // 0-11, month to start from
-  endMonth?: number    // 0-11, month to end at
-}
-
-const MonthlyBarChart = ({ monthlyStats, theme, format, startMonth, endMonth }: MonthlyBarChartProps) => {
-  // Determine which months to show based on actual activity data
-  // Default: show only months with data, or fall back to provided range
-  let monthsToShow: { stats: MonthlyStats; monthIndex: number }[] = []
-
-  if (startMonth !== undefined && endMonth !== undefined) {
-    // Use provided range (can wrap around year boundary)
-    if (startMonth <= endMonth) {
-      // Same year: July (6) to December (11)
-      for (let m = startMonth; m <= endMonth; m++) {
-        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
-      }
-    } else {
-      // Crosses year boundary: October (9) to February (1)
-      for (let m = startMonth; m < 12; m++) {
-        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
-      }
-      for (let m = 0; m <= endMonth; m++) {
-        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
-      }
-    }
-  } else {
-    // Find first and last month with activity
-    let firstMonth = -1
-    let lastMonth = -1
-    monthlyStats.forEach((stats, idx) => {
-      if (stats.totalDistance > 0 || stats.activityCount > 0) {
-        if (firstMonth === -1) firstMonth = idx
-        lastMonth = idx
-      }
-    })
-
-    if (firstMonth === -1) {
-      // No activities, show all months
-      monthsToShow = monthlyStats.map((stats, idx) => ({ stats, monthIndex: idx }))
-    } else {
-      // Show from first to last active month
-      for (let m = firstMonth; m <= lastMonth; m++) {
-        monthsToShow.push({ stats: monthlyStats[m], monthIndex: m })
-      }
-    }
-  }
-
-  const maxDistance = Math.max(...monthsToShow.map(m => m.stats.totalDistance), 1)
-  const chartHeight = 60 * format.scaleFactor
-  const numMonths = monthsToShow.length
-
-  return (
-    <View style={{ flexDirection: 'column' }}>
-      {/* Bars row */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        height: chartHeight,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.primaryColor,
-        borderBottomStyle: 'solid',
-        paddingBottom: 2,
-        marginBottom: 4 * format.scaleFactor,
-      }}>
-        {monthsToShow.map((month, index) => {
-          const barHeight = Math.max((month.stats.totalDistance / maxDistance) * (chartHeight - 4), 4)
-          return (
-            <View
-              key={index}
-              style={{
-                width: `${100 / numMonths - 1}%`,
-                height: barHeight,
-                backgroundColor: theme.accentColor,
-                borderTopLeftRadius: 2,
-                borderTopRightRadius: 2,
-              }}
-            />
-          )
-        })}
-      </View>
-      {/* Labels row */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-      }}>
-        {monthsToShow.map((month, index) => (
-          <Text
-            key={index}
-            style={{
-              width: `${100 / numMonths}%`,
-              fontSize: Math.max(7, 8 * format.scaleFactor),
-              fontFamily: theme.fontPairing.body,
-              color: theme.primaryColor,
-              opacity: 0.6,
-              textAlign: 'center',
-            }}
-          >
-            {MONTH_NAMES_SHORT[month.monthIndex]}
-          </Text>
-        ))}
-      </View>
-    </View>
-  )
 }
 
 // Helper to format time
@@ -369,29 +49,17 @@ const formatElevation = (meters: number): { value: number; unit: string } => {
   return { value: Math.round(meters), unit: 'm' }
 }
 
-// Helper to calculate average pace (min/km)
-const calculateAveragePace = (totalDistance: number, totalTime: number): string => {
-  if (totalDistance === 0) return 'N/A'
-  const paceMinPerKm = (totalTime / 60) / (totalDistance / 1000)
-  const minutes = Math.floor(paceMinPerKm)
-  const seconds = Math.round((paceMinPerKm - minutes) * 60)
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
-
 // Helper to generate synthetic year summary for testing/single activities
 const generateSyntheticYearSummary = (activity?: Partial<StravaActivity>): YearSummary => {
   const year = activity?.start_date_local
     ? new Date(activity.start_date_local).getFullYear()
     : new Date().getFullYear()
 
-  // Create synthetic best efforts if activity doesn't have them
   const syntheticBestEfforts = [
     { name: '400m', elapsed_time: 75, moving_time: 75, distance: 400, start_index: 0, end_index: 100, pr_rank: 1 },
     { name: '1/2 mile', elapsed_time: 156, moving_time: 156, distance: 805, start_index: 0, end_index: 200, pr_rank: null },
     { name: '1k', elapsed_time: 210, moving_time: 210, distance: 1000, start_index: 0, end_index: 300, pr_rank: 2 },
     { name: '1 mile', elapsed_time: 342, moving_time: 342, distance: 1609, start_index: 0, end_index: 400, pr_rank: null },
-    { name: '5k', elapsed_time: 1080, moving_time: 1080, distance: 5000, start_index: 0, end_index: 1000, pr_rank: 3 },
-    { name: '10k', elapsed_time: 2280, moving_time: 2280, distance: 10000, start_index: 0, end_index: 2000, pr_rank: null },
   ]
 
   const activityWithEfforts = (activity?.best_efforts?.length ?? 0) > 0
@@ -400,13 +68,13 @@ const generateSyntheticYearSummary = (activity?: Partial<StravaActivity>): YearS
 
   return {
     year,
-    totalDistance: activity?.distance || 5000000, // 5000 km for testing
-    totalTime: activity?.moving_time || 900000, // 250 hours for testing
-    totalElevation: activity?.total_elevation_gain || 50000, // 50000m for testing
+    totalDistance: activity?.distance || 5000000,
+    totalTime: activity?.moving_time || 900000,
+    totalElevation: activity?.total_elevation_gain || 50000,
     activityCount: activity ? 1 : 250,
     longestActivity: (activity || {}) as StravaActivity,
     fastestActivity: (activityWithEfforts || {}) as StravaActivity,
-    activeDays: new Set(['2024-01-01']), // Placeholder
+    activeDays: new Set(['2024-01-01']),
     monthlyStats: generateMonthlyStats(year),
     races: activity?.workout_type === 1 ? [activity as StravaActivity] : [],
   }
@@ -432,33 +100,25 @@ const deriveYearSummaryFromActivities = (activities: StravaActivity[]): YearSumm
     return generateSyntheticYearSummary()
   }
 
-  // Determine year from activities
   const years = activities.map(a => new Date(a.start_date_local || a.start_date).getFullYear())
-  const year = Math.max(...years) // Use most recent year
+  const year = Math.max(...years)
 
-  // Calculate totals
   const totalDistance = activities.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalTime = activities.reduce((sum, a) => sum + (a.moving_time || 0), 0)
   const totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
 
-  // Calculate active days
   const activeDaysSet = new Set<string>()
   activities.forEach(a => {
     const date = new Date(a.start_date_local || a.start_date)
     activeDaysSet.add(date.toISOString().split('T')[0])
   })
 
-  // Find longest activity by distance
   const longestActivity = activities.reduce((longest, a) =>
     (a.distance || 0) > (longest?.distance || 0) ? a : longest, activities[0])
 
-  // Find fastest activity (one with best efforts)
   const fastestActivity = activities.find(a => a.best_efforts && a.best_efforts.length > 0) || activities[0]
-
-  // Find races (workout_type === 1)
   const races = activities.filter(a => a.workout_type === 1)
 
-  // Group by month for monthly stats
   const byMonth = new Map<number, StravaActivity[]>()
   activities.forEach(a => {
     const date = new Date(a.start_date_local || a.start_date)
@@ -500,20 +160,134 @@ const deriveYearSummaryFromActivities = (activities: StravaActivity[]): YearSumm
   }
 }
 
-export const YearStats = ({
+/**
+ * Inline MonthlyBarChart component for YearStats
+ */
+interface MonthlyBarChartProps {
+  monthlyStats: MonthlyStats[]
+  theme: BookTheme
+  format: BookFormat
+  startMonth?: number
+  endMonth?: number
+}
+
+const MonthlyBarChart = ({ monthlyStats, theme, format, startMonth, endMonth }: MonthlyBarChartProps) => {
+  const spacing = resolveSpacing(theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const effects = resolveEffects(theme)
+
+  let monthsToShow: { stats: MonthlyStats; monthIndex: number }[] = []
+
+  if (startMonth !== undefined && endMonth !== undefined) {
+    if (startMonth <= endMonth) {
+      for (let m = startMonth; m <= endMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+    } else {
+      for (let m = startMonth; m < 12; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+      for (let m = 0; m <= endMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m] || { totalDistance: 0 }, monthIndex: m })
+      }
+    }
+  } else {
+    let firstMonth = -1
+    let lastMonth = -1
+    monthlyStats.forEach((stats, idx) => {
+      if (stats.totalDistance > 0 || stats.activityCount > 0) {
+        if (firstMonth === -1) firstMonth = idx
+        lastMonth = idx
+      }
+    })
+
+    if (firstMonth === -1) {
+      monthsToShow = monthlyStats.map((stats, idx) => ({ stats, monthIndex: idx }))
+    } else {
+      for (let m = firstMonth; m <= lastMonth; m++) {
+        monthsToShow.push({ stats: monthlyStats[m], monthIndex: m })
+      }
+    }
+  }
+
+  const maxDistance = Math.max(...monthsToShow.map(m => m.stats.totalDistance), 1)
+  const chartHeight = spacing.xl * 3
+  const numMonths = monthsToShow.length
+
+  return (
+    <View style={{ flexDirection: 'column' }}>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        height: chartHeight,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.primaryColor,
+        borderBottomStyle: 'solid',
+        paddingBottom: 2,
+        marginBottom: spacing.xs,
+      }}>
+        {monthsToShow.map((month, index) => {
+          const barHeight = Math.max((month.stats.totalDistance / maxDistance) * (chartHeight - 4), 4)
+          return (
+            <View
+              key={index}
+              style={{
+                width: `${100 / numMonths - 1}%`,
+                height: barHeight,
+                backgroundColor: theme.accentColor,
+                borderTopLeftRadius: 2,
+                borderTopRightRadius: 2,
+              }}
+            />
+          )
+        })}
+      </View>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+      }}>
+        {monthsToShow.map((month, index) => (
+          <Text
+            key={index}
+            style={{
+              width: `${100 / numMonths}%`,
+              fontSize: caption.fontSize,
+              fontFamily: caption.fontFamily,
+              color: theme.primaryColor,
+              opacity: effects.textOverlayOpacity,
+              textAlign: 'center',
+            }}
+          >
+            {MONTH_NAMES_SHORT[month.monthIndex]}
+          </Text>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+// Page-only version for use in BookDocument (no Document wrapper)
+export const YearStatsPage = ({
   activities,
   activity,
   yearSummary: propYearSummary,
-  periodName: propPeriodName,
+  // periodName not used - PageHeader uses "In Review" as title
   startDate: propStartDate,
   endDate: propEndDate,
   backgroundPhotoUrl,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME
 }: YearStatsProps) => {
-  const styles = createStyles(format, theme)
+  // Resolve design tokens
+  const displayLarge = resolveTypography('displayLarge', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
 
-  // Get year summary: prefer activities array, then explicit prop, then legacy activity wrapper, then synthetic
+  // Get year summary
   let yearSummary: YearSummary
   if (activities && activities.length > 0) {
     yearSummary = deriveYearSummaryFromActivities(activities)
@@ -539,7 +313,6 @@ export const YearStats = ({
   const time = formatTime(yearSummary.totalTime)
   const elevation = formatElevation(yearSummary.totalElevation)
 
-  // Calculate secondary stats
   const avgDistancePerActivity = yearSummary.activityCount > 0
     ? Math.round(yearSummary.totalDistance / 1000 / yearSummary.activityCount)
     : 0
@@ -552,111 +325,246 @@ export const YearStats = ({
     ? (typeof yearSummary.activeDays === 'number' ? yearSummary.activeDays : yearSummary.activeDays.size)
     : 0
 
-  // Calculate total kudos and comments from races/activities
   const totalKudos = yearSummary.races?.reduce((sum, race) => sum + (race.kudos_count || 0), 0) || 0
-
-  // Get best efforts from fastest activity (limit to 4 for space)
   const bestEfforts = yearSummary.fastestActivity?.best_efforts?.slice(0, 4) || []
 
-  return (
-    <Document>
-      <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-        {/* Background photo (if provided) */}
-        {backgroundPhotoUrl && (
-          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-          <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
-        )}
+  const styles = StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      padding: format.safeMargin,
+      backgroundColor: theme.backgroundColor,
+      flexDirection: 'column',
+      position: 'relative',
+    },
+    // Hero stats - Big Three
+    heroStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: spacing.md,
+      paddingBottom: spacing.sm,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      borderBottomStyle: 'solid',
+    },
+    heroStat: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    heroValue: {
+      fontSize: subheading.fontSize * 2.5,  // One size smaller than displayLarge
+      fontFamily: displayLarge.fontFamily,
+      color: theme.accentColor,
+      lineHeight: 1,
+      letterSpacing: -1,
+    },
+    heroUnit: {
+      fontSize: subheading.fontSize,
+      fontFamily: subheading.fontFamily,
+      color: theme.accentColor,
+      opacity: effects.textOverlayOpacity + 0.2,
+      marginTop: spacing.xs,
+    },
+    heroLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      textTransform: 'uppercase',
+      letterSpacing: caption.letterSpacing ?? 1.5,
+      marginTop: spacing.xs,
+      opacity: effects.textOverlayOpacity,
+    },
+    // Secondary stats grid
+    secondarySection: {
+      marginBottom: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: subheading.fontSize,
+      fontFamily: subheading.fontFamily,
+      color: theme.primaryColor,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      marginBottom: spacing.sm,
+      opacity: effects.textOverlayOpacity + 0.2,
+    },
+    secondaryStatsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: spacing.xs,
+    },
+    secondaryStat: {
+      alignItems: 'center',
+      width: '22%',
+      marginBottom: spacing.xs,
+    },
+    secondaryValue: {
+      fontSize: body.fontSize * 1.8,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor,
+      lineHeight: 1.1,
+    },
+    secondaryLabel: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      marginTop: 2,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    // Best efforts section
+    bestEffortsSection: {
+      marginTop: spacing.sm,
+    },
+    bestEffortRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.xs / 2,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.primaryColor,
+      borderBottomStyle: 'solid',
+      opacity: 0.8,
+    },
+    bestEffortName: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      flex: 1,
+    },
+    bestEffortTime: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      textAlign: 'right',
+    },
+    // Monthly graph section
+    graphSection: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    graphTitle: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      marginBottom: spacing.xs,
+      opacity: effects.textOverlayOpacity + 0.2,
+    },
+  })
 
-        {/* Page Title */}
-        <View style={styles.header}>
-          <Text style={styles.pageTitle}>In Review</Text>
-          {periodRangeDisplay && (
-            <Text style={styles.periodRangeText}>{periodRangeDisplay}</Text>
+  return (
+    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+      {/* Background: faded photo or solid color */}
+      <FullBleedBackground
+        image={backgroundPhotoUrl}
+        fallbackColor={theme.backgroundColor}
+        role="background"
+        imageOpacity={effects.backgroundImageOpacity * 0.2}
+        overlayOpacity={0}
+        width={format.dimensions.width}
+        height={format.dimensions.height}
+      />
+
+      {/* Header */}
+      <PageHeader
+        title="In Review"
+        subtitle={periodRangeDisplay || undefined}
+        size="large"
+        alignment="left"
+        showBorder={true}
+        format={format}
+        theme={theme}
+      />
+
+      {/* Hero Stats - Big Three in a row */}
+      <View style={styles.heroStatsRow}>
+        <View style={styles.heroStat}>
+          <Text style={styles.heroValue}>{formatWithCommas(distance.value)}</Text>
+          <Text style={styles.heroUnit}>{distance.unit}</Text>
+          <Text style={styles.heroLabel}>Distance</Text>
+        </View>
+
+        <View style={styles.heroStat}>
+          <Text style={styles.heroValue}>{formatWithCommas(time.value)}</Text>
+          <Text style={styles.heroUnit}>{time.unit}</Text>
+          <Text style={styles.heroLabel}>Time</Text>
+        </View>
+
+        <View style={styles.heroStat}>
+          <Text style={styles.heroValue}>{formatWithCommas(elevation.value)}</Text>
+          <Text style={styles.heroUnit}>{elevation.unit}</Text>
+          <Text style={styles.heroLabel}>Elevation</Text>
+        </View>
+      </View>
+
+      {/* Secondary Stats Grid */}
+      <View style={styles.secondarySection}>
+        <View style={styles.secondaryStatsGrid}>
+          <View style={styles.secondaryStat}>
+            <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
+            <Text style={styles.secondaryLabel}>Activities</Text>
+          </View>
+
+          <View style={styles.secondaryStat}>
+            <Text style={styles.secondaryValue}>{activeDays}</Text>
+            <Text style={styles.secondaryLabel}>Active Days</Text>
+          </View>
+
+          <View style={styles.secondaryStat}>
+            <Text style={styles.secondaryValue}>{avgDistancePerActivity}</Text>
+            <Text style={styles.secondaryLabel}>Avg Distance (km)</Text>
+          </View>
+
+          <View style={styles.secondaryStat}>
+            <Text style={styles.secondaryValue}>{avgTimePerActivity}</Text>
+            <Text style={styles.secondaryLabel}>Avg Time (hrs)</Text>
+          </View>
+
+          {yearSummary.races && yearSummary.races.length > 0 && (
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
+              <Text style={styles.secondaryLabel}>Races</Text>
+            </View>
+          )}
+
+          {totalKudos > 0 && (
+            <View style={styles.secondaryStat}>
+              <Text style={styles.secondaryValue}>{totalKudos}</Text>
+              <Text style={styles.secondaryLabel}>Total Kudos</Text>
+            </View>
           )}
         </View>
+      </View>
 
-        {/* Hero Stats - Big Three in a row */}
-        <View style={styles.heroStatsRow}>
-          {/* Total Distance */}
-          <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{formatWithCommas(distance.value)}</Text>
-            <Text style={styles.heroUnit}>{distance.unit}</Text>
-            <Text style={styles.heroLabel}>Distance</Text>
-          </View>
+      {/* Best Efforts Section */}
+      {bestEfforts.length > 0 && (
+        <View style={styles.bestEffortsSection}>
+          <Text style={styles.sectionTitle}>Best Efforts</Text>
+          {bestEfforts.slice(0, 4).map((effort, i) => {
+            const minutes = Math.floor(effort.elapsed_time / 60)
+            const seconds = effort.elapsed_time % 60
+            const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
 
-          {/* Total Time */}
-          <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{formatWithCommas(time.value)}</Text>
-            <Text style={styles.heroUnit}>{time.unit}</Text>
-            <Text style={styles.heroLabel}>Time</Text>
-          </View>
-
-          {/* Total Elevation */}
-          <View style={styles.heroStat}>
-            <Text style={styles.heroValue}>{formatWithCommas(elevation.value)}</Text>
-            <Text style={styles.heroUnit}>{elevation.unit}</Text>
-            <Text style={styles.heroLabel}>Elevation</Text>
-          </View>
-        </View>
-
-        {/* Secondary Stats Grid */}
-        <View style={styles.secondarySection}>
-          <View style={styles.secondaryStatsGrid}>
-            <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{yearSummary.activityCount}</Text>
-              <Text style={styles.secondaryLabel}>Activities</Text>
-            </View>
-
-            <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{activeDays}</Text>
-              <Text style={styles.secondaryLabel}>Active Days</Text>
-            </View>
-
-            <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{avgDistancePerActivity}</Text>
-              <Text style={styles.secondaryLabel}>Avg Distance (km)</Text>
-            </View>
-
-            <View style={styles.secondaryStat}>
-              <Text style={styles.secondaryValue}>{avgTimePerActivity}</Text>
-              <Text style={styles.secondaryLabel}>Avg Time (hrs)</Text>
-            </View>
-
-            {yearSummary.races && yearSummary.races.length > 0 && (
-              <View style={styles.secondaryStat}>
-                <Text style={styles.secondaryValue}>{yearSummary.races.length}</Text>
-                <Text style={styles.secondaryLabel}>Races</Text>
+            return (
+              <View key={i} style={styles.bestEffortRow}>
+                <Text style={styles.bestEffortName}>{effort.name}</Text>
+                <Text style={styles.bestEffortTime}>{timeStr}</Text>
               </View>
-            )}
-
-            {totalKudos > 0 && (
-              <View style={styles.secondaryStat}>
-                <Text style={styles.secondaryValue}>{totalKudos}</Text>
-                <Text style={styles.secondaryLabel}>Total Kudos</Text>
-              </View>
-            )}
-          </View>
+            )
+          })}
         </View>
+      )}
 
-        {/* Best Efforts Section */}
-        {bestEfforts.length > 0 && (
-          <View style={styles.bestEffortsSection}>
-            <Text style={styles.sectionTitle}>Best Efforts</Text>
-            {bestEfforts.slice(0, 4).map((effort, i) => {
-              const minutes = Math.floor(effort.elapsed_time / 60)
-              const seconds = effort.elapsed_time % 60
-              const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
-
-              return (
-                <View key={i} style={styles.bestEffortRow}>
-                  <Text style={styles.bestEffortName}>{effort.name}</Text>
-                  <Text style={styles.bestEffortTime}>{timeStr}</Text>
-                </View>
-              )
-            })}
-          </View>
-        )}
-      </Page>
-    </Document>
+    </Page>
   )
 }
+
+// Standalone version with Document wrapper (for testing)
+export const YearStats = (props: YearStatsProps) => (
+  <Document>
+    <YearStatsPage {...props} />
+  </Document>
+)

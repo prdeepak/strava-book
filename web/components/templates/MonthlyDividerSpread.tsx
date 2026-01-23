@@ -701,3 +701,12 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
     </Page>
   )
 }
+
+// Pages-only version for use in BookDocument (no Document wrapper)
+// Returns a Fragment with both left and right pages
+export const MonthlyDividerSpreadPages = (props: MonthlyDividerSpreadProps) => (
+  <>
+    <MonthlyDividerLeftPage {...props} />
+    <MonthlyDividerRightPage {...props} />
+  </>
+)
