@@ -5,8 +5,8 @@
  * Each entry is wrapped in its own Document container for independent rendering.
  */
 
-import { Document } from '@react-pdf/renderer'
-import { renderToBuffer } from '@react-pdf/renderer'
+import React, { ReactElement } from 'react'
+import { Document, DocumentProps, renderToBuffer } from '@react-pdf/renderer'
 import { BookEntry } from '@/lib/curator'
 import { BookFormat, BookTheme, YearSummary } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
@@ -93,7 +93,7 @@ export async function renderEntryAsPdf(
 ): Promise<RenderedPage | null> {
   const { activities, format, theme, athleteName, periodName, year, startDate, endDate, yearSummary, mapboxToken, tocEntries } = context
 
-  let pageElement: JSX.Element | null = null
+  let pageElement: ReactElement<DocumentProps> | null = null
 
   try {
     switch (entry.type) {

@@ -137,7 +137,7 @@ export const CoverPage = ({
   const athleteNameHeight = caption.fontSize * 2
 
   // Resolve background image path for PDF rendering
-  const bgImage = resolveImageForPdf(backgroundImage)
+  const bgImage = resolveImageForPdf(backgroundImage) ?? undefined
 
   const styles = StyleSheet.create({
     page: {

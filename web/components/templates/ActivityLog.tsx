@@ -14,6 +14,7 @@ import { formatDistance, formatTime, formatPace, resolveActivityLocation, getMap
 import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import polyline from '@mapbox/polyline'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // ============================================================================
 // TYPES
@@ -38,7 +39,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   page: {
     width: format.dimensions.width,
     height: format.dimensions.height,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: `${theme.primaryColor}05`,
     padding: format.safeMargin,
   },
   pageHeader: {
@@ -61,11 +62,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   },
   activityCard: {
     width: '48%',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.backgroundColor,
     padding: 12 * format.scaleFactor,
     marginBottom: 12 * format.scaleFactor,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: `${theme.primaryColor}20`,
   },
   cardHeader: {
     marginBottom: 8 * format.scaleFactor,
@@ -118,13 +119,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   mapContainer: {
     width: '100%',
     height: 80 * format.scaleFactor,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: theme.primaryColor,
     marginBottom: 8 * format.scaleFactor,
   },
   photoContainer: {
     width: '100%',
     height: 100 * format.scaleFactor,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: `${theme.primaryColor}10`,
     marginBottom: 8 * format.scaleFactor,
   },
   socialRow: {
@@ -134,7 +135,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     marginTop: 6 * format.scaleFactor,
     paddingTop: 6 * format.scaleFactor,
     borderTopWidth: 0.5,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: `${theme.primaryColor}20`,
   },
   kudos: {
     fontSize: Math.max(7, 8 * format.scaleFactor),
@@ -217,7 +218,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.backgroundColor,
       padding: format.safeMargin,
     },
     header: {
@@ -245,13 +246,13 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     mapSection: {
       width: '55%',
       height: 200 * scale,
-      backgroundColor: '#f5f5f5',
+      backgroundColor: `${theme.primaryColor}08`,
       overflow: 'hidden',
     },
     photoSection: {
       width: '45%',
       height: 200 * scale,
-      backgroundColor: '#f0f0f0',
+      backgroundColor: `${theme.primaryColor}10`,
       overflow: 'hidden',
     },
     mapImage: {
@@ -267,7 +268,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
     },
     statBox: {
       width: '23%',
-      backgroundColor: '#f8f9fa',
+      backgroundColor: `${theme.primaryColor}05`,
       padding: 12 * scale,
       alignItems: 'center',
     },
@@ -289,7 +290,7 @@ const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
       marginTop: 16 * scale,
       paddingTop: 12 * scale,
       borderTopWidth: 1,
-      borderTopColor: '#e0e0e0',
+      borderTopColor: `${theme.primaryColor}20`,
       gap: 16 * scale,
     },
     socialItem: {
@@ -321,7 +322,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      backgroundColor: '#fafafa',
+      backgroundColor: `${theme.primaryColor}05`,
       padding: format.safeMargin,
     },
     header: {
@@ -363,9 +364,9 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 16 * scale,
       paddingVertical: 12 * scale,
       paddingHorizontal: 8 * scale,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.backgroundColor,
       borderWidth: 1,
-      borderColor: '#e0e0e0',
+      borderColor: `${theme.primaryColor}20`,
     },
     statItem: {
       alignItems: 'center',
@@ -408,7 +409,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 8 * scale,
       paddingBottom: 8 * scale,
       borderBottomWidth: 1,
-      borderBottomColor: '#e0e0e0',
+      borderBottomColor: `${theme.primaryColor}20`,
     },
     commentsTitle: {
       fontSize: Math.max(10, 12 * scale),
@@ -425,7 +426,7 @@ const createFullStyles = (format: BookFormat, theme: BookTheme) => {
       marginBottom: 10 * scale,
       paddingBottom: 8 * scale,
       borderBottomWidth: 0.5,
-      borderBottomColor: '#e8e8e8',
+      borderBottomColor: `${theme.primaryColor}18`,
     },
     commentAuthor: {
       fontSize: Math.max(9, 10 * scale),
@@ -534,9 +535,9 @@ const ActivityLogConcise = ({
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: `${theme.primaryColor}05`,
               borderWidth: 1,
-              borderColor: '#e0e0e0',
+              borderColor: `${theme.primaryColor}20`,
               padding: 16 * scale,
             }}>
               <Text style={{
@@ -940,3 +941,143 @@ export const ActivityLog = ({
 // Export page versions for embedding
 export const ActivityLogConcisePage = ActivityLogConcise
 export const ActivityLogFullPage = ActivityLogFull
+
+// Grid variant page-only component for embedding in BookDocument
+export const ActivityLogPage = ({
+  activities: activitiesProp,
+  activity: activityProp,
+  startIndex = 0,
+  activitiesPerPage = 6,
+  format = FORMATS['10x10'],
+  theme = DEFAULT_THEME,
+  units = 'metric',
+  title = 'Activity Log',
+}: Omit<ActivityLogProps, 'variant' | 'mapboxToken'>) => {
+  const styles = createStyles(format, theme)
+
+  const activities = activitiesProp || (activityProp ? [activityProp] : [])
+  const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
+
+  return (
+    <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+      {/* Page Header */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>{title}</Text>
+      </View>
+
+      {/* Activity Cards Grid */}
+      <View style={styles.cardsContainer}>
+        {pageActivities.map((activity, index) => {
+          const date = new Date(activity.start_date_local)
+          const dateStr = date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          })
+          const location = resolveActivityLocation(activity)
+
+          const time = formatTime(activity.moving_time)
+          const pace = formatPace(activity.moving_time, activity.distance, units)
+
+          const pathData = createMiniMapPath(activity.map?.summary_polyline)
+          const photoUrl = activity.photos?.primary?.urls?.['600']
+            ? resolveImageUrl(activity.photos.primary.urls['600'])
+            : null
+          const hasTopEfforts = hasTopBestEfforts(activity)
+
+          return (
+            <View key={activity.id || index} style={styles.activityCard}>
+              {/* Card Header */}
+              <View style={styles.cardHeader}>
+                <Text style={styles.activityName}>{activity.name}</Text>
+                <Text style={styles.activityMeta}>
+                  {dateStr} • {location}
+                </Text>
+              </View>
+
+              {/* Description */}
+              {activity.description && (
+                <Text style={styles.description}>
+                  {activity.description.length > 120
+                    ? activity.description.substring(0, 120) + '...'
+                    : activity.description
+                  }
+                </Text>
+              )}
+
+              {/* Photo or Map */}
+              {photoUrl && (
+                <View style={styles.photoContainer}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image
+                    src={photoUrl}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </View>
+              )}
+              {!photoUrl && pathData && (
+                <View style={styles.mapContainer}>
+                  <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                    <Path
+                      d={pathData}
+                      stroke={theme.accentColor}
+                      strokeWidth={2.5}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                </View>
+              )}
+
+              {/* Key Stats */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>
+                    {units === 'metric'
+                      ? (activity.distance / 1000).toFixed(1)
+                      : (activity.distance / 1609.34).toFixed(1)
+                    }
+                  </Text>
+                  <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{time}</Text>
+                  <Text style={styles.statLabel}>time</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{pace}</Text>
+                  <Text style={styles.statLabel}>pace</Text>
+                </View>
+                {activity.total_elevation_gain > 0 && (
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
+                    <Text style={styles.statLabel}>elev</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Social/Engagement Row */}
+              <View style={styles.socialRow}>
+                <View style={{ flexDirection: 'row' }}>
+                  {activity.kudos_count > 0 && (
+                    <Text style={[styles.kudos, { marginRight: 8 }]}>
+                      {activity.kudos_count} kudos
+                    </Text>
+                  )}
+                  {(activity.comment_count ?? 0) > 0 && (
+                    <Text style={styles.comments}>
+                      {activity.comment_count} comments
+                    </Text>
+                  )}
+                </View>
+                {hasTopEfforts && (
+                  <Text style={styles.bestEffortBadge}>PR</Text>
+                )}
+              </View>
+            </View>
+          )
+        })}
+      </View>
+    </Page>
+  )
+}
