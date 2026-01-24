@@ -682,7 +682,7 @@ export const BookDocument = ({
                             periodName={displayPeriod}
                             startDate={startDate}
                             endDate={endDate}
-                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            backCoverPhoto={entry.backCoverPhotoUrl}
                             format={format}
                             theme={theme}
                         />
