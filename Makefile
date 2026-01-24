@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge
 
 # =============================================================================
 # Workspace Detection
@@ -58,6 +58,8 @@ help:
 	@echo "  make workspace-destroy id=X            - Remove a workspace completely"
 	@echo "  make workspace-cleanup                 - Remove stale workspaces (inactive >24h)"
 	@echo "  make workspace-info                    - Show current workspace context"
+	@echo "  make workspace-merge pr=N              - Merge PR and sync main worktree"
+	@echo "  make sync-main                         - Sync main worktree with origin/main"
 ifeq ($(IS_WORKSPACE),yes)
 	@echo ""
 	@echo "Current context: WORKSPACE ($(WORKSPACE_ID))"
@@ -283,3 +285,21 @@ workspace-destroy:
 
 workspace-cleanup:
 	@./scripts/workspace-manager.sh cleanup
+
+# Sync main worktree with origin/main (run after PRs are merged)
+sync-main:
+	@echo "🔄 Syncing main worktree with origin/main..."
+	@git -C ~/bin/strava-book fetch origin main
+	@git -C ~/bin/strava-book reset --hard origin/main
+	@echo "✅ Main worktree updated to $(shell git -C ~/bin/strava-book rev-parse --short HEAD)"
+
+# Merge a PR and sync main worktree
+# Usage: make workspace-merge pr=83
+workspace-merge:
+	@if [ -z "$(pr)" ]; then echo "Usage: make workspace-merge pr=<PR_NUMBER>"; exit 1; fi
+	@echo "🔀 Merging PR #$(pr)..."
+	@gh pr merge $(pr) --squash
+	@echo "🔄 Syncing main worktree..."
+	@git -C ~/bin/strava-book fetch origin main
+	@git -C ~/bin/strava-book reset --hard origin/main
+	@echo "✅ PR #$(pr) merged and main worktree synced"
