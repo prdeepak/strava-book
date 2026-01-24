@@ -21,7 +21,6 @@ import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { SplitsChartSVG, SplitData } from '@/lib/generateSplitsChart'
 import mapboxPolyline from '@mapbox/polyline'
-import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // ============================================================================
 // TYPES
@@ -75,14 +74,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             left: 0,
             right: 0,
             height: '60%',
-            backgroundColor: `${theme.primaryColor}b3`,
+            backgroundColor: 'rgba(0,0,0,0.7)',
         },
         heroContent: {
             position: 'absolute',
             bottom: format.safeMargin,
             left: format.safeMargin,
             right: format.safeMargin,
-            backgroundColor: `${theme.primaryColor}d9`,
+            backgroundColor: 'rgba(0,0,0,0.85)',
             padding: 24 * scale,
             paddingTop: 20 * scale,
         },
@@ -95,14 +94,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             marginBottom: 12 * scale,
         },
         heroTitle: {
-            color: theme.backgroundColor,
+            color: '#ffffff',
             fontSize: Math.max(32, 42 * scale),
             fontFamily: theme.fontPairing.heading,
             marginBottom: 12 * scale,
             lineHeight: 1.15,
         },
         heroMeta: {
-            color: `${theme.backgroundColor}e6`,
+            color: 'rgba(255,255,255,0.9)',
             fontSize: Math.max(14, 16 * scale),
             fontFamily: theme.fontPairing.body,
             marginBottom: 20 * scale,
@@ -113,18 +112,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             gap: 32 * scale,
             paddingTop: 16 * scale,
             borderTopWidth: 1,
-            borderTopColor: `${theme.backgroundColor}4d`,
+            borderTopColor: 'rgba(255,255,255,0.3)',
         },
         heroStat: {
             alignItems: 'flex-start',
         },
         heroStatValue: {
-            color: theme.backgroundColor,
+            color: '#ffffff',
             fontSize: Math.max(28, 36 * scale),
             fontFamily: 'Helvetica-Bold',
         },
         heroStatLabel: {
-            color: `${theme.backgroundColor}bf`,
+            color: 'rgba(255,255,255,0.75)',
             fontSize: Math.max(10, 12 * scale),
             fontFamily: theme.fontPairing.body,
             textTransform: 'uppercase',
@@ -136,7 +135,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         statsPage: {
             width: format.dimensions.width,
             height: format.dimensions.height,
-            backgroundColor: theme.backgroundColor,
+            backgroundColor: '#ffffff',
             padding: format.safeMargin,
         },
         statsHeader: {
@@ -170,15 +169,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             marginTop: 16 * scale,
             paddingBottom: 4 * scale,
             borderBottomWidth: 1,
-            borderBottomColor: `${theme.primaryColor}20`,
+            borderBottomColor: '#e0e0e0',
         },
         mapContainer: {
             height: 200 * scale,
-            backgroundColor: `${theme.primaryColor}08`,
+            backgroundColor: '#f5f5f5',
             marginBottom: 16 * scale,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: `${theme.primaryColor}20`,
+            borderColor: '#e0e0e0',
         },
         mapImage: {
             width: '100%',
@@ -187,11 +186,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         },
         chartContainer: {
             height: 160 * scale,
-            backgroundColor: `${theme.primaryColor}05`,
+            backgroundColor: '#fafafa',
             marginBottom: 16 * scale,
             padding: 12 * scale,
             borderWidth: 1,
-            borderColor: `${theme.primaryColor}20`,
+            borderColor: '#e0e0e0',
         },
         quickStatsRow: {
             flexDirection: 'row',
@@ -204,12 +203,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             alignItems: 'center',
         },
         quickStatValue: {
-            color: theme.backgroundColor,
+            color: '#ffffff',
             fontSize: Math.max(20, 24 * scale),
             fontFamily: 'Helvetica-Bold',
         },
         quickStatLabel: {
-            color: `${theme.backgroundColor}cc`,
+            color: 'rgba(255,255,255,0.8)',
             fontSize: Math.max(8, 9 * scale),
             fontFamily: theme.fontPairing.body,
             textTransform: 'uppercase',
@@ -223,7 +222,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             marginTop: 'auto',
             paddingTop: 16 * scale,
             borderTopWidth: 2,
-            borderTopColor: `${theme.primaryColor}20`,
+            borderTopColor: '#e0e0e0',
         },
         kudosContainer: {
             flexDirection: 'row',
@@ -277,7 +276,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             alignItems: 'center',
         },
         placeholderText: {
-            color: theme.backgroundColor,
+            color: '#ffffff',
             fontSize: Math.max(24, 32 * scale),
             fontFamily: theme.fontPairing.heading,
             textAlign: 'center',
@@ -506,7 +505,7 @@ const StatsPage = ({
                             totalTime={activity.moving_time}
                             width={mapWidth - 24 * scale}
                             height={130 * scale}
-                            backgroundColor={`${theme.primaryColor}05`}
+                            backgroundColor="#fafafa"
                         />
                     </View>
                 </>

@@ -21,7 +21,6 @@ import {
     GalleryLayout,
     PhotoData
 } from '@/lib/photo-gallery-utils'
-import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // ============================================================================
 // TYPES
@@ -54,7 +53,7 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
         page: {
             width: format.dimensions.width,
             height: format.dimensions.height,
-            backgroundColor: variant === 'minimal' ? theme.backgroundColor : `${theme.primaryColor}05`,
+            backgroundColor: variant === 'minimal' ? '#ffffff' : '#fafafa',
             padding: format.safeMargin,
         },
         header: {
@@ -86,7 +85,7 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
         photoSlot: {
             position: 'absolute',
             overflow: 'hidden',
-            backgroundColor: `${theme.primaryColor}10`,
+            backgroundColor: '#f0f0f0',
         },
         photoImage: {
             width: '100%',
@@ -100,7 +99,7 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
             right: 0,
             bottom: 0,
             borderWidth: isArtistic ? 4 * scale : 0,
-            borderColor: theme.backgroundColor,
+            borderColor: '#ffffff',
         },
         photoShadow: {
             position: 'absolute',
@@ -113,7 +112,7 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
             right: 8 * scale,
             fontSize: Math.max(7, 8 * scale),
             fontFamily: theme.fontPairing.body,
-            color: theme.backgroundColor,
+            color: '#ffffff',
             backgroundColor: 'rgba(0,0,0,0.5)',
             padding: 4 * scale,
             textAlign: 'center',
@@ -131,7 +130,7 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
             marginTop: 12 * scale,
             paddingTop: 8 * scale,
             borderTopWidth: 1,
-            borderTopColor: `${theme.primaryColor}20`,
+            borderTopColor: '#e0e0e0',
             flexDirection: 'row',
             justifyContent: 'space-between',
         },

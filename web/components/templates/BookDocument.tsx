@@ -9,7 +9,7 @@ import { BackCoverPage } from './BackCover'
 import { YearCalendarPage } from './YearCalendar'
 import { YearStatsPage } from './YearStats'
 import { MonthlyDividerSpreadPages } from './MonthlyDividerSpread'
-import { ActivityLogPage } from './ActivityLog'
+import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
@@ -606,7 +606,7 @@ export const BookDocument = ({
                             (entry.pageNumber || 1) * perPage
                         )
                     return (
-                        <ActivityLogPage
+                        <ActivityLog
                             key={index}
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page

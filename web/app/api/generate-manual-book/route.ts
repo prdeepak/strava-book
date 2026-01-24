@@ -8,7 +8,7 @@ import { BookDocument, computeYearSummary, getCategoryForType } from '@/componen
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { normalizeFontName } from '@/lib/ai-validation'
-import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-scores-report'
+import { createBookScoresReport, generateScoresMarkdown, PageScore } from '@/lib/visual-scores-report'
 import { scorePdfPages } from '@/lib/visual-scoring'
 import { BookEntry } from '@/lib/curator'
 import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'

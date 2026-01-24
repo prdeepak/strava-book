@@ -1,5 +1,5 @@
 import { BookTheme, YearSummary } from './book-types'
-import { StravaPhoto } from './strava'
+import { StravaActivity, StravaPhoto } from './strava'
 import { RaceInfo } from './race-detection'
 import { getDefaultTheme } from './theme-defaults'
 
@@ -80,7 +80,7 @@ export async function generateBookTheme(input: ThemeGeneratorInput): Promise<Boo
  * Build AI prompt for theme generation
  */
 function buildThemePrompt(input: ThemeGeneratorInput): string {
-  const { aRace, yearSummary, userPreferences } = input
+  const { aRace, topPhotos, yearSummary, userPreferences } = input
 
   const raceInfo = aRace ? `
 Primary Race: ${aRace.activity.name}
