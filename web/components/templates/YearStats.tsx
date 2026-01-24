@@ -468,6 +468,7 @@ export const YearStatsPage = ({
       paddingHorizontal: spacing.xs / 2,
       marginBottom: 2,
     },
+    // Medal colors are semantic constants (gold/silver/bronze - not theme-dependent)
     bestEffortRowGold: {
       backgroundColor: '#FFD700',
     },
@@ -483,9 +484,10 @@ export const YearStatsPage = ({
       color: theme.primaryColor,
       flex: 1,
     },
+    // PR text needs contrast on medal backgrounds
     bestEffortNamePR: {
-      fontFamily: 'Helvetica-Bold',
-      color: '#000',
+      fontFamily: subheading.fontFamily,
+      fontWeight: 'bold',
     },
     bestEffortTime: {
       fontSize: caption.fontSize,
@@ -494,7 +496,8 @@ export const YearStatsPage = ({
       textAlign: 'right',
     },
     bestEffortTimePR: {
-      fontFamily: 'Helvetica-Bold',
+      fontFamily: subheading.fontFamily,
+      fontWeight: 'bold',
       color: '#000',
     },
     // Monthly graph section
