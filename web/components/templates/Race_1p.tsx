@@ -412,7 +412,7 @@ export const Race_1p = ({
                 }).toUpperCase()}
             </Text>
             <Text style={styles.raceTitle}>{activity.name}</Text>
-            <Text style={styles.raceLocation}>{location}</Text>
+            {location && <Text style={styles.raceLocation}>{location}</Text>}
         </View>
     )
 

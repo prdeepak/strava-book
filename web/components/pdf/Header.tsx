@@ -53,7 +53,7 @@ export const Header = ({ activity, showLocation = true }: HeaderProps) => {
                     year: 'numeric'
                 })}
             </Text>
-            {showLocation && <Text style={styles.meta}>{location}</Text>}
+            {showLocation && location && <Text style={styles.meta}>{location}</Text>}
             <Text style={styles.title}>{activity.name}</Text>
             {activity.description && (
                 <Text style={styles.description}>{activity.description}</Text>

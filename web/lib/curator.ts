@@ -175,7 +175,6 @@ export function generateSmartDraft(activities: StravaActivity[]): BookEntry[] {
                     type: 'RACE_PAGE',
                     activityId: race.id,
                     title: race.name,
-                    highlightLabel: race.name
                 })
                 entryTitles.push({
                     title: race.name,

@@ -37,7 +37,7 @@ export interface ScrapbookPageProps {
   title: string;
   titleFontSize: number; // Dynamic font size based on title length
   date: string;
-  location: string;
+  location: string | null;
   description: string;
   trainingLoad: string;
   mainPhotoUrl: string;
@@ -373,7 +373,7 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           <View style={styles.noteSection}>
             <Image src="/assets/torn-paper-wide.png" style={styles.noteBg} />
             <Text style={styles.noteTitle}>{date}</Text>
-            <Text style={styles.noteSubtitle}>{location}</Text>
+            {location && <Text style={styles.noteSubtitle}>{location}</Text>}
             <Text style={styles.noteBody}>{description}</Text>
             <Text style={styles.noteFooter}>{trainingLoad}</Text>
           </View>
@@ -701,7 +701,7 @@ export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapbo
         <View style={styles.noteSection}>
           <Image src="/assets/torn-paper-wide.png" style={styles.noteBg} />
           <Text style={styles.noteTitle}>{formattedDate}</Text>
-          <Text style={styles.noteSubtitle}>{loc}</Text>
+          {loc && <Text style={styles.noteSubtitle}>{loc}</Text>}
           <Text style={styles.noteBody}>{description}</Text>
           <Text style={styles.noteFooter}>{trainingLoad}</Text>
         </View>

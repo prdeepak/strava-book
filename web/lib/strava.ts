@@ -233,6 +233,8 @@ export type StravaActivity = {
     }
     total_photo_count?: number // Total photos including Instagram
     location_city?: string
+    location_state?: string
+    location_country?: string
     workout_type?: number | null
     suffer_score?: number // Strava's relative effort score
     start_latlng?: [number, number] // [latitude, longitude]

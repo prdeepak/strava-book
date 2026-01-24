@@ -271,7 +271,6 @@ async function generateBookFromCache(): Promise<void> {
       theme={theme}
       activities={activities}
       yearSummary={yearSummary}
-      tocEntries={tocEntries}
       startDate={options.startDate}
       endDate={options.endDate}
     />
