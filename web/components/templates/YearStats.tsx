@@ -498,7 +498,6 @@ export const YearStatsPage = ({
     bestEffortTimePR: {
       fontFamily: subheading.fontFamily,
       fontWeight: 'bold',
-      color: '#000',
     },
     // Monthly graph section
     graphSection: {
