@@ -120,6 +120,8 @@ EOF
     # Copy .env.local from main repo (copy instead of symlink so it works inside Docker)
     if [[ -f "$MAIN_REPO/web/.env.local" ]]; then
         cp "$MAIN_REPO/web/.env.local" "$workspace_path/web/.env.local"
+        # Update NEXTAUTH_URL to use workspace port
+        sed -i '' "s|NEXTAUTH_URL=http://localhost:[0-9]*|NEXTAUTH_URL=http://localhost:$port|" "$workspace_path/web/.env.local"
     fi
 
     # Copy Claude settings.local.json for consistent permissions
