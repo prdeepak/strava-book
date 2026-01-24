@@ -79,6 +79,7 @@ export const PdfImage = ({
   const hasDimensions = containerWidth && containerHeight && sourceWidth && sourceHeight
 
   if (hasDimensions) {
+    // Calculate geometry without buffer first
     const geometry = calculateAspectFill(
       { width: sourceWidth, height: sourceHeight },
       { width: containerWidth, height: containerHeight }
@@ -114,7 +115,7 @@ export const PdfImage = ({
     )
   }
 
-  // Fallback mode: use CSS-based approach when dimensions unknown
+  // Fallback mode: use CSS-based approach when dimensions unknownn (will squish image)
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',

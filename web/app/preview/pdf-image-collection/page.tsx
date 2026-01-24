@@ -57,6 +57,7 @@ export default function PdfImageCollectionPage() {
           imagePath: selectedFixture.path,
           sourceWidth: selectedFixture.width.toString(),
           sourceHeight: selectedFixture.height.toString(),
+          _t: Date.now().toString(), // Cache buster
         })
 
         const response = await fetch(`/api/test/pdf-image-collection?${params}`)

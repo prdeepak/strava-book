@@ -17,13 +17,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   container: {
-    backgroundColor: '#ffffff',
     position: 'relative',
     overflow: 'hidden',
-    // Border to show container bounds
-    borderWidth: 2,
-    borderColor: '#ff0000',
-    borderStyle: 'solid',
   },
 })
 
@@ -109,6 +104,9 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="pdf-image-test.pdf"',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     })
   } catch (error) {
