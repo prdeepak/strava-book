@@ -17,6 +17,7 @@ services:
       - ./web/.env.local
     environment:
       - WORKSPACE_ID=${WORKSPACE_ID}
+      - NEXT_PUBLIC_PORT=${WORKSPACE_PORT}
     command: sh -c "./scripts/smart-npm-install.sh && npm run dev"
 
   # Playwright test runner - requires web server to be running
