@@ -613,6 +613,7 @@ export const BookDocument = ({
                             activitiesPerPage={perPage}
                             format={format}
                             theme={theme}
+                            mapboxToken={mapboxToken}
                         />
                     )
                 }

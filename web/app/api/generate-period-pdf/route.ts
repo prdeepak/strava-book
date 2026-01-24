@@ -12,7 +12,7 @@ import React from 'react'
 import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
 import { MonthlyDivider } from '@/components/templates/MonthlyDivider'
-import { ActivityLog } from '@/components/templates/ActivityLog'
+import { ActivityLogDocument } from '@/components/templates/ActivityLog'
 
 // Register fonts for PDF generation
 import '@/lib/pdf-fonts'
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                 break
 
             case 'activity_log':
-                pdfBuffer = await renderActivityLog(activities, { variant: variant || 'grid', format, theme })
+                pdfBuffer = await renderActivityLog(activities, { format, theme })
                 break
 
             case 'concat_all':
@@ -236,13 +236,12 @@ async function renderMonthlyDividers(
 
 async function renderActivityLog(
     activities: StravaActivity[],
-    config: { variant: string; format: BookFormat; theme: BookTheme }
+    config: { format: BookFormat; theme: BookTheme }
 ): Promise<Buffer> {
     // Call template as function (same pattern as generate-book/route.ts)
     const buffer = await renderToBuffer(
-        ActivityLog({
+        ActivityLogDocument({
             activities,
-            variant: config.variant as 'grid' | 'concise' | 'full',
             format: config.format,
             theme: config.theme,
             mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,

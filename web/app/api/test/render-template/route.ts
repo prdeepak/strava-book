@@ -19,7 +19,7 @@ import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
 import { MonthlyDividerDocument } from '@/components/templates/MonthlyDivider'
 import { MonthlyDividerSpread } from '@/components/templates/MonthlyDividerSpread'
-import { ActivityLog } from '@/components/templates/ActivityLog'
+import { ActivityLogDocument } from '@/components/templates/ActivityLog'
 import { BackCover } from '@/components/templates/BackCover'
 import { Foreword } from '@/components/templates/Foreword'
 import { TableOfContents } from '@/components/templates/TableOfContents'
@@ -270,38 +270,13 @@ const TEMPLATES: Record<string, {
     variants: ['minimal', 'photo-accent', 'stats-preview'],
   },
   activity_log: {
-    component: ActivityLog,
-    getProps: (variant) => {
-      // Map spec variants to component variants:
-      // compact-table → grid (multi-activity dense layout)
-      // with-maps → concise (single activity with map)
-      // journal-style → full (single activity with description/comments)
-      const variantMap: Record<string, string> = {
-        'compact-table': 'grid',
-        'with-maps': 'concise',
-        'journal-style': 'full',
-      }
-      const componentVariant = variant ? variantMap[variant] || 'grid' : 'grid'
-
-      // concise and full variants expect a single activity
-      if (componentVariant === 'concise' || componentVariant === 'full') {
-        return {
-          activity: TEST_ACTIVITY,
-          format: FORMATS['10x10'],
-          theme: DEFAULT_THEME,
-          variant: componentVariant,
-        }
-      }
-
-      // grid variant expects activities array
-      return {
-        activities: [TEST_ACTIVITY, TEST_ACTIVITY, TEST_ACTIVITY],
-        format: FORMATS['10x10'],
-        theme: DEFAULT_THEME,
-        variant: componentVariant,
-      }
-    },
-    variants: ['compact-table', 'with-maps', 'journal-style'],
+    component: ActivityLogDocument,
+    getProps: () => ({
+      activities: [TEST_ACTIVITY, TEST_ACTIVITY, TEST_ACTIVITY],
+      format: FORMATS['10x10'],
+      theme: DEFAULT_THEME,
+    }),
+    variants: ['grid'],
   },
   back_cover: {
     component: BackCover,

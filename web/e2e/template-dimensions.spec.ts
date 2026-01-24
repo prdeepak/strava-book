@@ -25,7 +25,7 @@ const TEMPLATES_TO_TEST = [
   { id: 'year_stats', variants: ['stats-grid', 'infographic', 'comparison'] },
   { id: 'year_calendar', variants: ['github-style', 'monthly-bars'] },
   { id: 'monthly_divider', variants: ['minimal', 'photo-accent', 'stats-preview'] },
-  { id: 'activity_log', variants: ['compact-table', 'with-maps', 'journal-style'] },
+  { id: 'activity_log', variants: ['grid'] },
   { id: 'back_cover', variants: ['stats-centered', 'minimal', 'branded'] },
   { id: 'foreword', variants: ['centered-elegant', 'left-aligned', 'pull-quote'] },
   { id: 'table_of_contents', variants: ['grouped-categories', 'simple-list', 'two-column'] },

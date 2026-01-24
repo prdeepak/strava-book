@@ -289,6 +289,8 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
   // Filter entries if filterTypes is specified
   if (filterTypes && filterTypes.length > 0) {
     entries = entries.filter(e => filterTypes.includes(e.type))
+    // Renumber pages sequentially for filtered entries (so page numbers match PDF pages)
+    entries = entries.map((entry, idx) => ({ ...entry, pageNumber: idx + 1 }))
     console.log(`  Filtered to ${entries.length} entries of types: ${filterTypes.join(', ')}`)
   }
 
