@@ -350,6 +350,18 @@ export const YearStatsPage = ({
       }
     }
 
+    // Fallback: If no efforts found from activities, try yearSummary.fastestActivity
+    if (effortsByDistance.size === 0 && yearSummary.fastestActivity?.best_efforts) {
+      for (const effort of yearSummary.fastestActivity.best_efforts) {
+        effortsByDistance.set(effort.name, {
+          name: effort.name,
+          elapsed_time: effort.elapsed_time,
+          distance: effort.distance,
+          pr_rank: effort.pr_rank ?? null,
+        })
+      }
+    }
+
     // Convert to array and sort by distance (shorter first)
     const efforts = Array.from(effortsByDistance.values())
     efforts.sort((a, b) => a.distance - b.distance)
@@ -614,19 +626,19 @@ export const YearStatsPage = ({
               const prRank = effort.pr_rank || 0
               const rowStyle = [
                 styles.bestEffortRow,
-                prRank === 1 && styles.bestEffortRowGold,
-                prRank === 2 && styles.bestEffortRowSilver,
-                prRank === 3 && styles.bestEffortRowBronze,
-              ].filter(Boolean)
+                prRank === 1 ? styles.bestEffortRowGold : undefined,
+                prRank === 2 ? styles.bestEffortRowSilver : undefined,
+                prRank === 3 ? styles.bestEffortRowBronze : undefined,
+              ].filter((s): s is typeof styles.bestEffortRow => s !== undefined)
 
               const isPR = prRank >= 1 && prRank <= 3
 
               return (
                 <View key={i} style={rowStyle}>
-                  <Text style={[styles.bestEffortName, isPR && styles.bestEffortNamePR]}>
+                  <Text style={isPR ? [styles.bestEffortName, styles.bestEffortNamePR] : styles.bestEffortName}>
                     {effort.name}
                   </Text>
-                  <Text style={[styles.bestEffortTime, isPR && styles.bestEffortTimePR]}>
+                  <Text style={isPR ? [styles.bestEffortTime, styles.bestEffortTimePR] : styles.bestEffortTime}>
                     {timeStr}
                   </Text>
                 </View>

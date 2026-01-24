@@ -849,7 +849,7 @@ export const HeatmapLegend = ({
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
         color: theme.primaryColor,
-        opacity: 0.6,
+        opacity: 0.85,
       }}>
         Less
       </Text>
@@ -874,7 +874,7 @@ export const HeatmapLegend = ({
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
         color: theme.primaryColor,
-        opacity: 0.6,
+        opacity: 0.85,
       }}>
         More
       </Text>

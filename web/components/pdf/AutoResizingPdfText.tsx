@@ -273,7 +273,7 @@ export const AutoResizingPdfText = ({
 
       {/* Layer 2: Text (Fully Opaque) */}
       <View style={styles.textContainer}>
-        <Text style={styles.text} hyphenationCallback={() => []}>{calculatedState.text}</Text>
+        <Text style={styles.text}>{calculatedState.text}</Text>
       </View>
     </View>
   )
