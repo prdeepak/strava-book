@@ -23,6 +23,7 @@ Typography Utilities (typography.ts)
 Primitives (components/pdf/)
 ├── FullBleedBackground - hero/background images with cropping
 ├── PdfImage - images with "cover" behavior (fills container, clips excess)
+├── PdfImageCollection - arranges multiple photos in a grid layout
 ├── AutoResizingPdfText - text with auto-sizing and background opacity
 └── PageHeader - standardized section headers
 
@@ -247,6 +248,54 @@ import { PdfImage } from '@/components/pdf/PdfImage'
 ```
 
 When source dimensions are unknown, omit them - the component falls back to flexbox centering.
+
+### PdfImageCollection
+
+Arranges multiple photos in a container using an automatic grid-based layout.
+
+```tsx
+import { PdfImageCollection } from '@/components/pdf/PdfImageCollection'
+
+// Container must have known dimensions and position: 'relative'
+<View style={{ width: 400, height: 300, position: 'relative' }}>
+  <PdfImageCollection
+    photos={[
+      { url: photo1Url, width: 1920, height: 1080 },
+      { url: photo2Url, width: 1080, height: 1920 },
+      // ...
+    ]}
+    containerWidth={400}
+    containerHeight={300}
+    gap={4}                     // Gap between photos in points
+  />
+</View>
+```
+
+**Algorithm:**
+1. Finds optimal grid where `rows × cols >= N` photos
+2. Grid aspect ratio matches container aspect ratio
+3. Merges adjacent cells when `grid cells > N` to fill space
+4. Each photo uses `PdfImage` for proper aspect-fill
+
+**Layout examples:**
+
+| Photos | Wide Container | Square Container | Tall Container |
+|--------|----------------|------------------|----------------|
+| 1 | Full container | Full container | Full container |
+| 2 | Side-by-side | Side-by-side | Stacked |
+| 3 | 1 large + 2 stacked | 1 large + 2 stacked | 1 large + 2 side-by-side |
+| 4 | 2×2 grid | 2×2 grid | 2×2 grid |
+| 5+ | Grid with merged cells | Grid with merged cells | Grid with merged cells |
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `photos` | `CollectionPhoto[]` | required | Array of photos with url and optional dimensions |
+| `containerWidth` | `number` | required | Container width in points |
+| `containerHeight` | `number` | required | Container height in points |
+| `gap` | `number` | `4` | Gap between photos in points |
+| `borderRadius` | `number` | `0` | Border radius for photos |
 
 ## Page Layout Pattern
 

@@ -2,45 +2,38 @@
 
 import { useState, useEffect, useRef } from 'react'
 
-// Fixture images with their dimensions
+// Fixture images for thumbnail display
 const FIXTURES = [
-  {
-    id: 'landscape',
-    label: 'Landscape (768×576)',
-    path: '/fixtures/photos/kg0JdToiPHrVlA-zj-l7-wodK-NtwuWX2II2bAS9WKw-768x576.jpg',
-    width: 768,
-    height: 576,
-  },
-  {
-    id: 'portrait',
-    label: 'Portrait (576×768)',
-    path: '/fixtures/photos/S-ACdwp9_oZFE3eQw4RmwnZp_SASOvNgRAqelVZF9nA-576x768.jpg',
-    width: 576,
-    height: 768,
-  },
-  {
-    id: 'landscape2',
-    label: 'Landscape 2 (768×576)',
-    path: '/fixtures/photos/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-768x576.jpg',
-    width: 768,
-    height: 576,
-  },
-  {
-    id: 'portrait2',
-    label: 'Portrait 2 (576×768)',
-    path: '/fixtures/photos/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg',
-    width: 576,
-    height: 768,
-  },
+  { id: 'landscape1', path: '/fixtures/photos/kg0JdToiPHrVlA-zj-l7-wodK-NtwuWX2II2bAS9WKw-768x576.jpg', width: 768, height: 576 },
+  { id: 'portrait1', path: '/fixtures/photos/S-ACdwp9_oZFE3eQw4RmwnZp_SASOvNgRAqelVZF9nA-576x768.jpg', width: 576, height: 768 },
+  { id: 'landscape2', path: '/fixtures/photos/ihlXEIUXq2_yAZ-WxIPdUNVtlVY7pXVyltagSzlldCU-768x576.jpg', width: 768, height: 576 },
+  { id: 'portrait2', path: '/fixtures/photos/bIFOxDiA9g0nD45Ehhcr4xs8_JSO6xdeSEhaZLoujzY-576x768.jpg', width: 576, height: 768 },
+  { id: 'portrait3', path: '/fixtures/photos/onC_jOkSVGvnxNfZpsNrjkrzO25b5gAY6uaQY2uV7UQ-576x768.jpg', width: 576, height: 768 },
+  { id: 'portrait4', path: '/fixtures/photos/SgavsCEdms63bIZwetCJoCgX2T1r4yFBQG8mfP2Di7M-576x768.jpg', width: 576, height: 768 },
+  { id: 'landscape3', path: '/fixtures/photos/_kdKb6gRwo3vf0SL51r4eRwkuI06aJUBfDNF6epJDBk-768x576.jpg', width: 768, height: 576 },
+]
+
+type ContainerPreset = { name: string; width: number; height: number }
+
+const CONTAINER_PRESETS: ContainerPreset[] = [
+  { name: 'Wide', width: 400, height: 200 },
+  { name: 'Landscape', width: 400, height: 300 },
+  { name: 'Square', width: 300, height: 300 },
+  { name: 'Portrait', width: 250, height: 350 },
+  { name: 'Tall', width: 200, height: 400 },
 ]
 
 export default function PdfImageCollectionPage() {
-  const [containerWidth, setContainerWidth] = useState(300)
-  const [containerHeight, setContainerHeight] = useState(200)
-  const [selectedFixture, setSelectedFixture] = useState(FIXTURES[0])
+  const [containerWidth, setContainerWidth] = useState(400)
+  const [containerHeight, setContainerHeight] = useState(300)
+  const [photoCount, setPhotoCount] = useState(4)
+  const [gap, setGap] = useState(4)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Determine orientation for display
+  const orientation = containerWidth / containerHeight > 1.2 ? 'Wide' : containerWidth / containerHeight < 0.83 ? 'Tall' : 'Square'
 
   // Debounced PDF generation
   useEffect(() => {
@@ -54,9 +47,8 @@ export default function PdfImageCollectionPage() {
         const params = new URLSearchParams({
           containerWidth: containerWidth.toString(),
           containerHeight: containerHeight.toString(),
-          imagePath: selectedFixture.path,
-          sourceWidth: selectedFixture.width.toString(),
-          sourceHeight: selectedFixture.height.toString(),
+          photoCount: photoCount.toString(),
+          gap: gap.toString(),
           _t: Date.now().toString(), // Cache buster
         })
 
@@ -84,7 +76,7 @@ export default function PdfImageCollectionPage() {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [containerWidth, containerHeight, selectedFixture])
+  }, [containerWidth, containerHeight, photoCount, gap])
 
   // Cleanup URL on unmount
   useEffect(() => {
@@ -97,7 +89,8 @@ export default function PdfImageCollectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <h1 className="text-2xl font-bold mb-6">PdfImage Test Collection</h1>
+      <h1 className="text-2xl font-bold mb-2">PdfImageCollection Test</h1>
+      <p className="text-gray-400 mb-6">Test multi-photo layout arrangements based on photo count and container orientation</p>
 
       <div className="flex gap-8">
         {/* PDF Preview */}
@@ -107,7 +100,7 @@ export default function PdfImageCollectionPage() {
               PDF Preview
               {loading && <span className="ml-2 text-yellow-400">(generating...)</span>}
             </h2>
-            <div className="bg-white rounded" style={{ height: '600px' }}>
+            <div className="bg-white rounded" style={{ height: '700px' }}>
               {pdfUrl ? (
                 <iframe
                   src={pdfUrl}
@@ -124,10 +117,56 @@ export default function PdfImageCollectionPage() {
         </div>
 
         {/* Controls */}
-        <div className="w-80 space-y-6">
+        <div className="w-96 space-y-6">
+          {/* Photo Count */}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-4">Photo Count</h2>
+            <div className="flex gap-2 flex-wrap">
+              {[1, 2, 3, 4, 5, 6, 7].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => setPhotoCount(count)}
+                  className={`w-10 h-10 rounded font-bold transition-all ${
+                    photoCount === count
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-gray-400">
+              {photoCount <= 4 ? `Showing all ${photoCount} photos` : `Showing 4 photos with +${photoCount - 4} overlay`}
+            </p>
+          </div>
+
+          {/* Container Presets */}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-4">Container Presets</h2>
+            <div className="grid grid-cols-5 gap-2">
+              {CONTAINER_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => {
+                    setContainerWidth(preset.width)
+                    setContainerHeight(preset.height)
+                  }}
+                  className={`p-2 rounded text-xs transition-all ${
+                    containerWidth === preset.width && containerHeight === preset.height
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Container Dimensions */}
           <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-4">Container Size (points)</h2>
+            <h2 className="text-lg font-semibold mb-4">Container Size</h2>
 
             <div className="space-y-4">
               <div>
@@ -136,7 +175,7 @@ export default function PdfImageCollectionPage() {
                 </label>
                 <input
                   type="range"
-                  min="50"
+                  min="100"
                   max="500"
                   value={containerWidth}
                   onChange={(e) => setContainerWidth(Number(e.target.value))}
@@ -150,7 +189,7 @@ export default function PdfImageCollectionPage() {
                 </label>
                 <input
                   type="range"
-                  min="50"
+                  min="100"
                   max="500"
                   value={containerHeight}
                   onChange={(e) => setContainerHeight(Number(e.target.value))}
@@ -158,84 +197,77 @@ export default function PdfImageCollectionPage() {
                 />
               </div>
 
-              <div className="text-sm text-gray-500">
-                Aspect ratio: {(containerWidth / containerHeight).toFixed(2)}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Gap: {gap}pt
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  value={gap}
+                  onChange={(e) => setGap(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
 
-          {/* Quick presets */}
+          {/* Available Photos */}
           <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-4">Presets</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { setContainerWidth(300); setContainerHeight(200) }}
-                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-              >
-                Landscape
-              </button>
-              <button
-                onClick={() => { setContainerWidth(200); setContainerHeight(300) }}
-                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-              >
-                Portrait
-              </button>
-              <button
-                onClick={() => { setContainerWidth(250); setContainerHeight(250) }}
-                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-              >
-                Square
-              </button>
-              <button
-                onClick={() => { setContainerWidth(400); setContainerHeight(100) }}
-                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-              >
-                Wide
-              </button>
-            </div>
-          </div>
-
-          {/* Fixture Selection */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-4">Source Image</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {FIXTURES.map((fixture) => (
-                <button
+            <h2 className="text-lg font-semibold mb-4">Available Photos ({FIXTURES.length})</h2>
+            <div className="grid grid-cols-4 gap-2">
+              {FIXTURES.slice(0, photoCount).map((fixture, idx) => (
+                <div
                   key={fixture.id}
-                  onClick={() => setSelectedFixture(fixture)}
-                  className={`relative rounded overflow-hidden border-2 transition-all ${
-                    selectedFixture.id === fixture.id
-                      ? 'border-blue-500 ring-2 ring-blue-500/50'
-                      : 'border-transparent hover:border-gray-600'
-                  }`}
+                  className="relative rounded overflow-hidden border-2 border-blue-500"
                 >
                   <img
                     src={fixture.path}
-                    alt={fixture.label}
-                    className="w-full h-24 object-cover"
+                    alt={`Photo ${idx + 1}`}
+                    className="w-full h-16 object-cover"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-xs p-1 text-center">
-                    {fixture.width}×{fixture.height}
+                  <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-1">
+                    {idx + 1}
                   </div>
-                </button>
+                </div>
               ))}
-            </div>
-            <div className="mt-3 text-sm text-gray-400">
-              Selected: {selectedFixture.label}
-              <br />
-              Aspect ratio: {(selectedFixture.width / selectedFixture.height).toFixed(2)}
+              {FIXTURES.slice(photoCount).map((fixture) => (
+                <div
+                  key={fixture.id}
+                  className="relative rounded overflow-hidden border border-gray-600 opacity-40"
+                >
+                  <img
+                    src={fixture.path}
+                    alt="Unused"
+                    className="w-full h-16 object-cover"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Debug info */}
+          {/* Debug Info */}
           <div className="bg-gray-800 rounded-lg p-4 text-xs font-mono text-gray-400">
-            <div>Container: {containerWidth}×{containerHeight}</div>
-            <div>Source: {selectedFixture.width}×{selectedFixture.height}</div>
-            <div>
-              Scale needed: {Math.max(
-                containerWidth / selectedFixture.width,
-                containerHeight / selectedFixture.height
-              ).toFixed(3)}
+            <div>Container: {containerWidth}×{containerHeight}pt</div>
+            <div>Orientation: {orientation}</div>
+            <div>Aspect ratio: {(containerWidth / containerHeight).toFixed(2)}</div>
+            <div>Photos: {photoCount} (showing {Math.min(photoCount, 4)})</div>
+            <div>Gap: {gap}pt</div>
+          </div>
+
+          {/* Layout Preview */}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-4">Expected Layout</h2>
+            <div className="text-sm text-gray-300">
+              {photoCount === 1 && 'Single photo fills entire container'}
+              {photoCount === 2 && orientation === 'Wide' && 'Side-by-side (horizontal split)'}
+              {photoCount === 2 && orientation !== 'Wide' && 'Stacked vertically'}
+              {photoCount === 3 && orientation === 'Wide' && '1 large left + 2 stacked right'}
+              {photoCount === 3 && orientation === 'Tall' && '1 large top + 2 side-by-side bottom'}
+              {photoCount === 3 && orientation === 'Square' && '1 large left + 2 stacked right'}
+              {photoCount >= 4 && '2×2 grid'}
+              {photoCount > 4 && ` with +${photoCount - 4} overlay on last photo`}
             </div>
           </div>
         </div>
