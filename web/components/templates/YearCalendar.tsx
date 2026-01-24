@@ -125,6 +125,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   // Stats styles removed - summary stats now only on YearStats page
   // Monthly bar chart styles
   chartSection: {
+    marginTop: 20 * format.scaleFactor,   // Space above chart (below legend)
     marginBottom: 12 * format.scaleFactor,
   },
   chartTitle: {
@@ -133,11 +134,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     color: theme.primaryColor,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 12 * format.scaleFactor,  // More space between title and chart
+    marginBottom: 16 * format.scaleFactor,  // More space between title and bars
     opacity: 0.7,
   },
   chartContainer: {
-    height: 50 * format.scaleFactor,  // Slightly shorter to give title more clearance
+    height: 45 * format.scaleFactor,  // Shorter bars to give title more clearance
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 4 * format.scaleFactor,
@@ -232,9 +233,9 @@ const getColor = (intensity: number, accentColor: string, backgroundColor: strin
   // Create proper opacity-based shades for better visual hierarchy
   const shades = [
     isLightBg ? '#f0f0f0' : '#2a2a2a',  // 0 - no activity
-    `${accentColor}60`,  // 1 - lightest (37% opacity) - visible but light
-    `${accentColor}85`,  // 2 - light (52% opacity)
-    `${accentColor}B0`,  // 3 - medium (69% opacity)
+    `${accentColor}99`,  // 1 - lightest (60% opacity) - clearly visible
+    `${accentColor}BB`,  // 2 - light (73% opacity)
+    `${accentColor}DD`,  // 3 - medium (87% opacity)
     `${accentColor}`,    // 4 - full intensity
   ]
 
