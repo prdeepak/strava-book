@@ -115,7 +115,48 @@ export const PdfImage = ({
     )
   }
 
-  // Fallback mode: use CSS-based approach when dimensions unknownn (will squish image)
+  // Fallback mode: when source dimensions are unknown
+  // If we have container dimensions, assume a common photo aspect ratio (4:3)
+  // and use aspect-fill calculation to avoid stretching
+  if (containerWidth && containerHeight) {
+    // Assume 4:3 landscape as default photo aspect ratio
+    const assumedSourceWidth = 1200
+    const assumedSourceHeight = 900
+    const geometry = calculateAspectFill(
+      { width: assumedSourceWidth, height: assumedSourceHeight },
+      { width: containerWidth, height: containerHeight }
+    )
+
+    const styles = StyleSheet.create({
+      container: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: containerWidth,
+        height: containerHeight,
+        overflow: 'hidden',
+        ...(borderRadius !== undefined ? { borderRadius } : {}),
+      },
+      image: {
+        position: 'absolute',
+        left: -geometry.cropOffset.x,
+        top: -geometry.cropOffset.y,
+        width: geometry.scaledSize.width,
+        height: geometry.scaledSize.height,
+        opacity,
+      },
+    })
+
+    return (
+      <View style={styles.container}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
+        <Image src={src} style={styles.image} />
+      </View>
+    )
+  }
+
+  // Ultimate fallback: no dimensions known at all
+  // Use 100% width and height - may stretch the image
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',
@@ -123,15 +164,12 @@ export const PdfImage = ({
       left: 0,
       width: '100%',
       height: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
       overflow: 'hidden',
       ...(borderRadius !== undefined ? { borderRadius } : {}),
     },
     image: {
-      minWidth: '100%',
-      minHeight: '100%',
+      width: '100%',
+      height: '100%',
       opacity,
     },
   })
