@@ -14,7 +14,7 @@ export default async function BookPreviewPage() {
     const session = await getServerSession(authOptions)
 
     if (!session) {
-        redirect("/api/auth/signin")
+        redirect("/api/auth/signin/strava")
     }
 
     const accessToken = session.accessToken
