@@ -39,7 +39,7 @@ export default async function Home() {
             </div>
           ) : (
             <Link
-              href="/api/auth/signin"
+              href="/api/auth/signin/strava"
               className="px-8 py-4 rounded-full bg-orange-600 text-white font-semibold text-lg hover:bg-orange-700 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
             >
               Connect with Strava

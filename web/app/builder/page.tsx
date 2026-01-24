@@ -1,9 +1,11 @@
 import { getServerSession } from "next-auth"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
-import { getAthleteActivities, StravaActivity } from "@/lib/strava"
+import { StravaActivity } from "@/lib/strava"
+import { cachedStrava } from "@/lib/cache"
 import { authOptions } from "../api/auth/[...nextauth]/route"
 import BuilderClient from "@/components/BuilderClient"
+import { getCachedActivitiesForAthlete, getAvailableAthletes, isAdminUser, CachedAthleteInfo } from "@/lib/admin"
 
 const isMockAuth = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true'
 
@@ -68,42 +70,131 @@ function getMockActivities(): StravaActivity[] {
     ]
 }
 
+/**
+ * Merge fresh and cached activities, with fresh taking precedence
+ * Activities are deduplicated by ID
+ */
+function mergeActivities(fresh: StravaActivity[], cached: StravaActivity[]): StravaActivity[] {
+    const activityMap = new Map<number, StravaActivity>()
+
+    // Add cached activities first
+    for (const activity of cached) {
+        activityMap.set(activity.id, activity)
+    }
+
+    // Override with fresh activities (fresh takes precedence)
+    for (const activity of fresh) {
+        activityMap.set(activity.id, activity)
+    }
+
+    // Sort by date (newest first)
+    return Array.from(activityMap.values()).sort((a, b) => {
+        const dateA = a.start_date_local || a.start_date || ''
+        const dateB = b.start_date_local || b.start_date || ''
+        return dateB.localeCompare(dateA)
+    })
+}
+
 export default async function BuilderPage() {
     const session = await getServerSession(authOptions)
 
     // In mock auth mode, auto-login without requiring actual authentication
     if (!session && !isMockAuth) {
-        redirect("/api/auth/signin")
+        redirect("/api/auth/signin/strava")
     }
 
     const accessToken = session?.accessToken || 'mock-access-token-for-e2e'
+    const athleteId = (session as { athleteId?: string })?.athleteId || 'mock-athlete-123'
+    const isAdmin = isAdminUser(athleteId)
+    const athleteName = session?.user?.name || 'Athlete'
 
     let activities: StravaActivity[] = []
-    let error = ""
+    let cachedActivities: StravaActivity[] = []
+    let availableAthletes: CachedAthleteInfo[] = []
+    let stravaError = false
 
+    // Load cached activities first (fast, always works)
+    if (!isMockAuth && athleteId) {
+        try {
+            const cached = await getCachedActivitiesForAthlete(athleteId)
+            cachedActivities = cached
+                .filter(ca => ca.activity !== null)
+                .map(ca => ca.activity as StravaActivity)
+        } catch (e) {
+            console.error("Failed to load cached activities:", e)
+        }
+    }
+
+    // Load available athletes for admin mode
+    if (isAdmin) {
+        try {
+            availableAthletes = await getAvailableAthletes()
+        } catch (e) {
+            console.error("Failed to load available athletes:", e)
+        }
+    }
+
+    // Try to fetch fresh activities from Strava
     try {
         if (isMockAuth) {
             // Use mock activities for e2e testing
             activities = getMockActivities()
         } else {
-            activities = await getAthleteActivities(accessToken, { perPage: 200 })
+            const { data: freshActivities } = await cachedStrava.getAthleteActivities(accessToken, athleteId, { perPage: 200 })
+            // Merge fresh with cached
+            activities = mergeActivities(freshActivities, cachedActivities)
         }
     } catch (e) {
-        console.error("Builder fetch error:", e)
-        error = "Failed to load activities. Please try logging in again."
+        console.error("Strava API error:", e)
+        stravaError = true
+
+        // Check if this looks like a token expiration error
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Failed to fetch')) {
+            // If we have cached activities, use those and show a warning
+            // Otherwise redirect to login
+            if (cachedActivities.length > 0) {
+                activities = cachedActivities
+            } else {
+                // No cached data and Strava failed - redirect to re-authenticate
+                redirect("/api/auth/signin/strava?callbackUrl=/builder")
+            }
+        } else {
+            // Other error - use cached activities if available
+            activities = cachedActivities
+        }
     }
 
-    if (error) {
+    // If we have no activities at all, show an error
+    if (activities.length === 0 && !isMockAuth) {
         return (
             <main className="min-h-screen bg-stone-50 text-stone-900 p-8">
-                <div className="max-w-6xl mx-auto p-4 bg-red-50 text-red-600 rounded mb-8 border border-red-200">
-                    {error}
+                <div className="max-w-6xl mx-auto">
+                    <div className="p-4 bg-red-50 text-red-600 rounded mb-8 border border-red-200">
+                        No activities found. Please make sure you have activities on Strava and try logging in again.
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route requires full page navigation */}
+                    <a
+                        href="/api/auth/signin/strava"
+                        className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                    >
+                        Sign in with Strava
+                    </a>
                 </div>
             </main>
         )
     }
 
-    const athleteName = session?.user?.name || 'Athlete'
-
-    return <BuilderClient initialActivities={activities} accessToken={accessToken} athleteName={athleteName} />
+    return (
+        <BuilderClient
+            initialActivities={activities}
+            accessToken={accessToken}
+            athleteName={athleteName}
+            athleteId={athleteId}
+            isAdmin={isAdmin}
+            availableAthletes={availableAthletes}
+            stravaError={stravaError}
+            cachedCount={cachedActivities.length}
+        />
+    )
 }
