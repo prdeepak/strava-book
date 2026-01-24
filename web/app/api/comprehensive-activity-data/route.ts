@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'activityId is required' }, { status: 400 })
     }
 
-    const athleteId = session.user?.id || 'unknown'
+    const athleteId = (session as { athleteId?: string }).athleteId || session.user?.id || 'unknown'
 
     try {
         // Fetch all data needed for PDF generation with caching
