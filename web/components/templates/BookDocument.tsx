@@ -494,6 +494,8 @@ export const BookDocument = ({
                             endDate={endDate}
                             athleteName={athleteName}
                             backgroundImage={entry.heroImage}
+                            backgroundImageWidth={entry.heroImageWidth}
+                            backgroundImageHeight={entry.heroImageHeight}
                             format={format}
                             theme={theme}
                         />

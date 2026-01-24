@@ -234,7 +234,8 @@ export const TableOfContentsPage = ({
       <View style={styles.contentContainer}>
         {/* Header */}
         <PageHeader
-          title={isFirstPage ? 'Contents' : 'Contents (cont.)'}
+          title="Contents"
+          subtitle={isFirstPage ? undefined : 'Continued'}
           size="large"
           alignment="left"
           showBorder={true}

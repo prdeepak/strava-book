@@ -22,6 +22,8 @@ export interface CoverProps {
   endDate?: string     // ISO date string for period end
   athleteName?: string
   backgroundImage?: string
+  backgroundImageWidth?: number   // Source width in pixels (for aspect-fill)
+  backgroundImageHeight?: number  // Source height in pixels (for aspect-fill)
   format?: BookFormat
   theme?: BookTheme
   // For test harness compatibility - derive props from activity
@@ -52,6 +54,8 @@ export const CoverPage = ({
   endDate: propEndDate,
   athleteName: propAthleteName,
   backgroundImage: propBackgroundImage,
+  backgroundImageWidth: propBackgroundImageWidth,
+  backgroundImageHeight: propBackgroundImageHeight,
   format: propFormat,
   theme = DEFAULT_THEME,
   activity,
@@ -197,6 +201,8 @@ export const CoverPage = ({
         role="hero"
         width={pageWidth}
         height={pageHeight}
+        sourceWidth={propBackgroundImageWidth}
+        sourceHeight={propBackgroundImageHeight}
       />
 
       {/* Text box overlay - bottom 30% */}

@@ -21,8 +21,14 @@ export interface BookGenerationConfig {
   // Optional content
   forewordText?: string
   coverPhotoUrl?: string | null
+  coverPhotoWidth?: number
+  coverPhotoHeight?: number
   backgroundPhotoUrl?: string | null
+  backgroundPhotoWidth?: number
+  backgroundPhotoHeight?: number
   backCoverPhotoUrl?: string | null
+  backCoverPhotoWidth?: number
+  backCoverPhotoHeight?: number
 
   // Highlight activity IDs by month (key format: "YYYY-MM" with 1-indexed month)
   // If not provided, will auto-select activities with photos
@@ -100,6 +106,8 @@ export function generateBookEntries(
     title: config.bookName,
     pageNumber: currentPage++,
     heroImage: config.coverPhotoUrl || undefined,
+    heroImageWidth: config.coverPhotoWidth,
+    heroImageHeight: config.coverPhotoHeight,
   })
 
   // 2. FOREWORD
@@ -108,6 +116,8 @@ export function generateBookEntries(
     title: 'Foreword',
     forewordText: config.forewordText || undefined,
     backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
+    backgroundPhotoWidth: config.backgroundPhotoWidth,
+    backgroundPhotoHeight: config.backgroundPhotoHeight,
     pageNumber: currentPage++,
   })
 
@@ -149,9 +159,16 @@ export function generateBookEntries(
   })
 
   // 6. RACE PAGES
+  // Sort races by date (oldest first) for chronological order in TOC
+  const sortedRaces = [...races].sort((a, b) => {
+    const dateA = new Date(a.start_date_local || a.start_date).getTime()
+    const dateB = new Date(b.start_date_local || b.start_date).getTime()
+    return dateA - dateB  // Ascending order (oldest first)
+  })
+
   const racesToInclude = config.maxRaces !== undefined
-    ? races.slice(0, config.maxRaces)
-    : races
+    ? sortedRaces.slice(0, config.maxRaces)
+    : sortedRaces
 
   for (const race of racesToInclude) {
     entries.push({
@@ -262,25 +279,45 @@ export function generateBookEntries(
   return entries
 }
 
+export interface PhotoWithDimensions {
+  url: string | null
+  width?: number
+  height?: number
+}
+
 /**
  * Find photos from activities that can be used for covers
  * Useful for tests and auto-discovery scenarios
+ * Returns URLs along with dimensions when available
  */
 export function findCoverPhotosFromActivities(activities: StravaActivity[]): {
+  coverPhoto: PhotoWithDimensions
+  backgroundPhoto: PhotoWithDimensions
+  backCoverPhoto: PhotoWithDimensions
+  // Legacy fields for backward compatibility
   coverPhotoUrl: string | null
   backgroundPhotoUrl: string | null
   backCoverPhotoUrl: string | null
 } {
-  const photos: string[] = []
+  const photos: PhotoWithDimensions[] = []
 
-  // Collect all photo URLs from activities
+  // Collect all photo URLs from activities with dimensions
   for (const activity of activities) {
     const activityPhotos = activity.comprehensiveData?.photos || []
     for (const photo of activityPhotos) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const photoAny = photo as any
       // Get the largest available URL
       const url = photo.urls?.['600'] || photo.urls?.['100'] || Object.values(photo.urls || {})[0]
       if (url) {
-        photos.push(url)
+        // Try to get dimensions from sizes field
+        const sizes = photoAny.sizes as Record<string, [number, number]> | undefined
+        const size = sizes?.['600'] || sizes?.['5000']
+        photos.push({
+          url,
+          width: size?.[0],
+          height: size?.[1],
+        })
       }
     }
 
@@ -288,15 +325,23 @@ export function findCoverPhotosFromActivities(activities: StravaActivity[]): {
     if (activity.photos?.primary?.urls) {
       const urls = activity.photos.primary.urls as Record<string, string>
       const url = urls['600'] || urls['100'] || Object.values(urls)[0]
-      if (url && !photos.includes(url)) {
-        photos.push(url)
+      if (url && !photos.find(p => p.url === url)) {
+        photos.push({ url })
       }
     }
   }
 
+  const coverPhoto = photos[0] || { url: null }
+  const backgroundPhoto = photos[1] || photos[0] || { url: null }
+  const backCoverPhoto = photos[2] || photos[0] || { url: null }
+
   return {
-    coverPhotoUrl: photos[0] || null,
-    backgroundPhotoUrl: photos[1] || photos[0] || null,
-    backCoverPhotoUrl: photos[2] || photos[0] || null,
+    coverPhoto,
+    backgroundPhoto,
+    backCoverPhoto,
+    // Legacy fields
+    coverPhotoUrl: coverPhoto.url,
+    backgroundPhotoUrl: backgroundPhoto.url,
+    backCoverPhotoUrl: backCoverPhoto.url,
   }
 }

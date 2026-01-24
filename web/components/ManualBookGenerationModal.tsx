@@ -190,10 +190,21 @@ export default function ManualBookGenerationModal({
         message: `Found ${highlightActivities.length} monthly highlights. Fetching detailed data...`,
       })
 
-      // Fetch detailed data for races and highlights
+      // Find fastest run (for YearStats best efforts section)
+      const runs = rangeActivities.filter(a => a.type === 'Run' && a.distance >= 5000)
+      const fastestRun = runs.length > 0
+        ? runs.reduce((fastest, a) => {
+            const currentPace = a.moving_time / a.distance
+            const fastestPace = fastest.moving_time / fastest.distance
+            return currentPace < fastestPace ? a : fastest
+          })
+        : null
+
+      // Fetch detailed data for races, highlights, and fastest run
       const activityIdsToFetch = new Set<number>()
       races.forEach(r => activityIdsToFetch.add(r.id))
       highlightActivities.forEach(h => activityIdsToFetch.add(h.id))
+      if (fastestRun) activityIdsToFetch.add(fastestRun.id)
 
       const enrichedMap = new Map<number, StravaActivity>()
       let completed = 0
