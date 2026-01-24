@@ -161,7 +161,7 @@ export const RaceSectionStatsPage = ({
         280 * format.scaleFactor
     )
 
-    const mapPoints = normalizePoints(activity.map.summary_polyline, mapWidth, mapHeight)
+    const mapPoints = normalizePoints(activity.map?.summary_polyline || '', mapWidth, mapHeight)
 
     // Fallback if no splits fetched (default api call might not have them without effort detail)
     const rawSplits = activity.splits_metric || []
@@ -201,7 +201,7 @@ export const RaceSectionStatsPage = ({
     // If we have a Mapbox Token, use the Static Images API for satellite view
     console.log("[Race_2pRight] Mapbox Token Prop:", !!mapboxToken)
     let satelliteUrl: string | null = null
-    if (mapboxToken && activity.map.summary_polyline) {
+    if (mapboxToken && activity.map?.summary_polyline) {
         // Construct detailed Mapbox Static URL
         // Style: Satellite V9
         // Path: Stroke Width 5, Color Orange (#fc4c02), Opacity 0.8
@@ -218,7 +218,7 @@ export const RaceSectionStatsPage = ({
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
                     // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={satelliteUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={satelliteUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                 ) : (
                     <>
                         {/* Blueprint Grid Background */}
