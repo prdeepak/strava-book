@@ -302,13 +302,12 @@ const TEMPLATES: Record<string, {
   },
   race_section: {
     component: RaceSection,
-    getProps: (variant) => ({
-      activity: variant === 'minimal' ? TEST_MINIMAL_ACTIVITY : TEST_RICH_ACTIVITY,
+    getProps: () => ({
+      activity: TEST_RICH_ACTIVITY,
       format: FORMATS['10x10'],
       theme: DEFAULT_THEME,
-      variant: variant || 'auto',
     }),
-    variants: ['auto', 'compact', 'standard', 'full', 'minimal'],
+    variants: ['full'],
   },
 }
 

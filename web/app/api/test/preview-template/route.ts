@@ -1,7 +1,7 @@
 /**
  * Test endpoint for previewing single-activity templates with fixture data
  *
- * Usage: GET /api/test/preview-template?template=race_section&variant=compact&fixture=ultramarathon
+ * Usage: GET /api/test/preview-template?template=race_section&fixture=ultramarathon
  *
  * This endpoint renders a single-activity template as a PDF using fixture data,
  * allowing quick iteration on template designs without needing real Strava data.
@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
-import { RaceSection, RaceSectionVariant } from '@/components/templates/RaceSection'
+import { RaceSection } from '@/components/templates/RaceSection'
 import { Race_1p } from '@/components/templates/Race_1p'
 import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import '@/lib/pdf-fonts'
@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const template = searchParams.get('template') || 'race_section'
-  const variant = searchParams.get('variant') || 'compact'
   const fixtureName = searchParams.get('fixture') || 'ultramarathon'
 
   const activity = FIXTURES[fixtureName]
@@ -62,7 +61,7 @@ export async function GET(request: NextRequest) {
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
   try {
-    console.log(`[Test Preview] Template: ${template}, Variant: ${variant}, Fixture: ${fixtureName}`)
+    console.log(`[Test Preview] Template: ${template}, Fixture: ${fixtureName}`)
     const startTime = Date.now()
 
     let pdfBuffer: Buffer
@@ -74,7 +73,6 @@ export async function GET(request: NextRequest) {
           format: FORMATS['10x10'],
           theme: DEFAULT_THEME,
           mapboxToken,
-          variant: variant as RaceSectionVariant,
         })
       )
     } else if (template === 'race_1p') {
@@ -99,10 +97,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="preview-${template}-${variant}.pdf"`,
+        'Content-Disposition': `inline; filename="preview-${template}.pdf"`,
         'X-Render-Time': String(renderTime),
         'X-Template': template,
-        'X-Variant': variant,
       },
     })
   } catch (error) {
@@ -111,7 +108,6 @@ export async function GET(request: NextRequest) {
       {
         error: 'Failed to render template',
         template,
-        variant,
         details: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       },

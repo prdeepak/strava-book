@@ -74,7 +74,6 @@ export default async function PreviewPage(props: {
 
     // Read user selections from URL parameters
     const searchParams = await props.searchParams
-    const variant = typeof searchParams?.variant === 'string' ? searchParams.variant : undefined
     const includePhotos = searchParams?.includePhotos !== 'false'
     const includeComments = searchParams?.includeComments !== 'false'
     const includeSplits = searchParams?.includeSplits !== 'false'
@@ -127,5 +126,5 @@ export default async function PreviewPage(props: {
         activity = await convertPhotosToBase64(activity!)
     }
 
-    return <AsyncPDFPreview activity={activity!} mapboxToken={mapboxToken} template={template} variant={variant} />
+    return <AsyncPDFPreview activity={activity!} mapboxToken={mapboxToken} template={template} />
 }
