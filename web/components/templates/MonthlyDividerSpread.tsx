@@ -10,6 +10,7 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesToDayActivities } from '@/lib/calendar-views'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 interface MonthlyDividerSpreadProps {
   activities?: StravaActivity[]
@@ -270,7 +271,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     bottom: format.safeMargin,
     left: format.safeMargin,
     right: format.safeMargin,
-    color: '#ffffff',
+    color: theme.backgroundColor,
     fontSize: 10 * format.scaleFactor,
     fontFamily: theme.fontPairing.body,
     textShadow: '0 1px 3px rgba(0,0,0,0.5)',

@@ -7,7 +7,7 @@
  */
 
 import { renderToBuffer } from '@react-pdf/renderer'
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, StyleSheet } from '@react-pdf/renderer'
 import { writeFileSync, readFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import React from 'react'

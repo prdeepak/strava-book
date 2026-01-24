@@ -4,8 +4,16 @@ import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import mapboxPolyline from '@mapbox/polyline'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
+    // Resolve design tokens
+    const headingTypo = resolveTypography('heading', theme, format)
+    const bodyTypo = resolveTypography('body', theme, format)
+    const captionTypo = resolveTypography('caption', theme, format)
+    const spacing = resolveSpacing(theme, format)
+    const effects = resolveEffects(theme)
+
     const mapHeight = Math.min(
         format.dimensions.height * 0.35,
         280 * format.scaleFactor
@@ -21,8 +29,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         },
         mapContainer: {
             height: mapHeight,
-            backgroundColor: '#f5f5f5',
-            marginBottom: 12 * format.scaleFactor,
+            backgroundColor: `${theme.primaryColor}08`,
+            marginBottom: spacing.sm * 0.75,
             border: `1px solid ${theme.primaryColor}`,
             borderWidth: 0.5,
             justifyContent: 'center',
@@ -30,51 +38,53 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             overflow: 'hidden',
         },
         sectionTitle: {
-            fontSize: Math.max(10, 12 * format.scaleFactor),
-            fontFamily: theme.fontPairing.heading,
+            fontSize: captionTypo.fontSize * 1.2,
+            fontFamily: headingTypo.fontFamily,
             textTransform: 'uppercase',
-            marginBottom: 8 * format.scaleFactor,
-            marginTop: 8 * format.scaleFactor,
+            marginBottom: spacing.xs,
+            marginTop: spacing.xs,
             color: theme.primaryColor,
             borderBottomWidth: 1.5,
             borderBottomColor: theme.accentColor,
-            paddingBottom: 4 * format.scaleFactor,
-            letterSpacing: 1.5,
+            paddingBottom: spacing.xs / 2,
+            letterSpacing: captionTypo.letterSpacing ?? 1.5,
         },
         splitsContainer: {
             flexDirection: 'row',
             flexWrap: 'wrap',
-            marginBottom: 8 * format.scaleFactor,
+            marginBottom: spacing.xs,
         },
         splitRow: {
             width: '48%',
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 4 * format.scaleFactor,
+            marginBottom: spacing.xs / 2,
             borderBottomWidth: 0.5,
-            borderBottomColor: '#e0e0e0',
-            paddingBottom: 3 * format.scaleFactor,
-            paddingHorizontal: 4 * format.scaleFactor,
+            borderBottomColor: `${theme.primaryColor}20`,
+            paddingBottom: spacing.xs / 3,
+            paddingHorizontal: spacing.xs / 2,
             marginRight: '2%'
         },
         splitLabel: {
-            fontSize: Math.max(8, 10 * format.scaleFactor),
-            fontFamily: theme.fontPairing.heading,
-            color: '#333',
+            fontSize: captionTypo.fontSize,
+            fontFamily: headingTypo.fontFamily,
+            color: theme.primaryColor,
             width: '25%',
         },
         splitPace: {
-            fontSize: Math.max(8, 10 * format.scaleFactor),
-            fontFamily: theme.fontPairing.body,
-            color: '#555',
+            fontSize: captionTypo.fontSize,
+            fontFamily: bodyTypo.fontFamily,
+            color: theme.primaryColor,
+            opacity: effects.backgroundImageOpacity + 0.3,
             width: '45%',
             textAlign: 'center',
         },
         splitElev: {
-            fontSize: Math.max(8, 9 * format.scaleFactor),
-            fontFamily: theme.fontPairing.body,
-            color: '#777',
+            fontSize: captionTypo.fontSize * 0.9,
+            fontFamily: bodyTypo.fontFamily,
+            color: theme.primaryColor,
+            opacity: effects.backgroundImageOpacity + 0.2,
             width: '30%',
             textAlign: 'right',
         },
@@ -83,15 +93,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 6 * format.scaleFactor,
-            paddingHorizontal: 4 * format.scaleFactor,
+            marginBottom: spacing.xs * 0.75,
+            paddingHorizontal: spacing.xs / 2,
             marginRight: '2%',
         },
         splitHeaderText: {
-            fontSize: Math.max(7, 8 * format.scaleFactor),
-            fontFamily: theme.fontPairing.heading,
+            fontSize: captionTypo.fontSize * 0.8,
+            fontFamily: headingTypo.fontFamily,
             textTransform: 'uppercase',
-            color: '#999',
+            color: theme.primaryColor,
+            opacity: effects.backgroundImageOpacity,
             letterSpacing: 0.5,
         }
     })
@@ -218,21 +229,21 @@ export const RaceSectionStatsPage = ({
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
                     // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={satelliteUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={satelliteUrl} style={{ width: '100%', height: '100%' }} />
                 ) : (
                     <>
                         {/* Blueprint Grid Background */}
-                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0, backgroundColor: '#f5f5f5' }}>
+                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0, backgroundColor: `${theme.primaryColor}08` }}>
                             {/* Horizontal Grid Lines */}
                             {Array.from({ length: 5 }).map((_, i) => {
                                 const y = (mapHeight / 5) * (i + 1)
-                                return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                                return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke={`${theme.primaryColor}20`} strokeWidth={0.5} />
                             })}
 
                             {/* Vertical Grid Lines */}
                             {Array.from({ length: 5 }).map((_, i) => {
                                 const x = (mapWidth / 5) * (i + 1)
-                                return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                                return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke={`${theme.primaryColor}20`} strokeWidth={0.5} />
                             })}
                         </Svg>
 
@@ -252,8 +263,9 @@ export const RaceSectionStatsPage = ({
                             position: 'absolute',
                             bottom: 8,
                             right: 8,
-                            fontSize: Math.max(6, 8 * format.scaleFactor),
-                            color: '#aaa',
+                            fontSize: resolveTypography('caption', theme, format).fontSize * 0.8,
+                            color: theme.primaryColor,
+                            opacity: resolveEffects(theme).backgroundImageOpacity,
                             fontFamily: theme.fontPairing.body
                         }}>
                             VECTOR MAP

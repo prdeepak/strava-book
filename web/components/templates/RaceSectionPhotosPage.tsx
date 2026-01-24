@@ -2,71 +2,80 @@ import { Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-    page: {
-        width: format.dimensions.width,
-        height: format.dimensions.height,
-        backgroundColor: theme.backgroundColor,
-        padding: format.safeMargin,
-        flexDirection: 'column',
-    },
-    header: {
-        marginBottom: 16 * format.scaleFactor,
-    },
-    sectionLabel: {
-        color: theme.accentColor,
-        fontSize: Math.max(10, 12 * format.scaleFactor),
-        fontFamily: theme.fontPairing.heading,
-        textTransform: 'uppercase',
-        letterSpacing: 2,
-    },
-    title: {
-        fontSize: Math.max(18, 24 * format.scaleFactor),
-        fontFamily: theme.fontPairing.heading,
-        color: theme.primaryColor,
-        marginTop: 4 * format.scaleFactor,
-    },
-    photosGrid: {
-        flex: 1,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8 * format.scaleFactor,
-    },
-    photoLarge: {
-        width: '100%',
-        height: '48%',
-        objectFit: 'cover',
-        borderRadius: 4,
-    },
-    photoMedium: {
-        width: '48%',
-        height: '45%',
-        objectFit: 'cover',
-        borderRadius: 4,
-    },
-    photoSmall: {
-        width: '31%',
-        height: '30%',
-        objectFit: 'cover',
-        borderRadius: 4,
-    },
-    photoCaption: {
-        fontSize: Math.max(8, 10 * format.scaleFactor),
-        fontFamily: theme.fontPairing.body,
-        color: '#666',
-        marginTop: 4 * format.scaleFactor,
-        textAlign: 'center',
-    },
-    pageNumber: {
-        position: 'absolute',
-        bottom: format.safeMargin,
-        right: format.safeMargin,
-        fontSize: Math.max(8, 10 * format.scaleFactor),
-        fontFamily: theme.fontPairing.body,
-        color: '#999',
-    },
-})
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+    // Resolve design tokens
+    const headingTypo = resolveTypography('heading', theme, format)
+    const bodyTypo = resolveTypography('body', theme, format)
+    const captionTypo = resolveTypography('caption', theme, format)
+    const spacing = resolveSpacing(theme, format)
+    const effects = resolveEffects(theme)
+
+    return StyleSheet.create({
+        page: {
+            width: format.dimensions.width,
+            height: format.dimensions.height,
+            backgroundColor: theme.backgroundColor,
+            padding: format.safeMargin,
+            flexDirection: 'column',
+        },
+        header: {
+            marginBottom: spacing.sm,
+        },
+        sectionLabel: {
+            color: theme.accentColor,
+            fontSize: captionTypo.fontSize * 1.2,
+            fontFamily: headingTypo.fontFamily,
+            textTransform: 'uppercase',
+            letterSpacing: captionTypo.letterSpacing ?? 2,
+        },
+        title: {
+            fontSize: headingTypo.fontSize,
+            fontFamily: headingTypo.fontFamily,
+            color: theme.primaryColor,
+            marginTop: spacing.xs / 2,
+        },
+        photosGrid: {
+            flex: 1,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: spacing.xs,
+        },
+        photoLarge: {
+            width: '100%',
+            height: '48%',
+            borderRadius: 4,
+        },
+        photoMedium: {
+            width: '48%',
+            height: '45%',
+            borderRadius: 4,
+        },
+        photoSmall: {
+            width: '31%',
+            height: '30%',
+            borderRadius: 4,
+        },
+        photoCaption: {
+            fontSize: captionTypo.fontSize,
+            fontFamily: bodyTypo.fontFamily,
+            color: theme.primaryColor,
+            opacity: effects.backgroundImageOpacity + 0.15,
+            marginTop: spacing.xs / 2,
+            textAlign: 'center',
+        },
+        pageNumber: {
+            position: 'absolute',
+            bottom: format.safeMargin,
+            right: format.safeMargin,
+            fontSize: captionTypo.fontSize,
+            fontFamily: bodyTypo.fontFamily,
+            color: theme.primaryColor,
+            opacity: effects.backgroundImageOpacity,
+        },
+    })
+}
 
 // Get all photos from activity
 const getPhotos = (activity: StravaActivity): string[] => {

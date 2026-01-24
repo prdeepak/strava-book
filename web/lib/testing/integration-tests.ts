@@ -17,7 +17,7 @@ import { BookDocument } from '../../components/templates/BookDocument'
 import { generateSmartDraft } from '../curator'
 import { yearFixtures, YearFixture } from './fixtures/yearFixtures'
 import { FORMATS, DEFAULT_THEME } from '../book-types'
-import { pdfToImages, TestResult, generateRunId, getRunOutputDir } from './test-harness'
+import { pdfToImages, generateRunId, getRunOutputDir } from './test-harness'
 import { judgePageVisual, JudgeContext, judgeBook, BookJudgment, BookContext } from './visual-judge'
 // Register fonts for PDF generation (must be imported before rendering)
 import '../pdf-fonts'
