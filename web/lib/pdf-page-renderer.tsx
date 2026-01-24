@@ -244,6 +244,7 @@ export async function renderEntryAsPdf(
               activitiesPerPage={perPage}
               format={format}
               theme={theme}
+              mapboxToken={mapboxToken}
             />
           </Document>
         )

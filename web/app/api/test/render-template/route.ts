@@ -19,7 +19,7 @@ import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
 import { MonthlyDividerDocument } from '@/components/templates/MonthlyDivider'
 import { MonthlyDividerSpread } from '@/components/templates/MonthlyDividerSpread'
-import { ActivityLog } from '@/components/templates/ActivityLog'
+import { ActivityLogDocument } from '@/components/templates/ActivityLog'
 import { BackCover } from '@/components/templates/BackCover'
 import { Foreword } from '@/components/templates/Foreword'
 import { TableOfContents } from '@/components/templates/TableOfContents'
@@ -270,13 +270,13 @@ const TEMPLATES: Record<string, {
     variants: ['minimal', 'photo-accent', 'stats-preview'],
   },
   activity_log: {
-    component: ActivityLog,
+    component: ActivityLogDocument,
     getProps: () => ({
       activities: [TEST_ACTIVITY, TEST_ACTIVITY, TEST_ACTIVITY],
       format: FORMATS['10x10'],
       theme: DEFAULT_THEME,
     }),
-    variants: ['compact-table', 'with-maps', 'journal-style'],
+    variants: ['grid'],
   },
   back_cover: {
     component: BackCover,

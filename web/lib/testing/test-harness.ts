@@ -238,17 +238,6 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         const mod = await import('../../components/templates/PhotoGallery')
         return mod.PhotoGallery
     },
-    'ActivityLog_concise': async () => {
-        const mod = await import('../../components/templates/ActivityLog')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (props: Record<string, unknown>) => mod.ActivityLog({ ...props, variant: 'concise' } as any)
-    },
-    'ActivityLog_full': async () => {
-        const mod = await import('../../components/templates/ActivityLog')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (props: Record<string, unknown>) => mod.ActivityLog({ ...props, variant: 'full' } as any)
-    },
-
     // Other templates - add as needed
     'Cover': async () => {
         const mod = await import('../../components/templates/Cover')

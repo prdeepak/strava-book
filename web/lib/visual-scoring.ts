@@ -32,6 +32,68 @@ export interface ScoringResult {
 }
 
 // ============================================================================
+// Custom Prompts for Specific Page Types
+// ============================================================================
+
+/**
+ * Get a custom evaluation prompt for specific page types.
+ * Returns undefined to use the default prompt.
+ */
+function getCustomPromptForPageType(pageType: string, theme?: { primaryColor: string; accentColor: string; backgroundColor: string }): string | undefined {
+  if (pageType === 'ACTIVITY_LOG') {
+    let themeInfo = ''
+    if (theme) {
+      themeInfo = `Theme: Primary=${theme.primaryColor}, Accent=${theme.accentColor}, Background=${theme.backgroundColor}`
+    }
+
+    return `You are evaluating an ACTIVITY LOG page from a Strava coffee-table book.
+
+This page displays a 2-column grid of activity cards. Each card should show:
+- A satellite map image with the activity route overlaid (orange/accent line on satellite imagery)
+- Activity name and date
+- Key stats (distance, time, pace, elevation)
+- Optional: kudos count, comments, PR badge
+
+${themeInfo}
+
+Evaluate on these criteria (score 0-100 each):
+
+1. SATELLITE MAPS (40%)
+- Do activity cards with GPS routes show SATELLITE IMAGERY backgrounds (aerial photos, not plain colors)?
+- Is the route line visible against the satellite background?
+- Are maps properly sized and not pixelated?
+- Cards without GPS data should show a placeholder with activity type
+
+2. PAGE DIMENSIONS & LAYOUT (30%)
+- Is the page square (equal width and height)?
+- Is the 2-column grid evenly spaced?
+- Are cards consistently sized?
+- Is there appropriate whitespace between cards?
+
+3. STYLE GUIDE COMPLIANCE (30%)
+- Are fonts consistent (headings vs body text)?
+- Are colors from the theme used consistently (no random colors)?
+- Is text readable (appropriate size, contrast)?
+- Are stats clearly formatted and aligned?
+
+IMPORTANT: The most critical requirement is that activity cards with GPS routes MUST show satellite map imagery (aerial photography) behind the route line. If maps are showing plain colors instead of satellite photos, this is a major failure.
+
+Return ONLY valid JSON (no markdown, no explanation outside JSON):
+{
+  "printReadability": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "layoutBalance": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "brandCohesion": { "score": <0-100>, "issues": ["issue1", "issue2"] },
+  "overallScore": <0-100>,
+  "pass": <true if overall >= 70 and all cards with routes have satellite maps>,
+  "summary": "Brief 1-2 sentence assessment",
+  "suggestions": ["Specific improvement 1", "Specific improvement 2", "Specific improvement 3"]
+}`
+  }
+
+  return undefined
+}
+
+// ============================================================================
 // Main Scoring Function
 // ============================================================================
 
@@ -118,12 +180,14 @@ export async function scorePdfPages(
         continue
       }
 
-      // Build judge context
+      // Build judge context with optional custom prompt for specific page types
+      const customPrompt = getCustomPromptForPageType(pageType, theme)
       const context: JudgeContext = {
         templateName: pageType,
         pageType,
         pageNumber,
         theme,
+        customPrompt,
       }
 
       try {
@@ -242,12 +306,14 @@ export async function scoreSamplePages(
       const pageType = entry?.type || 'UNKNOWN'
       const pageTitle = entry?.title || `Page ${pageNumber}`
 
-      // Build judge context
+      // Build judge context with optional custom prompt for specific page types
+      const customPrompt = getCustomPromptForPageType(pageType, theme)
       const context: JudgeContext = {
         templateName: pageType,
         pageType,
         pageNumber,
         theme,
+        customPrompt,
       }
 
       try {

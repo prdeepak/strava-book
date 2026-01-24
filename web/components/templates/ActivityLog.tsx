@@ -1,25 +1,27 @@
 /**
- * ActivityLog - Activity card layouts for PDF generation
+ * ActivityLog - Grid layout of activity cards for PDF generation
  *
- * Variants:
- * - 'grid' (default): Multiple activities in a 2-column grid layout (6 per page)
- * - 'concise': Single activity with map, stats, and 1 photo - compact summary
- * - 'full': Single activity with description, all comments, kudos, multiple photos
+ * Displays multiple activities in a 2-column grid layout (6 per page).
+ * Each card shows activity name, date, location, stats, and a satellite map
+ * with the route overlay (when GPS data is available).
+ *
+ * Follows Style Guide patterns:
+ * - Content container pattern (padding:0 on Page)
+ * - Typography system via resolveTypography()
+ * - Spacing system via resolveSpacing()
+ * - Theme colors (no hardcoded values)
  */
 
-import { Page, View, Text, Svg, Path, StyleSheet, Document, Image, Polyline } from '@react-pdf/renderer'
+import { Page, View, Text, StyleSheet, Document, Image } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { formatDistance, formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
-import { extractPhotos } from '@/lib/photo-gallery-utils'
+import { formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
+import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
-import polyline from '@mapbox/polyline'
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-export type ActivityLogVariant = 'grid' | 'concise' | 'full'
 
 interface ActivityLogProps {
   activities?: StravaActivity[]
@@ -30,736 +32,204 @@ interface ActivityLogProps {
   theme?: BookTheme
   units?: 'metric' | 'imperial'
   title?: string
-  variant?: ActivityLogVariant
   mapboxToken?: string
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: '#f8f9fa',
-    padding: format.safeMargin,
-  },
-  pageHeader: {
-    marginBottom: 16 * format.scaleFactor,
-    paddingBottom: 8 * format.scaleFactor,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.primaryColor,
-  },
-  pageTitle: {
-    fontSize: Math.max(18, 24 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  cardsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  activityCard: {
-    width: '48%',
-    backgroundColor: '#ffffff',
-    padding: 12 * format.scaleFactor,
-    marginBottom: 12 * format.scaleFactor,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  cardHeader: {
-    marginBottom: 8 * format.scaleFactor,
-    paddingBottom: 6 * format.scaleFactor,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.accentColor,
-  },
-  activityName: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    marginBottom: 3,
-  },
-  activityMeta: {
-    fontSize: Math.max(7, 8 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  description: {
-    fontSize: Math.max(7, 8 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#444',
-    fontStyle: 'italic',
-    marginBottom: 8 * format.scaleFactor,
-    lineHeight: 1.3,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8 * format.scaleFactor,
-    paddingTop: 8 * format.scaleFactor,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: theme.primaryColor,
-  },
-  statLabel: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#666',
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-  mapContainer: {
-    width: '100%',
-    height: 80 * format.scaleFactor,
-    backgroundColor: '#2a2a2a',
-    marginBottom: 8 * format.scaleFactor,
-  },
-  photoContainer: {
-    width: '100%',
-    height: 100 * format.scaleFactor,
-    backgroundColor: '#f0f0f0',
-    marginBottom: 8 * format.scaleFactor,
-  },
-  socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6 * format.scaleFactor,
-    paddingTop: 6 * format.scaleFactor,
-    borderTopWidth: 0.5,
-    borderTopColor: '#e0e0e0',
-  },
-  kudos: {
-    fontSize: Math.max(7, 8 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: theme.accentColor,
-  },
-  comments: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: '#666',
-  },
-  bestEffortBadge: {
-    fontSize: Math.max(6, 7 * format.scaleFactor),
-    fontFamily: 'Helvetica-Bold',
-    color: '#FFD700',
-    backgroundColor: '#000',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-})
-
-// Helper to decode polyline and create SVG path
-function createMiniMapPath(summaryPolyline: string | undefined): string | null {
-  if (!summaryPolyline) return null
-
-  try {
-    const coordinates = polyline.decode(summaryPolyline)
-    if (coordinates.length === 0) return null
-
-    // Find bounds
-    const lats = coordinates.map(c => c[0])
-    const lngs = coordinates.map(c => c[1])
-    const minLat = Math.min(...lats)
-    const maxLat = Math.max(...lats)
-    const minLng = Math.min(...lngs)
-    const maxLng = Math.max(...lngs)
-
-    // Normalize to 0-100 coordinate space
-    const latRange = maxLat - minLat || 0.001
-    const lngRange = maxLng - minLng || 0.001
-
-    const points = coordinates.map(([lat, lng]) => {
-      const x = ((lng - minLng) / lngRange) * 100
-      const y = 100 - ((lat - minLat) / latRange) * 100  // Flip Y axis
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-
-    return `M ${points.join(' L ')}`
-  } catch {
-    return null
-  }
-}
-
-// Helper to resolve image URLs
-function resolveImageUrl(url: string | undefined): string | null {
-  if (!url) return null
-  if (url.startsWith('/') && !url.startsWith('/api/')) {
-    return url
-  }
-  if (url.startsWith('http')) {
-    return `/api/proxy-image?url=${encodeURIComponent(url)}`
-  }
-  return url
-}
-
-// Check if activity has any best efforts in top 3
-function hasTopBestEfforts(activity: StravaActivity): boolean {
-  const efforts = activity.best_efforts || []
-  return efforts.some(e => e.pr_rank && e.pr_rank <= 3)
-}
-
 // ============================================================================
-// CONCISE VARIANT STYLES
+// STYLES
 // ============================================================================
 
-const createConciseStyles = (format: BookFormat, theme: BookTheme) => {
-  const scale = format.scaleFactor
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  const spacing = resolveSpacing(theme, format)
+  const heading = resolveTypography('heading', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
 
   return StyleSheet.create({
     page: {
       width: format.dimensions.width,
       height: format.dimensions.height,
-      backgroundColor: '#ffffff',
-      padding: format.safeMargin,
+      backgroundColor: theme.backgroundColor,
+      padding: 0, // Content container pattern
+      position: 'relative',
     },
-    header: {
-      marginBottom: 16 * scale,
-      paddingBottom: 12 * scale,
+    contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
+    },
+    pageHeader: {
+      marginBottom: spacing.sm,
+      paddingBottom: spacing.xs,
       borderBottomWidth: 2,
-      borderBottomColor: theme.accentColor,
+      borderBottomColor: theme.primaryColor,
     },
-    title: {
-      fontSize: Math.max(20, 26 * scale),
-      fontFamily: theme.fontPairing.heading,
+    pageTitle: {
+      fontSize: heading.fontSize,
+      fontFamily: heading.fontFamily,
       color: theme.primaryColor,
-      marginBottom: 4 * scale,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
     },
-    meta: {
-      fontSize: Math.max(10, 12 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#666',
-    },
-    contentRow: {
+    cardsContainer: {
       flexDirection: 'row',
-      gap: 16 * scale,
-      marginBottom: 16 * scale,
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      flex: 1,
     },
-    mapSection: {
-      width: '55%',
-      height: 200 * scale,
-      backgroundColor: '#f5f5f5',
+    activityCard: {
+      width: '48.5%',
+      backgroundColor: theme.backgroundColor,
+      marginBottom: spacing.xs,
+      borderWidth: 1,
+      borderColor: theme.primaryColor + '20', // 12% opacity
       overflow: 'hidden',
     },
-    photoSection: {
-      width: '45%',
-      height: 200 * scale,
-      backgroundColor: '#f0f0f0',
+    // Map container - shows satellite map with route overlay
+    mapContainer: {
+      width: '100%',
+      height: 90 * format.scaleFactor,
+      backgroundColor: theme.primaryColor + '10',
       overflow: 'hidden',
+      position: 'relative',
     },
     mapImage: {
       width: '100%',
       height: '100%',
       objectFit: 'cover',
     },
-    statsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      gap: 12 * scale,
-    },
-    statBox: {
-      width: '23%',
-      backgroundColor: '#f8f9fa',
-      padding: 12 * scale,
+    noMapPlaceholder: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: theme.primaryColor + '08',
     },
-    statValue: {
-      fontSize: Math.max(18, 22 * scale),
-      fontFamily: 'Helvetica-Bold',
-      color: theme.primaryColor,
-    },
-    statLabel: {
-      fontSize: Math.max(8, 9 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#666',
+    noMapText: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '40',
       textTransform: 'uppercase',
-      marginTop: 4 * scale,
+      letterSpacing: 0.5,
     },
-    socialBar: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      marginTop: 16 * scale,
-      paddingTop: 12 * scale,
-      borderTopWidth: 1,
-      borderTopColor: '#e0e0e0',
-      gap: 16 * scale,
+    cardContent: {
+      padding: spacing.xs,
     },
-    socialItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4 * scale,
+    cardHeader: {
+      marginBottom: spacing.xs / 2,
     },
-    socialValue: {
-      fontSize: Math.max(12, 14 * scale),
-      fontFamily: 'Helvetica-Bold',
-      color: theme.accentColor,
-    },
-    socialLabel: {
-      fontSize: Math.max(9, 10 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#666',
-    },
-  })
-}
-
-// ============================================================================
-// FULL VARIANT STYLES
-// ============================================================================
-
-const createFullStyles = (format: BookFormat, theme: BookTheme) => {
-  const scale = format.scaleFactor
-
-  return StyleSheet.create({
-    page: {
-      width: format.dimensions.width,
-      height: format.dimensions.height,
-      backgroundColor: '#fafafa',
-      padding: format.safeMargin,
-    },
-    header: {
-      marginBottom: 12 * scale,
-    },
-    sectionLabel: {
-      fontSize: Math.max(9, 10 * scale),
-      fontFamily: theme.fontPairing.heading,
-      color: theme.accentColor,
-      textTransform: 'uppercase',
-      letterSpacing: 2,
-      marginBottom: 4 * scale,
-    },
-    title: {
-      fontSize: Math.max(22, 28 * scale),
-      fontFamily: theme.fontPairing.heading,
+    activityName: {
+      fontSize: subheading.fontSize * 0.7,
+      fontFamily: subheading.fontFamily,
       color: theme.primaryColor,
-      marginBottom: 4 * scale,
+      marginBottom: 2,
     },
-    meta: {
-      fontSize: Math.max(10, 12 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#666',
-      marginBottom: 16 * scale,
+    activityMeta: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '80',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     description: {
-      fontSize: Math.max(10, 11 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#333',
-      lineHeight: 1.5,
-      marginBottom: 16 * scale,
-      paddingLeft: 12 * scale,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.accentColor,
+      fontSize: caption.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor + '90',
+      fontStyle: 'italic',
+      marginBottom: spacing.xs / 2,
+      lineHeight: 1.3,
     },
     statsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 16 * scale,
-      paddingVertical: 12 * scale,
-      paddingHorizontal: 8 * scale,
-      backgroundColor: '#ffffff',
-      borderWidth: 1,
-      borderColor: '#e0e0e0',
+      paddingTop: spacing.xs / 2,
+      borderTopWidth: 0.5,
+      borderTopColor: theme.primaryColor + '20',
     },
     statItem: {
       alignItems: 'center',
+      flex: 1,
     },
     statValue: {
-      fontSize: Math.max(16, 20 * scale),
-      fontFamily: 'Helvetica-Bold',
+      fontSize: body.fontSize * 0.9,
+      fontFamily: theme.fontPairing.heading,
       color: theme.primaryColor,
     },
     statLabel: {
-      fontSize: Math.max(7, 8 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#666',
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '60',
       textTransform: 'uppercase',
-      marginTop: 2 * scale,
+      marginTop: 1,
     },
-    photoGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8 * scale,
-      marginBottom: 16 * scale,
-    },
-    photoMain: {
-      width: '100%',
-      height: 180 * scale,
-      objectFit: 'cover',
-    },
-    photoThumb: {
-      width: '32%',
-      height: 80 * scale,
-      objectFit: 'cover',
-    },
-    commentsSection: {
-      marginTop: 12 * scale,
-    },
-    commentsHeader: {
+    socialRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 8 * scale,
-      paddingBottom: 8 * scale,
-      borderBottomWidth: 1,
-      borderBottomColor: '#e0e0e0',
+      marginTop: spacing.xs / 2,
+      paddingTop: spacing.xs / 2,
+      borderTopWidth: 0.5,
+      borderTopColor: theme.primaryColor + '15',
     },
-    commentsTitle: {
-      fontSize: Math.max(10, 12 * scale),
+    kudos: {
+      fontSize: caption.fontSize,
       fontFamily: theme.fontPairing.heading,
-      color: theme.primaryColor,
-      textTransform: 'uppercase',
-    },
-    kudosCount: {
-      fontSize: Math.max(14, 16 * scale),
-      fontFamily: 'Helvetica-Bold',
       color: theme.accentColor,
     },
-    comment: {
-      marginBottom: 10 * scale,
-      paddingBottom: 8 * scale,
-      borderBottomWidth: 0.5,
-      borderBottomColor: '#e8e8e8',
+    comments: {
+      fontSize: caption.fontSize * 0.9,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '60',
     },
-    commentAuthor: {
-      fontSize: Math.max(9, 10 * scale),
-      fontFamily: 'Helvetica-Bold',
-      color: '#333',
-      marginBottom: 2 * scale,
-    },
-    commentText: {
-      fontSize: Math.max(9, 10 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#555',
-      lineHeight: 1.4,
-    },
-    commentTime: {
-      fontSize: Math.max(7, 8 * scale),
-      fontFamily: theme.fontPairing.body,
-      color: '#999',
-      marginTop: 2 * scale,
+    prBadge: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: theme.fontPairing.heading,
+      color: theme.backgroundColor,
+      backgroundColor: theme.accentColor,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
     },
   })
 }
 
 // ============================================================================
-// CONCISE VARIANT COMPONENT
+// HELPERS
 // ============================================================================
 
-const ActivityLogConcise = ({
-  activity,
-  format,
-  theme,
-  units,
-  mapboxToken
-}: {
-  activity: StravaActivity
-  format: BookFormat
-  theme: BookTheme
-  units: 'metric' | 'imperial'
-  mapboxToken?: string
-}) => {
-  const styles = createConciseStyles(format, theme)
-  const scale = format.scaleFactor
+/**
+ * Check if activity has any best efforts in top 3
+ */
+function hasTopBestEfforts(activity: StravaActivity): boolean {
+  const efforts = activity.best_efforts || []
+  return efforts.some(e => e.pr_rank && e.pr_rank <= 3)
+}
 
-  const date = new Date(activity.start_date_local).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })
-  const location = resolveActivityLocation(activity)
-
-  // Get map - use satellite view for better visual appeal
-  const mapWidth = (format.dimensions.width - format.safeMargin * 2) * 0.55
-  const mapHeight = 200 * scale
-  const polylineData = activity.map?.summary_polyline
-  let mapUrl: string | null = null
-  if (mapboxToken && polylineData) {
-    mapUrl = getMapboxSatelliteUrl(polylineData, mapboxToken, Math.round(mapWidth), Math.round(mapHeight))
+/**
+ * Get satellite map URL for an activity
+ */
+function getSatelliteMapUrl(
+  activity: StravaActivity,
+  mapboxToken: string | undefined,
+  width: number,
+  height: number
+): string | null {
+  if (!mapboxToken || !activity.map?.summary_polyline) {
+    return null
   }
-
-  // Get photo
-  const photos = extractPhotos(activity)
-  const primaryPhoto = photos.length > 0 ? photos[0].url : null
-
-  // Stats
-  const distance = units === 'metric'
-    ? (activity.distance / 1000).toFixed(2)
-    : (activity.distance / 1609.34).toFixed(2)
-  const distanceUnit = units === 'metric' ? 'km' : 'mi'
-  const time = formatTime(activity.moving_time)
-  const pace = formatPace(activity.moving_time, activity.distance, units)
-
-  return (
-    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{activity.name}</Text>
-        <Text style={styles.meta}>{date} | {location}</Text>
-      </View>
-
-      {/* Map + Photo Row */}
-      <View style={styles.contentRow}>
-        <View style={styles.mapSection}>
-          {mapUrl ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={resolveImageForPdf(mapUrl) || mapUrl} style={styles.mapImage} />
-          ) : polylineData ? (
-            <Svg width={mapWidth} height={mapHeight} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
-              <Polyline
-                points={createMiniMapPoints(polylineData, mapWidth, mapHeight)}
-                stroke={theme.accentColor}
-                strokeWidth={3 * scale}
-                fill="none"
-              />
-            </Svg>
-          ) : (
-            <Text style={{ color: '#999', textAlign: 'center', marginTop: 80 * scale }}>No map</Text>
-          )}
-        </View>
-
-        <View style={styles.photoSection}>
-          {primaryPhoto ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={primaryPhoto} style={styles.mapImage} />
-          ) : (
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#f8f9fa',
-              borderWidth: 1,
-              borderColor: '#e0e0e0',
-              padding: 16 * scale,
-            }}>
-              <Text style={{
-                color: theme.accentColor,
-                fontSize: 48 * scale,
-                fontFamily: 'Helvetica-Bold',
-                marginBottom: 8 * scale,
-              }}>{activity.name.charAt(0)}</Text>
-              <Text style={{
-                color: '#666',
-                fontSize: 9 * scale,
-                fontFamily: theme.fontPairing.body,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-              }}>{activity.sport_type || activity.type}</Text>
-              {activity.total_elevation_gain > 50 && (
-                <Text style={{
-                  color: '#999',
-                  fontSize: 8 * scale,
-                  fontFamily: theme.fontPairing.body,
-                  marginTop: 8 * scale,
-                }}>{Math.round(activity.total_elevation_gain)}m elevation</Text>
-              )}
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Stats Grid */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>{distance}</Text>
-          <Text style={styles.statLabel}>{distanceUnit}</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>{time}</Text>
-          <Text style={styles.statLabel}>Time</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>{pace.split('/')[0]}</Text>
-          <Text style={styles.statLabel}>/{pace.split('/')[1]}</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
-          <Text style={styles.statLabel}>m elev</Text>
-        </View>
-      </View>
-
-      {/* Social Bar */}
-      <View style={styles.socialBar}>
-        <View style={styles.socialItem}>
-          <Text style={styles.socialValue}>{activity.kudos_count || 0}</Text>
-          <Text style={styles.socialLabel}>kudos</Text>
-        </View>
-        <View style={styles.socialItem}>
-          <Text style={styles.socialValue}>{activity.comment_count || 0}</Text>
-          <Text style={styles.socialLabel}>comments</Text>
-        </View>
-      </View>
-    </Page>
-  )
-}
-
-// Helper for concise map
-function createMiniMapPoints(summaryPolyline: string, width: number, height: number): string {
-  try {
-    const coordinates = polyline.decode(summaryPolyline)
-    if (coordinates.length === 0) return ''
-
-    const lats = coordinates.map(c => c[0])
-    const lngs = coordinates.map(c => c[1])
-    const minLat = Math.min(...lats)
-    const maxLat = Math.max(...lats)
-    const minLng = Math.min(...lngs)
-    const maxLng = Math.max(...lngs)
-
-    const latRange = maxLat - minLat || 0.001
-    const lngRange = maxLng - minLng || 0.001
-
-    const padding = 10
-    const plotWidth = width - padding * 2
-    const plotHeight = height - padding * 2
-
-    return coordinates.map(([lat, lng]) => {
-      const x = padding + ((lng - minLng) / lngRange) * plotWidth
-      const y = padding + plotHeight - ((lat - minLat) / latRange) * plotHeight
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    }).join(' ')
-  } catch {
-    return ''
-  }
-}
-
-// ============================================================================
-// FULL VARIANT COMPONENT
-// ============================================================================
-
-const ActivityLogFull = ({
-  activity,
-  format,
-  theme,
-  units
-}: {
-  activity: StravaActivity
-  format: BookFormat
-  theme: BookTheme
-  units: 'metric' | 'imperial'
-}) => {
-  const styles = createFullStyles(format, theme)
-  const scale = format.scaleFactor
-
-  const date = new Date(activity.start_date_local).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })
-  const location = resolveActivityLocation(activity)
-
-  // Get photos
-  const photos = extractPhotos(activity)
-  const mainPhoto = photos.length > 0 ? photos[0].url : null
-  const thumbPhotos = photos.slice(1, 4)
-
-  // Get comments
-  const comments = activity.comprehensiveData?.comments || []
-
-  // Stats
-  const distance = formatDistance(activity.distance, units)
-  const time = formatTime(activity.moving_time)
-  const pace = formatPace(activity.moving_time, activity.distance, units)
-
-  return (
-    <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.sectionLabel}>Activity</Text>
-        <Text style={styles.title}>{activity.name}</Text>
-        <Text style={styles.meta}>{date} | {location}</Text>
-      </View>
-
-      {/* Description */}
-      {activity.description && (
-        <Text style={styles.description}>{activity.description}</Text>
-      )}
-
-      {/* Stats Row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{distance.split(' ')[0]}</Text>
-          <Text style={styles.statLabel}>{distance.split(' ')[1]}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{time}</Text>
-          <Text style={styles.statLabel}>Time</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{pace.split('/')[0]}</Text>
-          <Text style={styles.statLabel}>/{pace.split('/')[1]}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
-          <Text style={styles.statLabel}>m elev</Text>
-        </View>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(activity as any).average_heartrate && (
-          <View style={styles.statItem}>
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <Text style={styles.statValue}>{Math.round((activity as any).average_heartrate)}</Text>
-            <Text style={styles.statLabel}>avg hr</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Photos */}
-      {photos.length > 0 && (
-        <View style={styles.photoGrid}>
-          {mainPhoto && (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={mainPhoto} style={styles.photoMain} />
-          )}
-          {thumbPhotos.map((photo, idx) => (
-            // eslint-disable-next-line jsx-a11y/alt-text
-            <Image key={idx} src={photo.url} style={styles.photoThumb} />
-          ))}
-        </View>
-      )}
-
-      {/* Comments Section */}
-      {(comments.length > 0 || (activity.kudos_count || 0) > 0) && (
-        <View style={styles.commentsSection}>
-          <View style={styles.commentsHeader}>
-            <Text style={styles.commentsTitle}>Community</Text>
-            <Text style={styles.kudosCount}>{activity.kudos_count || 0} kudos</Text>
-          </View>
-
-          {comments.slice(0, 5).map((comment, idx) => (
-            <View key={idx} style={styles.comment}>
-              <Text style={styles.commentAuthor}>
-                {comment.athlete?.firstname} {comment.athlete?.lastname?.charAt(0)}.
-              </Text>
-              <Text style={styles.commentText}>{comment.text}</Text>
-              {comment.created_at && (
-                <Text style={styles.commentTime}>
-                  {new Date(comment.created_at).toLocaleDateString()}
-                </Text>
-              )}
-            </View>
-          ))}
-
-          {comments.length > 5 && (
-            <Text style={{ fontSize: 8 * scale, color: '#999', fontStyle: 'italic' }}>
-              +{comments.length - 5} more comments
-            </Text>
-          )}
-        </View>
-      )}
-    </Page>
+  return getMapboxSatelliteUrl(
+    activity.map.summary_polyline,
+    mapboxToken,
+    Math.round(width),
+    Math.round(height)
   )
 }
 
 // ============================================================================
-// MAIN EXPORT - GRID VARIANT (Original)
+// MAIN COMPONENT
 // ============================================================================
 
 export const ActivityLog = ({
@@ -771,49 +241,29 @@ export const ActivityLog = ({
   theme = DEFAULT_THEME,
   units = 'metric',
   title = 'Activity Log',
-  variant = 'grid',
   mapboxToken
 }: ActivityLogProps) => {
   const styles = createStyles(format, theme)
+  const spacing = resolveSpacing(theme, format)
 
-  // Handle variant selection
-  if (variant === 'concise' && activityProp) {
-    return (
-      <Document>
-        <ActivityLogConcise
-          activity={activityProp}
-          format={format}
-          theme={theme}
-          units={units}
-          mapboxToken={mapboxToken}
-        />
-      </Document>
-    )
-  }
-
-  if (variant === 'full' && activityProp) {
-    return (
-      <Document>
-        <ActivityLogFull
-          activity={activityProp}
-          format={format}
-          theme={theme}
-          units={units}
-        />
-      </Document>
-    )
-  }
-
-  // Default: Grid variant
   // Handle both single activity and activities array
   const activities = activitiesProp || (activityProp ? [activityProp] : [])
 
   // Slice activities for this page (default 6 cards per page)
   const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
 
+  // Calculate map dimensions based on card width
+  // Card is 48.5% of content width, map is full card width
+  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+  const cardWidth = contentWidth * 0.485
+  const mapHeight = 90 * format.scaleFactor
+
   return (
-    <Document>
-      <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
+    <Page
+      size={[format.dimensions.width, format.dimensions.height]}
+      style={styles.page}
+    >
+      <View style={styles.contentContainer}>
         {/* Page Header */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>{title}</Text>
@@ -832,111 +282,109 @@ export const ActivityLog = ({
             const time = formatTime(activity.moving_time)
             const pace = formatPace(activity.moving_time, activity.distance, units)
 
-            const pathData = createMiniMapPath(activity.map?.summary_polyline)
-            const photoUrl = activity.photos?.primary?.urls?.['600']
-              ? resolveImageUrl(activity.photos.primary.urls['600'])
-              : null
+            // Get satellite map URL
+            const mapUrl = getSatelliteMapUrl(activity, mapboxToken, cardWidth * 2, mapHeight * 2)
             const hasTopEfforts = hasTopBestEfforts(activity)
 
             return (
               <View key={activity.id || index} style={styles.activityCard}>
-                {/* Card Header */}
-                <View style={styles.cardHeader}>
-                  <Text style={styles.activityName}>{activity.name}</Text>
-                  <Text style={styles.activityMeta}>
-                    {dateStr} • {location}
-                  </Text>
-                </View>
-
-                {/* Description */}
-                {activity.description && (
-                  <Text style={styles.description}>
-                    {activity.description.length > 120
-                      ? activity.description.substring(0, 120) + '...'
-                      : activity.description
-                    }
-                  </Text>
-                )}
-
-                {/* Photo or Map */}
-                {photoUrl && (
-                  <View style={styles.photoContainer}>
-                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                {/* Map Section - Satellite with route overlay */}
+                <View style={styles.mapContainer}>
+                  {mapUrl ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
                     <Image
-                      src={photoUrl}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      src={resolveImageForPdf(mapUrl) || mapUrl}
+                      style={styles.mapImage}
                     />
-                  </View>
-                )}
-                {!photoUrl && pathData && (
-                  <View style={styles.mapContainer}>
-                    <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                      <Path
-                        d={pathData}
-                        stroke={theme.accentColor}
-                        strokeWidth={2.5}
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  </View>
-                )}
-
-                {/* Key Stats */}
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statValue}>
-                      {units === 'metric'
-                        ? (activity.distance / 1000).toFixed(1)
-                        : (activity.distance / 1609.34).toFixed(1)
-                      }
-                    </Text>
-                    <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{time}</Text>
-                    <Text style={styles.statLabel}>time</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{pace}</Text>
-                    <Text style={styles.statLabel}>pace</Text>
-                  </View>
-                  {activity.total_elevation_gain > 0 && (
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
-                      <Text style={styles.statLabel}>elev</Text>
+                  ) : (
+                    <View style={styles.noMapPlaceholder}>
+                      <Text style={styles.noMapText}>
+                        {activity.sport_type || activity.type || 'Activity'}
+                      </Text>
                     </View>
                   )}
                 </View>
 
-                {/* Social/Engagement Row */}
-                <View style={styles.socialRow}>
-                  <View style={{ flexDirection: 'row' }}>
-                    {activity.kudos_count > 0 && (
-                      <Text style={[styles.kudos, { marginRight: 8 }]}>
-                        {activity.kudos_count} kudos
+                {/* Card Content */}
+                <View style={styles.cardContent}>
+                  {/* Header */}
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.activityName}>{activity.name}</Text>
+                    <Text style={styles.activityMeta}>
+                      {dateStr} {location ? `\u2022 ${location}` : ''}
+                    </Text>
+                  </View>
+
+                  {/* Description (truncated) */}
+                  {activity.description && (
+                    <Text style={styles.description}>
+                      {activity.description.length > 80
+                        ? activity.description.substring(0, 80) + '...'
+                        : activity.description
+                      }
+                    </Text>
+                  )}
+
+                  {/* Key Stats */}
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>
+                        {units === 'metric'
+                          ? (activity.distance / 1000).toFixed(1)
+                          : (activity.distance / 1609.34).toFixed(1)
+                        }
                       </Text>
-                    )}
-                    {(activity.comment_count ?? 0) > 0 && (
-                      <Text style={styles.comments}>
-                        {activity.comment_count} comments
-                      </Text>
+                      <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{time}</Text>
+                      <Text style={styles.statLabel}>time</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{pace}</Text>
+                      <Text style={styles.statLabel}>pace</Text>
+                    </View>
+                    {activity.total_elevation_gain > 0 && (
+                      <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
+                        <Text style={styles.statLabel}>m</Text>
+                      </View>
                     )}
                   </View>
-                  {hasTopEfforts && (
-                    <Text style={styles.bestEffortBadge}>PR</Text>
+
+                  {/* Social/Engagement Row */}
+                  {((activity.kudos_count || 0) > 0 || (activity.comment_count || 0) > 0 || hasTopEfforts) && (
+                    <View style={styles.socialRow}>
+                      <View style={{ flexDirection: 'row' }}>
+                        {(activity.kudos_count || 0) > 0 && (
+                          <Text style={[styles.kudos, { marginRight: spacing.xs }]}>
+                            {activity.kudos_count} kudos
+                          </Text>
+                        )}
+                        {(activity.comment_count || 0) > 0 && (
+                          <Text style={styles.comments}>
+                            {activity.comment_count} comments
+                          </Text>
+                        )}
+                      </View>
+                      {hasTopEfforts && (
+                        <Text style={styles.prBadge}>PR</Text>
+                      )}
+                    </View>
                   )}
                 </View>
               </View>
             )
           })}
         </View>
-      </Page>
-    </Document>
+      </View>
+    </Page>
   )
 }
 
-// Export page versions for embedding
-export const ActivityLogConcisePage = ActivityLogConcise
-export const ActivityLogFullPage = ActivityLogFull
+// Standalone version with Document wrapper (for direct rendering/testing)
+export const ActivityLogDocument = (props: ActivityLogProps) => (
+  <Document>
+    <ActivityLog {...props} />
+  </Document>
+)

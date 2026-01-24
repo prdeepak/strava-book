@@ -12,44 +12,15 @@ import { TemplateSpec, TemplateGuidelines, VariantGuideline } from './types'
 
 const activityLogVariants: VariantGuideline[] = [
   {
-    name: 'compact-table',
-    description: 'Dense tabular layout with many activities per page',
+    name: 'grid',
+    description: '2-column grid of activity cards with satellite maps (6 per page)',
     bestFor: [
-      'High-volume months',
-      'Training log summaries',
-      'Data-focused athletes',
+      'Monthly activity summaries',
+      'Training log pages',
+      'Outdoor activities with GPS data',
     ],
     avoid: [
-      'Visually-focused books',
-      'Sparse activity months',
-    ],
-    photoRequirements: { minCount: 0 },
-  },
-  {
-    name: 'with-maps',
-    description: 'Table rows include mini route maps',
-    bestFor: [
-      'Outdoor activities with GPS',
-      'Route variety emphasis',
-      'Trail runners and cyclists',
-    ],
-    avoid: [
-      'Indoor activities',
-      'Activities without GPS data',
-    ],
-    photoRequirements: { minCount: 0 },
-  },
-  {
-    name: 'journal-style',
-    description: 'More spacious layout with room for activity notes',
-    bestFor: [
-      'Athletes who title activities descriptively',
-      'Fewer activities per month',
-      'Narrative-focused books',
-    ],
-    avoid: [
-      'High-volume training periods',
-      'Generic activity titles',
+      'Very few activities (use single activity templates instead)',
     ],
     photoRequirements: { minCount: 0 },
   },
@@ -64,17 +35,20 @@ const activityLogGuidelines: TemplateGuidelines = {
   ],
   variants: activityLogVariants,
   contentPriority: [
-    'date',
+    'satellite-map',
     'activity-name',
+    'date',
+    'location',
     'distance',
     'time',
     'pace',
-    'mini-map',
+    'elevation',
+    'kudos',
   ],
   constraints: {
     maxPhotos: 0,
     minPhotos: 0,
-    requiresMap: false,
+    requiresMap: true, // Each activity card shows satellite map with route
     requiresChart: false,
     minTextLength: 0,
     maxTextLength: 0,
@@ -98,7 +72,7 @@ export const activityLogSpec: TemplateSpec = {
   },
 
   outputOptions: {
-    variants: ['compact-table', 'with-maps', 'journal-style'],
+    variants: ['grid'],
     titlePositions: ['top'],
     alignments: ['left'],
     photoTreatments: ['inset'],
