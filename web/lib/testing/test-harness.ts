@@ -15,6 +15,7 @@ import { execSync } from 'child_process'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { judgePageVisual, VisualJudgment, JudgeContext } from './visual-judge'
+import { StravaActivity } from '../strava'
 
 // ============================================================================
 // Utilities
@@ -256,8 +257,9 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
         return mod.YearCalendar
     },
     'MonthlyDivider': async () => {
-        const mod = await import('../../components/templates/MonthlyDivider')
-        return mod.MonthlyDividerDocument
+        // Use MonthlyDividerSpread (2-page spread) which is what BookDocument uses in production
+        const mod = await import('../../components/templates/MonthlyDividerSpread')
+        return mod.MonthlyDividerSpread
     },
     'ActivityLog': async () => {
         const mod = await import('../../components/templates/ActivityLog')
@@ -486,9 +488,21 @@ export async function testTemplate(
                     }
                 }
                 if (bestMonth && byMonth.has(bestMonth)) {
-                    templateProps.activities = byMonth.get(bestMonth)
+                    const monthActivities = byMonth.get(bestMonth)!
+                    templateProps.activities = monthActivities
+
+                    // Find a highlight activity (prefer one with photos)
+                    const activityWithPhotos = monthActivities.find((a: StravaActivity) => {
+                        const hasComprehensivePhotos = (a.comprehensiveData?.photos?.length ?? 0) > 0
+                        const hasPrimaryPhoto = a.photos?.primary?.urls && Object.keys(a.photos.primary.urls).length > 0
+                        return hasComprehensivePhotos || hasPrimaryPhoto
+                    })
+                    // Fall back to first activity if none have photos
+                    templateProps.highlightActivity = activityWithPhotos || monthActivities[0]
+
                     if (verbose) {
                         console.log(`[Test Harness] MonthlyDivider using ${bestMonth} with ${bestCount} activities`)
+                        console.log(`[Test Harness] Highlight activity: ${(templateProps as { highlightActivity?: StravaActivity }).highlightActivity?.name || 'none'}`)
                     }
                 }
             }

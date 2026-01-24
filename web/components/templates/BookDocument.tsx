@@ -548,11 +548,17 @@ export const BookDocument = ({
                         return activityMonth === entry.month && activityYear === entry.year
                     })
 
+                    // Find the highlight activity if specified
+                    const highlightActivity = entry.highlightActivityId
+                        ? activities.find(a => a.id === entry.highlightActivityId)
+                        : undefined
+
                     // MonthlyDividerSpreadPages is a 2-page spread with photos and calendar (no Document wrapper)
                     return (
                         <MonthlyDividerSpreadPages
                             key={index}
                             activities={monthActivities}
+                            highlightActivity={highlightActivity}
                             month={entry.month!}
                             year={entry.year!}
                             format={format}

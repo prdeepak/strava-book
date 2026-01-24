@@ -193,6 +193,11 @@ function generateManualBookEntries(
       continue // Skip months with only races
     }
 
+    // Look up highlight activity for this month
+    // Note: highlightActivityIds uses 1-indexed months (from activity-scoring.ts)
+    const highlightKey = `${entryYear}-${String(month + 1).padStart(2, '0')}`
+    const highlightActivityId = highlightActivityIds.get(highlightKey)
+
     // MONTHLY DIVIDER (2-page spread)
     entries.push({
       type: 'MONTHLY_DIVIDER',
@@ -200,6 +205,7 @@ function generateManualBookEntries(
       year: entryYear,
       title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long' }),
       highlightLabel: `${monthNonRaces.length} activities`,
+      highlightActivityId,
       pageNumber: currentPage++,
     })
 
