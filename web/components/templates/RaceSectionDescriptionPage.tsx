@@ -1,9 +1,9 @@
 import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
-import { resolveActivityLocation } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
-import { PageHeader, getPageHeaderHeight } from '@/components/pdf/PageHeader'
+import { PageHeader } from '@/components/pdf/PageHeader'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 import { RaceDataViz } from '@/components/pdf/RaceDataViz'
 
 // Register emoji source for proper emoji rendering in PDFs
@@ -16,8 +16,7 @@ Font.registerEmojiSource({
 const DATA_VIZ_HEIGHT = 180
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
-    const body = resolveTypography('body', theme, format)
-    const caption = resolveTypography('caption', theme, format)
+    const displayLarge = resolveTypography('displayLarge', theme, format)
     const spacing = resolveSpacing(theme, format)
 
     return StyleSheet.create({
@@ -25,18 +24,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             width: format.dimensions.width,
             height: format.dimensions.height,
             backgroundColor: theme.backgroundColor,
-            padding: format.safeMargin,
+            padding: 0,  // Use content container pattern per StyleGuide
+            position: 'relative',
+        },
+        contentContainer: {
+            position: 'absolute',
+            top: format.safeMargin,
+            left: format.safeMargin,
+            right: format.safeMargin,
+            bottom: format.safeMargin,
             flexDirection: 'column',
-        },
-        metaContainer: {
-            marginBottom: spacing.sm,
-        },
-        meta: {
-            color: theme.primaryColor,
-            opacity: 0.6,
-            fontSize: caption.fontSize,
-            fontFamily: caption.fontFamily,
-            marginBottom: spacing.xs / 2,
         },
         divider: {
             height: 3,
@@ -50,25 +47,19 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             position: 'relative',
         },
         quoteDecoration: {
-            fontSize: Math.max(48, 72 * format.scaleFactor),
-            fontFamily: theme.fontPairing.heading,
+            fontSize: displayLarge.fontSize,  // Use typography system
+            fontFamily: displayLarge.fontFamily,
             color: theme.accentColor,
             opacity: 0.15,
             position: 'absolute',
             top: -spacing.md,
             left: -spacing.xs,
         },
-        description: {
-            fontSize: body.fontSize,
-            fontFamily: body.fontFamily,
-            color: theme.primaryColor,
-            lineHeight: body.lineHeight || 1.6,
-            textAlign: 'left',
-        },
         dataVizContainer: {
             marginTop: spacing.md,
             borderTopWidth: 1,
             borderTopColor: theme.primaryColor,
+            borderTopStyle: 'solid',
             paddingTop: spacing.sm,
         },
     })
@@ -86,17 +77,8 @@ export const RaceSectionDescriptionPage = ({
     theme = DEFAULT_THEME,
 }: RaceSectionDescriptionPageProps) => {
     const styles = createStyles(format, theme)
+    const body = resolveTypography('body', theme, format)
     const spacing = resolveSpacing(theme, format)
-
-    const location = resolveActivityLocation(activity)
-
-    // Format date
-    const dateStr = new Date(activity.start_date).toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-    })
 
     const description = activity.description || ''
 
@@ -104,63 +86,70 @@ export const RaceSectionDescriptionPage = ({
     const splits = activity.splits_metric || activity.laps || []
     const hasSplits = splits.length > 0
 
-    // Calculate content width for visualizations
+    // Calculate content dimensions
     const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+    const contentHeight = format.dimensions.height - (format.safeMargin * 2)
 
-    // Calculate header height to properly layout content
-    const headerHeight = getPageHeaderHeight('large', format, theme, {
-        showBorder: false,
-        hasSubtitle: true
-    })
+    // Reserve space for header (~80pt), divider (~30pt), and data viz if present
+    const headerSpace = 80 * format.scaleFactor
+    const dividerSpace = spacing.sm + spacing.md + 3  // margins + height
+    const dataVizSpace = hasSplits ? DATA_VIZ_HEIGHT + spacing.md + spacing.sm : 0
+    const descriptionHeight = contentHeight - headerSpace - dividerSpace - dataVizSpace
 
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
-            {/* Header using standard PageHeader component */}
-            <PageHeader
-                title={activity.name}
-                subtitle="Race Story"
-                size="large"
-                format={format}
-                theme={theme}
-            />
+            <View style={styles.contentContainer}>
+                {/* Header using standard PageHeader component */}
+                <PageHeader
+                    title={activity.name}
+                    subtitle="Race Story"
+                    size="large"
+                    format={format}
+                    theme={theme}
+                />
 
-            {/* Date and location meta */}
-            <View style={styles.metaContainer}>
-                <Text style={styles.meta}>{dateStr}</Text>
-                {location && <Text style={styles.meta}>{location}</Text>}
-            </View>
+                <View style={styles.divider} />
 
-            <View style={styles.divider} />
-
-            {/* Description text */}
-            <View style={styles.descriptionContainer}>
-                <Text style={styles.quoteDecoration}>&ldquo;</Text>
-                <Text style={styles.description}>{description}</Text>
-            </View>
-
-            {/* Data visualization: splits chart + elevation profile */}
-            {hasSplits && (
-                <View style={styles.dataVizContainer}>
-                    <RaceDataViz
-                        splits={splits.map((s, i) => {
-                            // Handle both splits (elevation_difference) and laps (total_elevation_gain)
-                            const split = s as { split?: number; elevation_difference?: number; total_elevation_gain?: number }
-                            return {
-                                split: split.split ?? i + 1,
-                                moving_time: s.moving_time,
-                                distance: s.distance,
-                                elevation_difference: split.elevation_difference ?? split.total_elevation_gain ?? 0
-                            }
-                        })}
-                        totalTime={activity.moving_time}
-                        width={contentWidth}
-                        height={DATA_VIZ_HEIGHT}
-                        showSplits={true}
-                        showElevation={false}
-                        theme={theme}
+                {/* Description text with auto-resizing */}
+                <View style={styles.descriptionContainer}>
+                    <Text style={styles.quoteDecoration}>&ldquo;</Text>
+                    <AutoResizingPdfText
+                        text={description}
+                        width={contentWidth - spacing.sm}  // Account for quote decoration
+                        height={descriptionHeight}
+                        font={body.fontFamily}
+                        min_fontsize={body.minFontSize}
+                        max_fontsize={body.fontSize}
+                        h_align="left"
+                        v_align="top"
+                        textColor={theme.primaryColor}
                     />
                 </View>
-            )}
+
+                {/* Data visualization: splits chart */}
+                {hasSplits && (
+                    <View style={styles.dataVizContainer}>
+                        <RaceDataViz
+                            splits={splits.map((s, i) => {
+                                // Handle both splits (elevation_difference) and laps (total_elevation_gain)
+                                const split = s as { split?: number; elevation_difference?: number; total_elevation_gain?: number }
+                                return {
+                                    split: split.split ?? i + 1,
+                                    moving_time: s.moving_time,
+                                    distance: s.distance,
+                                    elevation_difference: split.elevation_difference ?? split.total_elevation_gain ?? 0
+                                }
+                            })}
+                            totalTime={activity.moving_time}
+                            width={contentWidth}
+                            height={DATA_VIZ_HEIGHT}
+                            showSplits={true}
+                            showElevation={false}
+                            theme={theme}
+                        />
+                    </View>
+                )}
+            </View>
         </Page>
     )
 }
