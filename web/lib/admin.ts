@@ -19,6 +19,15 @@ const ADMIN_ATHLETE_IDS = (process.env.ADMIN_ATHLETE_IDS || '')
 const ACTIVITIES_DIR = path.join(process.cwd(), '.cache', 'strava', 'activities')
 
 /**
+ * Extract athlete ID from a cached activity.
+ * Uses activity.athlete.id as the authoritative source.
+ */
+function getAthleteIdFromCache(cached: CachedActivity): string | null {
+  const id = cached.activity?.athlete?.id
+  return id ? String(id) : null
+}
+
+/**
  * Check if an athlete ID belongs to an admin user
  */
 export function isAdminUser(athleteId: string | number | null | undefined): boolean {
@@ -59,9 +68,9 @@ export async function getAvailableAthletes(): Promise<CachedAthleteInfo[]> {
         const content = await fs.readFile(path.join(ACTIVITIES_DIR, file), 'utf-8')
         const cached = JSON.parse(content) as CachedActivity
 
-        if (!cached.athleteId) continue
+        const athleteId = getAthleteIdFromCache(cached)
+        if (!athleteId) continue
 
-        const athleteId = cached.athleteId
         let info = athleteMap.get(athleteId)
 
         if (!info) {
@@ -121,7 +130,7 @@ export async function getCachedActivitiesForAthlete(athleteId: string): Promise<
         const content = await fs.readFile(path.join(ACTIVITIES_DIR, file), 'utf-8')
         const cached = JSON.parse(content) as CachedActivity
 
-        if (cached.athleteId === athleteId) {
+        if (getAthleteIdFromCache(cached) === athleteId) {
           activities.push(cached)
         }
       } catch {

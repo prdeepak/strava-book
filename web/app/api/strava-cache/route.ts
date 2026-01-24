@@ -88,8 +88,6 @@ export async function POST(request: NextRequest) {
       limit?: number
     }
 
-    const athleteId = session.user?.id || 'unknown'
-
     console.log(`[Strava Cache] Starting harvest: mode=${mode}, year=${year}, limit=${limit}`)
 
     // Build date filters based on mode
@@ -131,7 +129,6 @@ export async function POST(request: NextRequest) {
     const result = await cachedStrava.batchFetchForPdf(
       session.accessToken,
       activityIds,
-      athleteId,
       {
         onProgress: (progress) => {
           progressUpdates.push(progress)

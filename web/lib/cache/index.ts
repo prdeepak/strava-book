@@ -14,14 +14,17 @@
  * 1. Use the cached Strava client:
  *    import { cachedStrava } from '@/lib/cache'
  *
- *    const { data, fromCache } = await cachedStrava.getActivity(token, activityId, athleteId)
- *    const { data, fromCache } = await cachedStrava.getActivityLaps(token, activityId, athleteId)
+ *    const { data, fromCache } = await cachedStrava.getActivity(token, activityId)
+ *    const { data, fromCache } = await cachedStrava.getActivityLaps(token, activityId)
  *
  * 2. Batch fetch for PDF generation:
- *    const result = await cachedStrava.batchFetchForPdf(token, activityIds, athleteId)
+ *    const result = await cachedStrava.batchFetchForPdf(token, activityIds)
  *
  * 3. Cache management:
  *    import { getCacheStats, clearAllCache } from '@/lib/cache'
+ *
+ * Note: athleteId is derived from activity.athlete.id (authoritative Strava data),
+ * not stored redundantly at the cache entry level.
  */
 
 // Main cached client
