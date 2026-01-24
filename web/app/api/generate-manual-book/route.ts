@@ -11,6 +11,7 @@ import { normalizeFontName } from '@/lib/ai-validation'
 import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-scores-report'
 import { scorePdfPages } from '@/lib/visual-scoring'
 import { BookEntry } from '@/lib/curator'
+import { generateBookEntries } from '@/lib/book-entry-generator'
 import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
 import { TOCEntry } from '@/components/templates/TableOfContents'
 // Register fonts for PDF generation
@@ -68,175 +69,6 @@ interface ManualBookRequest {
   }
 }
 
-/**
- * Generate book entries for manual book generation
- * Uses the new structure with user-selected photos and highlight activities
- */
-function generateManualBookEntries(
-  activities: StravaActivity[],
-  races: StravaActivity[],
-  highlightActivityIds: Map<string, number>,
-  config: ManualBookRequest['config']
-): BookEntry[] {
-  const entries: BookEntry[] = []
-
-  // Track page numbers
-  let currentPage = 1
-
-  // 1. COVER
-  entries.push({
-    type: 'COVER',
-    title: config.bookName,
-    pageNumber: currentPage++,
-    heroImage: config.coverPhotoUrl || undefined,
-  })
-
-  // 2. FOREWORD (always included)
-  entries.push({
-    type: 'FOREWORD',
-    title: 'Foreword',
-    forewordText: config.forewordText || undefined,
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 3. TABLE OF CONTENTS
-  entries.push({
-    type: 'TABLE_OF_CONTENTS',
-    title: 'Contents',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // Handle empty activities
-  if (activities.length === 0) {
-    entries.push({
-      type: 'BACK_COVER',
-      backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
-      pageNumber: currentPage++,
-    })
-    return entries
-  }
-
-  // Get year from date range (use end year as primary for display)
-  const endYear = new Date(config.endDate).getFullYear()
-  const primaryYear = endYear
-
-  // 4. YEAR STATS
-  entries.push({
-    type: 'YEAR_STATS',
-    year: primaryYear,
-    title: 'Summary',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 5. YEAR CALENDAR
-  entries.push({
-    type: 'YEAR_AT_A_GLANCE',
-    year: primaryYear,
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    title: 'Year at a Glance',
-    pageNumber: currentPage++,
-  })
-
-  // 6. RACE PAGES (all races together)
-  for (const race of races) {
-    entries.push({
-      type: 'RACE_PAGE',
-      activityId: race.id,
-      title: race.name,
-      highlightLabel: race.name,
-      pageNumber: currentPage,
-    })
-    currentPage += 2 // Race spreads use 2 pages
-  }
-
-  // 7. MONTHLY SECTIONS
-  // Group activities by year-month
-  const activitiesByYearMonth = new Map<string, StravaActivity[]>()
-
-  activities.forEach(activity => {
-    const date = new Date(activity.start_date_local || activity.start_date)
-    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`
-
-    if (!activitiesByYearMonth.has(key)) {
-      activitiesByYearMonth.set(key, [])
-    }
-    activitiesByYearMonth.get(key)?.push(activity)
-  })
-
-  // Sort year-month keys chronologically
-  const sortedYearMonths = Array.from(activitiesByYearMonth.keys()).sort()
-
-  // Filter to only months within the selected date range
-  const startDateObj = new Date(config.startDate)
-  const endDateObj = new Date(config.endDate)
-
-  for (const yearMonthKey of sortedYearMonths) {
-    const [yearStr, monthStr] = yearMonthKey.split('-')
-    const entryYear = parseInt(yearStr, 10)
-    const month = parseInt(monthStr, 10)
-
-    // Check if this month is within the date range
-    const monthStart = new Date(entryYear, month, 1)
-    const monthEnd = new Date(entryYear, month + 1, 0)
-
-    if (monthEnd < startDateObj || monthStart > endDateObj) {
-      continue // Skip months outside the range
-    }
-
-    const monthActivities = activitiesByYearMonth.get(yearMonthKey) || []
-    const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1)
-
-    if (monthNonRaces.length === 0) {
-      continue // Skip months with only races
-    }
-
-    // Look up highlight activity for this month
-    // Note: highlightActivityIds uses 1-indexed months (from activity-scoring.ts)
-    const highlightKey = `${entryYear}-${String(month + 1).padStart(2, '0')}`
-    const highlightActivityId = highlightActivityIds.get(highlightKey)
-
-    // MONTHLY DIVIDER (2-page spread)
-    entries.push({
-      type: 'MONTHLY_DIVIDER',
-      month,
-      year: entryYear,
-      title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long' }),
-      highlightLabel: `${monthNonRaces.length} activities`,
-      highlightActivityId,
-      pageNumber: currentPage++,
-    })
-
-    // ACTIVITY LOG pages for this month
-    const activitiesPerPage = 6 // Adjust based on format
-    const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
-
-    for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
-      const startIdx = pageNum * activitiesPerPage
-      const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
-
-      entries.push({
-        type: 'ACTIVITY_LOG',
-        activityIds: pageActivities.map(a => a.id),
-        pageNumber: currentPage++,
-        title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-      })
-    }
-  }
-
-  // 8. BACK COVER
-  entries.push({
-    type: 'BACK_COVER',
-    title: 'Back Cover',
-    backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  return entries
-}
-
 export async function POST(request: NextRequest) {
   // Check authentication
   const session = await getServerSession(authOptions)
@@ -280,12 +112,20 @@ export async function POST(request: NextRequest) {
     const highlightMap = new Map<string, number>()
     highlightActivityIds.forEach(h => highlightMap.set(h.month, h.activityId))
 
-    // Generate book entries
-    let entries = generateManualBookEntries(
-      activities,
-      races,
-      highlightMap,
-      config
+    // Generate book entries using shared generator
+    let entries = generateBookEntries(
+      { activities, races },
+      {
+        bookName: config.bookName,
+        athleteName: config.athleteName,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        forewordText: config.forewordText,
+        coverPhotoUrl: config.coverPhotoUrl,
+        backgroundPhotoUrl: config.backgroundPhotoUrl,
+        backCoverPhotoUrl: config.backCoverPhotoUrl,
+        highlightActivityIds: highlightMap,
+      }
     )
 
     // Filter entries if filterTypes is specified

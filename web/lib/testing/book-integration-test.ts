@@ -23,6 +23,7 @@ import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-sco
 import { StravaActivity } from '@/lib/strava'
 import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
 import { TOCEntry } from '@/components/templates/TableOfContents'
+import { generateBookEntries, findCoverPhotosFromActivities } from '@/lib/book-entry-generator'
 // Import directly to avoid circular dependency issues
 import allFixturesJson from './fixtures/all-fixtures.json'
 
@@ -58,191 +59,31 @@ async function ensureOutputsDir(): Promise<string> {
 }
 
 /**
- * Find photos from activities that can be used for covers
+ * Find photos from activities and resolve local fixture paths
  */
 function findPhotosFromActivities(activities: StravaActivity[]): {
   coverPhotoUrl: string | null
   backgroundPhotoUrl: string | null
   backCoverPhotoUrl: string | null
 } {
-  const photos: string[] = []
+  // Use shared function
+  const photos = findCoverPhotosFromActivities(activities)
 
-  // Collect all photo URLs from activities
-  for (const activity of activities) {
-    const activityPhotos = activity.comprehensiveData?.photos || []
-    for (const photo of activityPhotos) {
-      // Get the largest available URL
-      const url = photo.urls?.['600'] || photo.urls?.['100'] || Object.values(photo.urls || {})[0]
-      if (url) {
-        // If it's a relative path (local fixture), resolve it
-        if (!url.startsWith('http')) {
-          photos.push(resolvePhotoPath(url))
-        } else {
-          photos.push(url)
-        }
-      }
-    }
-
-    // Also check primary photo
-    if (activity.photos?.primary?.urls) {
-      const urls = activity.photos.primary.urls as Record<string, string>
-      const url = urls['600'] || urls['100'] || Object.values(urls)[0]
-      if (url && !photos.includes(url)) {
-        photos.push(url)
-      }
-    }
+  // Resolve local fixture paths
+  const resolveUrl = (url: string | null) => {
+    if (!url) return null
+    if (url.startsWith('http')) return url
+    return resolvePhotoPath(url)
   }
 
-  console.log(`[Integration Test] Found ${photos.length} photos from activities`)
-
-  return {
-    coverPhotoUrl: photos[0] || null,
-    backgroundPhotoUrl: photos[1] || photos[0] || null,
-    backCoverPhotoUrl: photos[2] || photos[0] || null,
-  }
-}
-
-/**
- * Generate book entries for the test book
- */
-function generateTestBookEntries(
-  activities: StravaActivity[],
-  races: StravaActivity[],
-  config: {
-    bookName: string
-    startDate: string
-    endDate: string
-    coverPhotoUrl?: string | null
-    backgroundPhotoUrl?: string | null
-    backCoverPhotoUrl?: string | null
-  }
-): BookEntry[] {
-  const entries: BookEntry[] = []
-  let currentPage = 1
-
-  const endYear = new Date(config.endDate).getFullYear()
-
-  // 1. COVER
-  entries.push({
-    type: 'COVER',
-    title: config.bookName,
-    heroImage: config.coverPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 2. FOREWORD
-  entries.push({
-    type: 'FOREWORD',
-    title: 'Foreword',
-    forewordText: 'This is a test book generated for integration testing. It includes activities, races, and photos from the test fixtures.',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 3. TABLE OF CONTENTS
-  entries.push({
-    type: 'TABLE_OF_CONTENTS',
-    title: 'Contents',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 4. YEAR STATS
-  entries.push({
-    type: 'YEAR_STATS',
-    year: endYear,
-    title: 'Summary',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  // 5. YEAR CALENDAR
-  entries.push({
-    type: 'YEAR_AT_A_GLANCE',
-    year: endYear,
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    title: 'Year at a Glance',
-    pageNumber: currentPage++,
-  })
-
-  // 6. RACE PAGES (limit to first 3 races)
-  const racesToInclude = races.slice(0, 3)
-  for (const race of racesToInclude) {
-    entries.push({
-      type: 'RACE_PAGE',
-      activityId: race.id,
-      title: race.name,
-      highlightLabel: race.name,
-      pageNumber: currentPage,
-    })
-    currentPage += 2 // Race spreads use 2 pages
+  const result = {
+    coverPhotoUrl: resolveUrl(photos.coverPhotoUrl),
+    backgroundPhotoUrl: resolveUrl(photos.backgroundPhotoUrl),
+    backCoverPhotoUrl: resolveUrl(photos.backCoverPhotoUrl),
   }
 
-  // 7. MONTHLY SECTIONS (limit to 2 months for faster testing)
-  const activitiesByMonth = new Map<string, StravaActivity[]>()
-  for (const activity of activities) {
-    const date = new Date(activity.start_date_local || activity.start_date)
-    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`
-    if (!activitiesByMonth.has(key)) {
-      activitiesByMonth.set(key, [])
-    }
-    activitiesByMonth.get(key)?.push(activity)
-  }
-
-  const sortedMonths = Array.from(activitiesByMonth.keys()).sort().slice(0, 2)
-
-  for (const yearMonthKey of sortedMonths) {
-    const [yearStr, monthStr] = yearMonthKey.split('-')
-    const entryYear = parseInt(yearStr, 10)
-    const month = parseInt(monthStr, 10)
-
-    const monthActivities = activitiesByMonth.get(yearMonthKey) || []
-    const monthNonRaces = monthActivities.filter(a => a.workout_type !== 1).slice(0, 6)
-
-    if (monthNonRaces.length === 0) continue
-
-    // Find a highlight activity with photos for this month
-    // First try to find one from the month's activities, then fall back to any activity with photos
-    const activityWithPhotos = monthActivities.find(a => {
-      const hasComprehensivePhotos = (a.comprehensiveData?.photos?.length ?? 0) > 0
-      const hasPrimaryPhoto = a.photos?.primary?.urls && Object.keys(a.photos.primary.urls).length > 0
-      return hasComprehensivePhotos || hasPrimaryPhoto
-    }) || activities.find(a => {
-      // Fall back to any activity with photos (e.g., race fixtures)
-      const hasComprehensivePhotos = (a.comprehensiveData?.photos?.length ?? 0) > 0
-      const hasPrimaryPhoto = a.photos?.primary?.urls && Object.keys(a.photos.primary.urls).length > 0
-      return hasComprehensivePhotos || hasPrimaryPhoto
-    })
-
-    // MONTHLY DIVIDER
-    entries.push({
-      type: 'MONTHLY_DIVIDER',
-      month,
-      year: entryYear,
-      title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long' }),
-      highlightLabel: `${monthNonRaces.length} activities`,
-      highlightActivityId: activityWithPhotos?.id,
-      pageNumber: currentPage++,
-    })
-
-    // ACTIVITY LOG
-    entries.push({
-      type: 'ACTIVITY_LOG',
-      activityIds: monthNonRaces.map(a => a.id),
-      pageNumber: currentPage++,
-      title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-    })
-  }
-
-  // 8. BACK COVER
-  entries.push({
-    type: 'BACK_COVER',
-    title: 'Back Cover',
-    backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
-    pageNumber: currentPage++,
-  })
-
-  return entries
+  console.log(`[Integration Test] Found photos: cover=${!!result.coverPhotoUrl}, bg=${!!result.backgroundPhotoUrl}, back=${!!result.backCoverPhotoUrl}`)
+  return result
 }
 
 // ============================================================================
@@ -291,16 +132,24 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
 
   console.log(`\n[3/6] Date range: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`)
 
-  // 4. Generate book entries
+  // 4. Generate book entries using shared generator
   console.log('\n[4/6] Generating book entries...')
-  let entries = generateTestBookEntries(allActivities, races, {
-    bookName: BOOK_NAME,
-    startDate: startDate.toISOString().slice(0, 10),
-    endDate: endDate.toISOString().slice(0, 10),
-    coverPhotoUrl: photos.coverPhotoUrl,
-    backgroundPhotoUrl: photos.backgroundPhotoUrl,
-    backCoverPhotoUrl: photos.backCoverPhotoUrl,
-  })
+  let entries = generateBookEntries(
+    { activities: nonRaces, races },
+    {
+      bookName: BOOK_NAME,
+      athleteName: ATHLETE_NAME,
+      startDate: startDate.toISOString().slice(0, 10),
+      endDate: endDate.toISOString().slice(0, 10),
+      forewordText: 'This is a test book generated for integration testing. It includes activities, races, and photos from the test fixtures.',
+      coverPhotoUrl: photos.coverPhotoUrl,
+      backgroundPhotoUrl: photos.backgroundPhotoUrl,
+      backCoverPhotoUrl: photos.backCoverPhotoUrl,
+      // Test limits for faster execution
+      maxRaces: 3,
+      maxMonths: 2,
+    }
+  )
   console.log(`  Generated ${entries.length} book entries`)
 
   // Filter entries if filterTypes is specified
