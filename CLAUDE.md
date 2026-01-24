@@ -13,7 +13,7 @@ Strava Book is a web application that generates print-ready PDF "coffee table bo
 All commands should use the Makefile. Never run Python scripts directly on the host.
 
 ```bash
-make start-work    # Start Docker + web dev server (daily workflow)
+make up            # Start Docker + web dev server (daily workflow)
 make web-dev       # Start Next.js dev server (port 3000)
 make web-check     # Run lint + build
 make test          # Run pytest inside Docker container

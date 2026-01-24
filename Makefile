@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart web-install
 
 # =============================================================================
 # Workspace Detection
@@ -92,7 +92,8 @@ check-docker:
 # --- Standard Docker Commands (workspace-aware) ---
 up:
 	make check-docker
-	$(COMPOSE_CMD) up -d app web
+	$(COMPOSE_CMD) up -d app
+	$(MAKE) web-dev
 
 down:
 	@echo "🛑 Stopping containers (context: $(WORKSPACE_ID))..."
@@ -254,12 +255,6 @@ e2e-clear-cache:
 	@echo "🧹 Clearing e2e caches..."
 	docker volume rm -f strava-book_e2e_node_modules strava-book_e2e_next_cache 2>/dev/null || true
 	@echo "✅ Caches cleared. Next test run will rebuild."
-
-
-# --- Start the day ---
-start-work:
-	make up
-	make web-restart
 
 
 # --- Multi-Agent Workspace Commands ---
