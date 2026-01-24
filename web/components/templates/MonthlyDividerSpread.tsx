@@ -10,6 +10,7 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesToDayActivities } from '@/lib/calendar-views'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 interface MonthlyDividerSpreadProps {
   activities?: StravaActivity[]
@@ -226,226 +227,257 @@ function getPredominantSportType(activities: StravaActivity[]): { isPredominant:
   return { isPredominant, sportType: maxSport }
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
-    padding: format.safeMargin,
-  },
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  // Resolve design tokens from the style guide
+  const displaySmall = resolveTypography('displaySmall', theme, format)
+  const heading = resolveTypography('heading', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const stat = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
 
-  // Left page (photos) styles
-  leftPage: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
-    padding: format.safeMargin,
-  },
-  leftPageHeader: {
-    marginBottom: 16 * format.scaleFactor,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.primaryColor,
-    borderBottomStyle: 'solid',
-    paddingBottom: 12 * format.scaleFactor,
-  },
-  leftPageTitle: {
-    fontSize: 48 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    letterSpacing: -1,
-    marginBottom: 2 * format.scaleFactor,
-  },
-  leftPageYear: {
-    fontSize: 20 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-  },
-  // Full-bleed hero photo (single photo fills the content area)
-  fullBleedHeroContainer: {
-    flex: 1,
-    overflow: 'hidden',
-    borderRadius: 4 * format.scaleFactor,
-  },
-  fullBleedHeroPhoto: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  photoGrid: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10 * format.scaleFactor,
-    overflow: 'hidden',
-  },
-  photoRow: {
-    height: 245 * format.scaleFactor,
-    flexDirection: 'row',
-    gap: 10 * format.scaleFactor,
-  },
-  photoCell: {
-    flex: 1,
-    height: '100%',
-    overflow: 'hidden',
-    borderRadius: 4 * format.scaleFactor,
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  // Legacy styles for backward compatibility
-  heroPhotoContainer: {
-    height: 320 * format.scaleFactor,
-    overflow: 'hidden',
-    borderRadius: 4 * format.scaleFactor,
-    marginBottom: 12 * format.scaleFactor,
-  },
-  heroPhoto: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  smallPhotosRow: {
-    height: 195 * format.scaleFactor,
-    flexDirection: 'row',
-    gap: 10 * format.scaleFactor,
-  },
-  smallPhotoContainer: {
-    flex: 1,
-    overflow: 'hidden',
-    borderRadius: 4 * format.scaleFactor,
-  },
-  smallPhoto: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  photoCaption: {
-    position: 'absolute',
-    bottom: format.safeMargin,
-    left: format.safeMargin,
-    right: format.safeMargin,
-    color: '#ffffff',
-    fontSize: 10 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-  },
-  noPhotosPage: {
-    flex: 1,
-    backgroundColor: theme.primaryColor,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 4 * format.scaleFactor,
-  },
-  noPhotosText: {
-    color: theme.backgroundColor,
-    fontSize: 48 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    opacity: 0.3,
-  },
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
 
-  // Right page styles
-  rightPageHeader: {
-    marginBottom: 24 * format.scaleFactor,
-    borderBottomWidth: 2,
-    borderBottomColor: theme.primaryColor,
-    borderBottomStyle: 'solid',
-    paddingBottom: 16 * format.scaleFactor,
-  },
-  monthTitle: {
-    fontSize: 48 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    letterSpacing: -1,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  yearSubtitle: {
-    fontSize: 18 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.accentColor,
-    letterSpacing: 2,
-  },
+    // Left page (photos) styles
+    leftPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
+    leftPageHeader: {
+      marginBottom: spacing.sm,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      borderBottomStyle: 'solid',
+      paddingBottom: spacing.sm * 0.75,
+    },
+    leftPageTitle: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.primaryColor,
+      letterSpacing: displaySmall.letterSpacing ?? -1,
+      marginBottom: spacing.xs * 0.25,
+    },
+    leftPageYear: {
+      fontSize: subheading.fontSize,
+      fontFamily: heading.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 3,
+      textTransform: 'uppercase',
+    },
+    // Full-bleed hero photo (single photo fills the content area)
+    // Uses clipping pattern: container clips overflow, image is centered
+    fullBleedHeroContainer: {
+      flex: 1,
+      overflow: 'hidden',
+      borderRadius: 4 * format.scaleFactor,
+      position: 'relative',
+    },
+    // Image uses absolute positioning with transform centering (objectFit doesn't work in react-pdf)
+    fullBleedHeroPhoto: {
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      width: '100%',
+      minHeight: '100%',
+      transform: 'translateY(-50%)',
+    },
+    photoGrid: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: spacing.xs + 2,
+      overflow: 'hidden',
+    },
+    photoRow: {
+      height: 245 * format.scaleFactor,
+      flexDirection: 'row',
+      gap: spacing.xs + 2,
+    },
+    // Photo cell uses clipping pattern
+    photoCell: {
+      flex: 1,
+      height: '100%',
+      overflow: 'hidden',
+      borderRadius: 4 * format.scaleFactor,
+      position: 'relative',
+    },
+    // Image uses absolute positioning with transform centering
+    photo: {
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      width: '100%',
+      minHeight: '100%',
+      transform: 'translateY(-50%)',
+    },
+    // Legacy styles for backward compatibility (used in MonthlyDividerLeftPage fallback)
+    heroPhotoContainer: {
+      height: 320 * format.scaleFactor,
+      overflow: 'hidden',
+      borderRadius: 4 * format.scaleFactor,
+      marginBottom: spacing.sm * 0.75,
+      position: 'relative',
+    },
+    heroPhoto: {
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      width: '100%',
+      minHeight: '100%',
+      transform: 'translateY(-50%)',
+    },
+    smallPhotosRow: {
+      height: 195 * format.scaleFactor,
+      flexDirection: 'row',
+      gap: spacing.xs + 2,
+    },
+    smallPhotoContainer: {
+      flex: 1,
+      overflow: 'hidden',
+      borderRadius: 4 * format.scaleFactor,
+      position: 'relative',
+    },
+    smallPhoto: {
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      width: '100%',
+      minHeight: '100%',
+      transform: 'translateY(-50%)',
+    },
+    photoCaption: {
+      position: 'absolute',
+      bottom: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      color: theme.backgroundColor,
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+    },
+    noPhotosPage: {
+      flex: 1,
+      backgroundColor: theme.primaryColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 4 * format.scaleFactor,
+    },
+    noPhotosText: {
+      color: theme.backgroundColor,
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      opacity: effects.textOverlayOpacity,
+    },
 
-  // Calendar section
-  calendarSection: {
-    marginBottom: 24 * format.scaleFactor,
-  },
-  calendarLabel: {
-    fontSize: 10 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12 * format.scaleFactor,
-  },
+    // Right page styles
+    rightPageHeader: {
+      marginBottom: spacing.md,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      borderBottomStyle: 'solid',
+      paddingBottom: spacing.sm,
+    },
+    monthTitle: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.primaryColor,
+      letterSpacing: displaySmall.letterSpacing ?? -1,
+      marginBottom: spacing.xs * 0.5,
+    },
+    yearSubtitle: {
+      fontSize: subheading.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 2,
+    },
 
-  // Stats section
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24 * format.scaleFactor,
-    paddingTop: 16 * format.scaleFactor,
-    borderTopWidth: 1,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 28 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  statLabel: {
-    fontSize: 8 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
+    // Calendar section
+    calendarSection: {
+      marginBottom: spacing.md,
+    },
+    calendarLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm * 0.75,
+    },
 
-  // Comments section
-  commentsSection: {
-    flex: 1,
-  },
-  commentsLabel: {
-    fontSize: 10 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12 * format.scaleFactor,
-  },
-  commentItem: {
-    marginBottom: 16 * format.scaleFactor,
-    paddingLeft: 12 * format.scaleFactor,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.accentColor,
-    borderLeftStyle: 'solid',
-  },
-  commentText: {
-    fontSize: 11 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    fontStyle: 'italic',
-    lineHeight: 1.5,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  commentAuthor: {
-    fontSize: 9 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.accentColor,
-  },
-})
+    // Stats section
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.primaryColor,
+      borderTopStyle: 'solid',
+    },
+    statItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    statValue: {
+      fontSize: stat.fontSize,
+      fontFamily: stat.fontFamily,
+      color: theme.accentColor,
+      marginBottom: spacing.xs * 0.5,
+    },
+    statLabel: {
+      fontSize: caption.fontSize * 0.8,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity + 0.1,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+
+    // Comments section
+    commentsSection: {
+      flex: 1,
+    },
+    commentsLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm * 0.75,
+    },
+    commentItem: {
+      marginBottom: spacing.sm,
+      paddingLeft: spacing.sm * 0.75,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.accentColor,
+      borderLeftStyle: 'solid',
+    },
+    commentText: {
+      fontSize: body.fontSize * 0.8,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor,
+      fontStyle: 'italic',
+      lineHeight: body.lineHeight ?? 1.5,
+      marginBottom: spacing.xs * 0.5,
+    },
+    commentAuthor: {
+      fontSize: caption.fontSize * 0.9,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+    },
+  })
+}
 
 export const MonthlyDividerSpread = ({
   activities,
