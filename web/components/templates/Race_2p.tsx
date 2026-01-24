@@ -372,7 +372,7 @@ const HeroPage = ({
             <View style={styles.heroContent}>
                 <Text style={styles.heroLabel}>Race Day</Text>
                 <Text style={styles.heroTitle}>{activity.name}</Text>
-                <Text style={styles.heroMeta}>{date} | {location}</Text>
+                <Text style={styles.heroMeta}>{date}{location ? ` | ${location}` : ''}</Text>
 
                 <View style={styles.heroStatsRow}>
                     <View style={styles.heroStat}>

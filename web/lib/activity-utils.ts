@@ -181,25 +181,31 @@ export function calculateActivitiesPerPage(format: BookFormat): number {
 
 /**
  * Resolves the location string for an activity.
- * Priority: 1) location_city, 2) timezone parsing, 3) "Unknown Location"
+ * Uses Strava's location fields if available, returns null if no reliable location.
+ * Does NOT guess from timezone (too inaccurate).
  */
-export function resolveActivityLocation(activity: StravaActivity): string {
-    let location = activity.location_city
+export function resolveActivityLocation(activity: StravaActivity): string | null {
+    // Build location from available Strava fields
+    const parts: string[] = []
 
-    if (!location && activity.timezone) {
-        // Parse timezone like "(GMT-05:00) America/New_York"
-        const parts = activity.timezone.split('/')
-        if (parts.length > 1) {
-            location = parts[parts.length - 1].replace(/_/g, ' ')
-        }
+    if (activity.location_city) {
+        parts.push(activity.location_city)
+    }
+    if (activity.location_state) {
+        parts.push(activity.location_state)
+    }
+    if (activity.location_country && !activity.location_state) {
+        // Only add country if no state (to avoid "City, State, Country" being too long)
+        parts.push(activity.location_country)
     }
 
-    return location || 'Unknown Location'
+    return parts.length > 0 ? parts.join(', ') : null
 }
 
 /**
  * Enriches an activity with geocoded location if coordinates are available.
  * Mutates the activity object by setting location_city if geocoding succeeds.
+ * Uses Mapbox reverse geocoding directly (no API route dependency).
  */
 export async function enrichActivityWithGeocoding(
     activity: StravaActivity,
@@ -209,13 +215,15 @@ export async function enrichActivityWithGeocoding(
     if (!activity.location_city && activity.start_latlng && mapboxToken) {
         try {
             const [lat, lng] = activity.start_latlng
-            const geocodeUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/geocode?lat=${lat}&lng=${lng}`
-            const geocodeRes = await fetch(geocodeUrl)
+            // Call Mapbox directly instead of going through our API route
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place,locality&access_token=${mapboxToken}`
+            const response = await fetch(url)
 
-            if (geocodeRes.ok) {
-                const { location } = await geocodeRes.json()
-                if (location) {
-                    activity.location_city = location
+            if (response.ok) {
+                const data = await response.json()
+                if (data.features && data.features.length > 0) {
+                    // Get city name (text) rather than full place_name
+                    activity.location_city = data.features[0].text || data.features[0].place_name
                 }
             }
         } catch (error) {

@@ -48,6 +48,7 @@ help:
 	@echo "  make e2e-clear-cache  - Clear e2e caches (force fresh build)"
 	@echo "  make test-list        - List available templates and fixtures"
 	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
+	@echo "  make test-book        - Generate test book PDF (filter=X scoring=1 pdfByPage=1)"
 	@echo ""
 	@echo "Multi-agent workspace commands:"
 	@echo "  make workspace-new name=X              - Create isolated workspace"

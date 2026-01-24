@@ -14,8 +14,10 @@ import {
   DEFAULT_TYPOGRAPHY,
   DEFAULT_EFFECTS,
   DEFAULT_SPACING,
+  DEFAULT_CHART_COLORS,
   ThemeEffects,
   SpacingScale,
+  ChartColors,
 } from './book-types'
 
 // Reference size for 10x10 format (720pt = 10 inches at 72dpi)
@@ -155,5 +157,17 @@ export function resolveSpacing(theme: BookTheme, format: BookFormat): SpacingSca
     md: Math.round(baseSpacing.md * scale),
     lg: Math.round(baseSpacing.lg * scale),
     xl: Math.round(baseSpacing.xl * scale),
+  }
+}
+
+// === CHART COLORS RESOLUTION ===
+
+/**
+ * Get resolved chart colors, merging theme overrides with defaults.
+ */
+export function resolveChartColors(theme: BookTheme): ChartColors {
+  return {
+    ...DEFAULT_CHART_COLORS,
+    ...theme.chartColors,
   }
 }

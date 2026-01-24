@@ -2,7 +2,7 @@ import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
-import { PdfImage } from '@/components/pdf/PdfImage'
+import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
     page: {
@@ -28,40 +28,9 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         color: theme.primaryColor,
         marginTop: 4 * format.scaleFactor,
     },
-    photosGrid: {
+    photosContainer: {
         flex: 1,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8 * format.scaleFactor,
-    },
-    // Photo containers - PdfImage handles positioning inside
-    photoLarge: {
-        width: '100%',
-        height: '48%',
-        borderRadius: 4,
-        overflow: 'hidden',
         position: 'relative',
-    },
-    photoMedium: {
-        width: '48%',
-        height: '45%',
-        borderRadius: 4,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    photoSmall: {
-        width: '31%',
-        height: '30%',
-        borderRadius: 4,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    photoCaption: {
-        fontSize: Math.max(8, 10 * format.scaleFactor),
-        fontFamily: theme.fontPairing.body,
-        color: '#666',
-        marginTop: 4 * format.scaleFactor,
-        textAlign: 'center',
     },
     pageNumber: {
         position: 'absolute',
@@ -69,24 +38,32 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         right: format.safeMargin,
         fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
-        color: '#999',
+        color: '#999999',
     },
 })
 
-// Get all photos from activity
-const getPhotos = (activity: StravaActivity): string[] => {
-    const photos: string[] = []
+// Get all photos from activity with dimensions
+const getPhotos = (activity: StravaActivity): CollectionPhoto[] => {
+    const photos: CollectionPhoto[] = []
 
     // Check comprehensiveData photos first
     if (activity.comprehensiveData?.photos?.length) {
         activity.comprehensiveData.photos.forEach((photo) => {
-            const photoUrls = photo.urls as Record<string, string> | undefined
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const photoAny = photo as any
+            const photoUrls = photoAny.urls as Record<string, string> | undefined
+            const photoSizes = photoAny.sizes as Record<string, [number, number]> | undefined
             if (photoUrls) {
                 const url = photoUrls['5000'] || photoUrls['600'] || Object.values(photoUrls)[0]
                 if (url) {
                     const resolved = resolveImageForPdf(url)
                     if (resolved) {
-                        photos.push(resolved)
+                        const size = photoSizes?.['5000'] || photoSizes?.['600']
+                        photos.push({
+                            url: resolved,
+                            width: size?.[0],
+                            height: size?.[1],
+                        })
                     }
                 }
             }
@@ -101,7 +78,7 @@ const getPhotos = (activity: StravaActivity): string[] => {
             if (url) {
                 const resolved = resolveImageForPdf(url)
                 if (resolved) {
-                    photos.push(resolved)
+                    photos.push({ url: resolved })
                 }
             }
         }
@@ -126,6 +103,7 @@ export const RaceSectionPhotosPage = ({
     photosPerPage = 4,
 }: RaceSectionPhotosPageProps) => {
     const styles = createStyles(format, theme)
+    const scale = format.scaleFactor
 
     const allPhotos = getPhotos(activity)
     const startIdx = pageIndex * photosPerPage
@@ -135,18 +113,11 @@ export const RaceSectionPhotosPage = ({
         return null
     }
 
-    // Determine layout based on number of photos
-    const getPhotoStyle = (photoCount: number, index: number) => {
-        if (photoCount === 1) {
-            return styles.photoLarge
-        } else if (photoCount === 2) {
-            return styles.photoMedium
-        } else if (photoCount === 3) {
-            return index === 0 ? styles.photoLarge : styles.photoMedium
-        } else {
-            return styles.photoMedium
-        }
-    }
+    // Calculate container dimensions
+    // Header: sectionLabel (~14) + title (~28) + marginTop (4) + marginBottom (16) ≈ 62
+    const headerHeight = 62 * scale
+    const containerWidth = format.dimensions.width - (format.safeMargin * 2)
+    const containerHeight = format.dimensions.height - (format.safeMargin * 2) - headerHeight
 
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
@@ -155,12 +126,13 @@ export const RaceSectionPhotosPage = ({
                 <Text style={styles.title}>{activity.name}</Text>
             </View>
 
-            <View style={styles.photosGrid}>
-                {pagePhotos.map((photoUrl, index) => (
-                    <View key={index} style={getPhotoStyle(pagePhotos.length, index)}>
-                        <PdfImage src={photoUrl} />
-                    </View>
-                ))}
+            <View style={[styles.photosContainer, { height: containerHeight }]}>
+                <PdfImageCollection
+                    photos={pagePhotos}
+                    containerWidth={containerWidth}
+                    containerHeight={containerHeight}
+                    gap={8 * scale}
+                />
             </View>
 
             {allPhotos.length > photosPerPage && (

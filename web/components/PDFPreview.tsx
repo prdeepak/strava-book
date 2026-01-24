@@ -1,7 +1,7 @@
 'use client'
 
 import { PDFViewer } from '@react-pdf/renderer'
-import { RaceSection, RaceSectionVariant } from '@/components/templates/RaceSection'
+import { RaceSection } from '@/components/templates/RaceSection'
 import { Race_1p } from '@/components/templates/Race_1p'
 import ScrapbookPDF from '@/components/templates/race_1p_scrapbook/race_1p_scrapbook'
 import ConcatAllPDF from '@/components/templates/ConcatAllPDF'
@@ -15,22 +15,16 @@ interface PDFPreviewProps {
     activity: StravaActivity
     mapboxToken?: string
     template?: string
-    variant?: string
 }
 
-const PDFPreview = ({ activity, mapboxToken, template = 'race_section', variant }: PDFPreviewProps) => {
+const PDFPreview = ({ activity, mapboxToken, template = 'race_section' }: PDFPreviewProps) => {
     // Validate template exists in registry or is concat_all, fall back to race_section
     const templateId = validTemplateIds.includes(template) ? template : 'race_section'
 
-    // Render template with variant support
     if (templateId === 'race_section') {
         return (
             <PDFViewer style={{ width: '100%', height: '100vh' }}>
-                <RaceSection
-                    activity={activity}
-                    mapboxToken={mapboxToken}
-                    variant={(variant as RaceSectionVariant) || 'compact'}
-                />
+                <RaceSection activity={activity} mapboxToken={mapboxToken} />
             </PDFViewer>
         )
     }

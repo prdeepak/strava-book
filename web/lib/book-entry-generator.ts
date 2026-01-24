@@ -175,7 +175,6 @@ export function generateBookEntries(
       type: 'RACE_PAGE',
       activityId: race.id,
       title: race.name,
-      highlightLabel: race.name,
       pageNumber: currentPage,
     })
     currentPage += 2 // Race spreads use 2 pages

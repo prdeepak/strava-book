@@ -334,7 +334,6 @@ export function generateBookEntries(
             type: 'RACE_PAGE',
             activityId: race.id,
             title: race.name,
-            highlightLabel: race.name,
             pageNumber: currentPage,
         })
         // RaceSection uses 2 pages (spread) for compact variant

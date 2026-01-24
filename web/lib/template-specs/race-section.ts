@@ -1,80 +1,25 @@
 /**
  * Template Specification: Race Section
  *
- * Multi-page section for feature races. Each variant can span
- * as many pages as needed to display content appropriately.
+ * Multi-page section for feature races. Pages are conditionally
+ * rendered based on available content (photos, description, comments).
  */
 
 import { TemplateSpec, TemplateGuidelines, VariantGuideline } from './types'
 
 const variants: VariantGuideline[] = [
   {
-    name: 'compact',
-    description: '2-page spread: hero photo + map/stats. Quick visual summary.',
-    bestFor: [
-      'Shorter races (5K, 10K)',
-      'Activities with 1-2 photos',
-      'When space is limited in the book',
-    ],
-    avoid: [
-      'A-races with rich stories',
-      'Activities with many photos or comments',
-    ],
-    photoRequirements: {
-      minCount: 1,
-      preferredAspect: 'portrait',
-      requiresHeroPhoto: true,
-    },
-  },
-  {
-    name: 'standard',
-    description: '4-page section: hero, stats/map, photos, splits/efforts',
-    bestFor: [
-      'Half marathons and marathons',
-      'Activities with 3-5 photos',
-      'Races with good split data',
-    ],
-    avoid: [
-      'Activities without photos',
-      'Short routine races',
-    ],
-    photoRequirements: {
-      minCount: 2,
-      preferredAspect: 'any',
-    },
-  },
-  {
     name: 'full',
-    description: '6+ page section: complete race story with all data',
+    description: 'Dynamic page count based on content: hero, description, comments, stats/map, photos',
     bestFor: [
-      'A-races and major events (ultras, Comrades, etc.)',
-      'Activities with rich descriptions',
-      'Races with many photos (5+) and comments',
-      'Personal milestone races',
+      'All races - content-aware page generation',
+      'A-races with rich stories get more pages',
+      'Minimal races still get hero + stats',
     ],
-    avoid: [
-      'Routine training races',
-      'Activities without meaningful content',
-    ],
-    photoRequirements: {
-      minCount: 3,
-      preferredAspect: 'any',
-    },
-  },
-  {
-    name: 'minimal',
-    description: '2-page spread focused on map and stats, no hero photo',
-    bestFor: [
-      'Trail races with scenic routes',
-      'Activities without good photos',
-      'When the route is the story',
-    ],
-    avoid: [
-      'Urban races',
-      'Treadmill activities',
-    ],
+    avoid: [],
     photoRequirements: {
       minCount: 0,
+      preferredAspect: 'any',
     },
   },
 ]
@@ -128,7 +73,7 @@ const guidelines: TemplateGuidelines = {
 export const raceSectionSpec: TemplateSpec = {
   id: 'race_section',
   name: 'Race Section',
-  description: 'Multi-page section for A-races with photos, narrative, stats, and community reactions',
+  description: 'Multi-page section for races with photos, narrative, stats, and community reactions. Pages rendered based on available content.',
   pageType: 'RACE_SPREAD',
 
   inputSchema: {
@@ -152,7 +97,7 @@ export const raceSectionSpec: TemplateSpec = {
   },
 
   outputOptions: {
-    variants: ['compact', 'standard', 'full', 'minimal'],
+    variants: ['full'],
     titlePositions: ['overlay', 'top', 'bottom'],
     alignments: ['left', 'center', 'right'],
     photoTreatments: ['full-bleed', 'hero', 'collage', 'grid'],

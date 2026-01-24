@@ -9,7 +9,6 @@ interface AsyncPDFPreviewProps {
     activity: StravaActivity
     mapboxToken?: string
     template?: string
-    variant?: string
 }
 
 const PDFPreview = dynamic(() => import('./PDFPreview'), {
@@ -17,6 +16,6 @@ const PDFPreview = dynamic(() => import('./PDFPreview'), {
     loading: () => <div>Loading PDF...</div>
 })
 
-export default function AsyncPDFPreview({ activity, mapboxToken, template = 'race_2p', variant }: AsyncPDFPreviewProps) {
-    return <PDFPreview activity={activity} mapboxToken={mapboxToken} template={template} variant={variant} />
+export default function AsyncPDFPreview({ activity, mapboxToken, template = 'race_section' }: AsyncPDFPreviewProps) {
+    return <PDFPreview activity={activity} mapboxToken={mapboxToken} template={template} />
 }
