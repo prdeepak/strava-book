@@ -23,6 +23,7 @@ import {
   getActivityComments as fetchComments,
   getActivityPhotos as fetchPhotos
 } from '../strava'
+import { enrichActivityWithGeocoding } from '../activity-utils'
 import {
   getCachedActivity,
   getCachedActivityList,
@@ -304,11 +305,25 @@ async function getActivityForPdf(
   const needsComments = !cached?.commentsFetchedAt
   const needsPhotos = !cached?.photosFetchedAt
 
-  // If everything is cached, return it
+  // If everything is cached, check if we need to geocode, then return
   if (!needsActivity && !needsLaps && !needsComments && !needsPhotos && cached) {
+    let activity = cached.activity!
+
+    // Geocode if location is missing but coordinates exist (even for cached data)
+    if (!activity.location_city && activity.start_latlng) {
+      const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+      if (mapboxToken) {
+        activity = await enrichActivityWithGeocoding(activity, mapboxToken)
+        // Update cache with geocoded location
+        if (activity.location_city) {
+          await cacheCompleteActivity(activityId, { activity })
+        }
+      }
+    }
+
     return {
       data: {
-        activity: cached.activity!,
+        activity,
         laps: cached.laps as unknown as StravaLap[],
         comments: cached.comments,
         photos: cached.photos
@@ -334,9 +349,24 @@ async function getActivityForPdf(
       : Promise.resolve(cached?.photos || [])
   ])
 
-  // Cache what was fetched
+  // Get the activity (either freshly fetched or from cache)
+  let activity = (activityResult || cached?.activity) as StravaActivity
+
+  // Geocode location if missing but coordinates exist
+  // This enriches the activity and the result gets cached
+  if (activity && !activity.location_city && activity.start_latlng) {
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (mapboxToken) {
+      activity = await enrichActivityWithGeocoding(activity, mapboxToken)
+    }
+  }
+
+  // Cache what was fetched (including geocoded location if added)
+  const activityToCache = needsActivity || activity?.location_city
+    ? activity
+    : undefined
   await cacheCompleteActivity(activityId, {
-    activity: needsActivity ? (activityResult as StravaActivity) : undefined,
+    activity: activityToCache,
     laps: needsLaps ? (lapsResult as unknown as CachedStravaLap[]) : undefined,
     comments: needsComments ? commentsResult : undefined,
     photos: needsPhotos ? photosResult : undefined
@@ -344,7 +374,7 @@ async function getActivityForPdf(
 
   return {
     data: {
-      activity: (activityResult || cached?.activity) as StravaActivity,
+      activity,
       laps: lapsResult as StravaLap[],
       comments: commentsResult,
       photos: photosResult

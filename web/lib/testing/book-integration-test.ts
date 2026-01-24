@@ -24,6 +24,7 @@ import { StravaActivity } from '@/lib/strava'
 import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
 import { TOCEntry } from '@/components/templates/TableOfContents'
 import { generateBookEntries, findCoverPhotosFromActivities } from '@/lib/book-entry-generator'
+import { enrichActivityWithGeocoding } from '@/lib/activity-utils'
 // Import directly to avoid circular dependency issues
 import allFixturesJson from './fixtures/all-fixtures.json'
 
@@ -111,6 +112,21 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
   // Use allFixtures which has photos (rawActivities doesn't have photos)
   const allActivities = Object.values(allFixturesJson) as unknown as StravaActivity[]
   console.log(`  Loaded ${allActivities.length} activities`)
+
+  // Geocode activities that are missing location data (same as production)
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  if (mapboxToken) {
+    let geocodedCount = 0
+    for (const activity of allActivities) {
+      if (!activity.location_city && activity.start_latlng) {
+        await enrichActivityWithGeocoding(activity, mapboxToken)
+        if (activity.location_city) geocodedCount++
+      }
+    }
+    if (geocodedCount > 0) {
+      console.log(`  Geocoded ${geocodedCount} activities`)
+    }
+  }
 
   // Separate races from other activities
   const races = allActivities.filter(a => a.workout_type === 1)

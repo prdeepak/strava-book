@@ -205,6 +205,7 @@ export function resolveActivityLocation(activity: StravaActivity): string | null
 /**
  * Enriches an activity with geocoded location if coordinates are available.
  * Mutates the activity object by setting location_city if geocoding succeeds.
+ * Uses Mapbox reverse geocoding directly (no API route dependency).
  */
 export async function enrichActivityWithGeocoding(
     activity: StravaActivity,
@@ -214,13 +215,15 @@ export async function enrichActivityWithGeocoding(
     if (!activity.location_city && activity.start_latlng && mapboxToken) {
         try {
             const [lat, lng] = activity.start_latlng
-            const geocodeUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/geocode?lat=${lat}&lng=${lng}`
-            const geocodeRes = await fetch(geocodeUrl)
+            // Call Mapbox directly instead of going through our API route
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place,locality&access_token=${mapboxToken}`
+            const response = await fetch(url)
 
-            if (geocodeRes.ok) {
-                const { location } = await geocodeRes.json()
-                if (location) {
-                    activity.location_city = location
+            if (response.ok) {
+                const data = await response.json()
+                if (data.features && data.features.length > 0) {
+                    // Get city name (text) rather than full place_name
+                    activity.location_city = data.features[0].text || data.features[0].place_name
                 }
             }
         } catch (error) {
