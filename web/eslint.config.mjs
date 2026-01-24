@@ -28,6 +28,17 @@ const eslintConfig = defineConfig([
           selector: "Property[key.name='objectPosition']",
           message: "objectPosition doesn't work in react-pdf. Use absolute positioning instead. See CLAUDE.md for the correct pattern.",
         },
+        // Ban hardcoded hex colors - use theme colors instead
+        // Exceptions: medal colors (gold #FFD700, silver #C0C0C0, bronze #CD7F32)
+        {
+          selector: "Literal[value=/^#(?![Ff][Ff][Dd]700$|[Cc]0[Cc]0[Cc]0$|[Cc][Dd]7[Ff]32$)[0-9A-Fa-f]{3,8}$/]",
+          message: "Avoid hardcoded hex colors. Use theme.primaryColor, theme.accentColor, or theme.backgroundColor instead. Medal colors (gold/silver/bronze) are exempt.",
+        },
+        // Ban hardcoded font families - use theme.fontPairing instead
+        {
+          selector: "Literal[value=/^(Helvetica|Helvetica-Bold|Helvetica-Oblique|Arial|Times|Times-Roman|Courier|Georgia|Verdana)$/]",
+          message: "Avoid hardcoded font names. Use theme.fontPairing.heading or theme.fontPairing.body instead.",
+        },
       ],
     },
   },
