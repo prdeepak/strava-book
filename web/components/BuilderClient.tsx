@@ -213,7 +213,7 @@ export default function BuilderClient({
                             <span>
                                 Strava connection issue. Showing {cachedCount || 0} cached activities.
                                 {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route requires full page navigation */}
-                                <a href="/api/auth/signin/strava" className="ml-2 underline font-medium">Re-connect Strava</a>
+                                <a href="/signin" className="ml-2 underline font-medium">Re-connect Strava</a>
                             </span>
                         </div>
                     </div>

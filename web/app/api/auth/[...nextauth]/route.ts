@@ -35,6 +35,9 @@ const providers = isMockAuth
 
 export const authOptions = {
     providers,
+    pages: {
+        signIn: '/signin',
+    },
     callbacks: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async jwt({ token, account, profile }: any) {

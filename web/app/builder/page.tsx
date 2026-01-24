@@ -100,7 +100,7 @@ export default async function BuilderPage() {
 
     // In mock auth mode, auto-login without requiring actual authentication
     if (!session && !isMockAuth) {
-        redirect("/api/auth/signin/strava")
+        redirect("/signin")
     }
 
     const accessToken = session?.accessToken || 'mock-access-token-for-e2e'
@@ -157,7 +157,7 @@ export default async function BuilderPage() {
                 activities = cachedActivities
             } else {
                 // No cached data and Strava failed - redirect to re-authenticate
-                redirect("/api/auth/signin/strava?callbackUrl=/builder")
+                redirect("/signin?callbackUrl=/builder")
             }
         } else {
             // Other error - use cached activities if available
@@ -173,9 +173,8 @@ export default async function BuilderPage() {
                     <div className="p-4 bg-red-50 text-red-600 rounded mb-8 border border-red-200">
                         No activities found. Please make sure you have activities on Strava and try logging in again.
                     </div>
-                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route requires full page navigation */}
                     <a
-                        href="/api/auth/signin/strava"
+                        href="/signin"
                         className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
                     >
                         Sign in with Strava
