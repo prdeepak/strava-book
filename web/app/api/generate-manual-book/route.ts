@@ -112,6 +112,7 @@ function generateManualBookEntries(
   if (activities.length === 0) {
     entries.push({
       type: 'BACK_COVER',
+      backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
       pageNumber: currentPage++,
     })
     return entries
@@ -223,6 +224,7 @@ function generateManualBookEntries(
   entries.push({
     type: 'BACK_COVER',
     title: 'Back Cover',
+    backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
     pageNumber: currentPage++,
   })
 

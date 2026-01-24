@@ -27,6 +27,7 @@ export interface BookEntry {
     activityIds?: number[]  // For ACTIVITY_LOG (multiple activities per page)
     forewordText?: string   // For FOREWORD
     backgroundPhotoUrl?: string  // For FOREWORD, TOC, etc. (background image URL)
+    backCoverPhotoUrl?: string   // For BACK_COVER (background image URL)
     pageNumber?: number     // For TABLE_OF_CONTENTS, ACTIVITY_LOG (pagination)
     heroImage?: string      // For COVER (background image URL)
 }

@@ -1,7 +1,9 @@
-import { Page, Text, View, Image, StyleSheet, Document } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary, FORMATS } from '@/lib/book-types'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
+import { resolveTypography, resolveSpacing } from '@/lib/typography'
 
 export interface BackCoverProps {
   activity?: {
@@ -13,129 +15,132 @@ export interface BackCoverProps {
   periodName?: string  // Display text for time period
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
-  backgroundPhotoUrl?: string  // Background photo for the back cover
+  backCoverPhoto?: string  // Background photo for the back cover
   format?: BookFormat
   theme?: BookTheme
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.primaryColor,
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    objectFit: 'cover',
-    opacity: 0.4,
-  },
-  contentContainer: {
-    width: '100%',
-    height: '100%',
-    padding: format.safeMargin,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  topSection: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 50 * format.scaleFactor,
-  },
-  yearText: {
-    fontSize: 56 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    marginBottom: 12 * format.scaleFactor,
-    textAlign: 'center',
-    letterSpacing: 5,
-    fontWeight: 'bold',
-  },
-  periodRangeText: {
-    fontSize: 16 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: '#e0e0e0',
-    marginBottom: 24 * format.scaleFactor,
-    textAlign: 'center',
-    letterSpacing: 1,
-  },
-  statsGrid: {
-    flexDirection: 'column',
-    gap: 16 * format.scaleFactor,
-    alignItems: 'center',
-    marginTop: 30 * format.scaleFactor,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10 * format.scaleFactor,
-  },
-  statValue: {
-    fontSize: 32 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 14 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: '#e0e0e0',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  divider: {
-    width: 150 * format.scaleFactor,
-    height: 3,
-    backgroundColor: theme.accentColor,
-    opacity: 0.7,
-    marginVertical: 24 * format.scaleFactor,
-  },
-  quoteSection: {
-    marginTop: 40 * format.scaleFactor,
-    paddingHorizontal: format.safeMargin * 1.5,
-    maxWidth: '70%',
-    marginBottom: 32 * format.scaleFactor,
-  },
-  quoteText: {
-    fontSize: 16 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: '#ffffff',
-    textAlign: 'center',
-    lineHeight: 1.7,
-    fontStyle: 'italic',
-    opacity: 0.9,
-  },
-  bottomSection: {
-    alignItems: 'center',
-    paddingBottom: 30 * format.scaleFactor,
-  },
-  brandingText: {
-    fontSize: 12 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: '#e0e0e0',
-    textAlign: 'center',
-    letterSpacing: 1.5,
-  },
-  brandingName: {
-    fontSize: 18 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    marginTop: 8 * format.scaleFactor,
-    textAlign: 'center',
-    letterSpacing: 3,
-  },
-})
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  const spacing = resolveSpacing(theme, format)
+  const displaySmall = resolveTypography('displaySmall', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const stat = resolveTypography('stat', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.primaryColor,
+      padding: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    contentContainer: {
+      width: '100%',
+      height: '100%',
+      padding: format.safeMargin,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+    },
+    topSection: {
+      flex: 1,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      paddingTop: spacing.lg,
+    },
+    yearText: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.accentColor,
+      marginBottom: spacing.lg,
+      textAlign: 'center',
+      letterSpacing: displaySmall.letterSpacing,
+      fontWeight: 'bold',
+    },
+    periodRangeText: {
+      fontSize: body.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.backgroundColor,
+      marginBottom: spacing.md,
+      textAlign: 'center',
+      letterSpacing: 1,
+      opacity: 0.85,
+    },
+    statsGrid: {
+      flexDirection: 'column',
+      gap: spacing.sm,
+      alignItems: 'center',
+      marginTop: spacing.md,
+    },
+    statRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: spacing.xs,
+    },
+    statValue: {
+      fontSize: stat.fontSize,
+      fontFamily: stat.fontFamily,
+      color: theme.backgroundColor,
+      fontWeight: 'bold',
+    },
+    statLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.backgroundColor,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      opacity: 0.85,
+    },
+    divider: {
+      width: 150 * format.scaleFactor,
+      height: 3,
+      backgroundColor: theme.accentColor,
+      opacity: 0.7,
+      marginVertical: spacing.md,
+    },
+    quoteSection: {
+      marginTop: spacing.lg,
+      paddingHorizontal: format.safeMargin * 1.5,
+      maxWidth: '70%',
+      marginBottom: spacing.md,
+    },
+    quoteText: {
+      fontSize: body.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.backgroundColor,
+      textAlign: 'center',
+      lineHeight: 1.7,
+      fontStyle: 'italic',
+      opacity: 0.9,
+    },
+    bottomSection: {
+      alignItems: 'center',
+      paddingBottom: spacing.md,
+    },
+    brandingText: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.backgroundColor,
+      textAlign: 'center',
+      letterSpacing: 1.5,
+      opacity: 0.85,
+    },
+    brandingName: {
+      fontSize: subheading.fontSize,
+      fontFamily: subheading.fontFamily,
+      color: theme.accentColor,
+      marginTop: spacing.xs,
+      textAlign: 'center',
+      letterSpacing: 3,
+    },
+  })
+}
 
 const formatDistance = (meters: number): string => {
   const km = meters / 1000
@@ -193,7 +198,7 @@ export const BackCoverPage = ({
   periodName: propPeriodName,
   startDate: propStartDate,
   endDate: propEndDate,
-  backgroundPhotoUrl,
+  backCoverPhoto,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: BackCoverProps) => {
@@ -236,11 +241,14 @@ export const BackCoverPage = ({
 
   return (
     <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-      {/* Background photo (if provided) */}
-      {backgroundPhotoUrl && (
-        // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-        <Image src={backgroundPhotoUrl} style={styles.backgroundImage} />
-      )}
+      {/* Background - uses FullBleedBackground for proper image cropping */}
+      <FullBleedBackground
+        image={backCoverPhoto}
+        fallbackColor={theme.primaryColor}
+        role="background"
+        width={format.dimensions.width}
+        height={format.dimensions.height}
+      />
       <View style={styles.contentContainer}>
         {/* Top section with period and stats */}
         <View style={styles.topSection}>
@@ -283,7 +291,7 @@ export const BackCoverPage = ({
           {/* Optional inspirational quote */}
           <View style={styles.quoteSection}>
             <Text style={styles.quoteText}>
-              &ldquo;Every mile is a memory, every step a story worth telling.&rdquo;
+              &ldquo;Every mile is a memory,{'\n'}every step a story worth telling.&rdquo;
             </Text>
           </View>
         </View>

@@ -259,7 +259,7 @@ export async function renderEntryAsPdf(
               periodName={periodName}
               startDate={startDate}
               endDate={endDate}
-              backgroundPhotoUrl={entry.backgroundPhotoUrl}
+              backCoverPhoto={entry.backCoverPhotoUrl}
               format={format}
               theme={theme}
             />

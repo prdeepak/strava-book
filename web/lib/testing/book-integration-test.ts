@@ -114,6 +114,7 @@ function generateTestBookEntries(
     endDate: string
     coverPhotoUrl?: string | null
     backgroundPhotoUrl?: string | null
+    backCoverPhotoUrl?: string | null
   }
 ): BookEntry[] {
   const entries: BookEntry[] = []
@@ -223,6 +224,7 @@ function generateTestBookEntries(
   entries.push({
     type: 'BACK_COVER',
     title: 'Back Cover',
+    backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
     pageNumber: currentPage++,
   })
 
@@ -283,6 +285,7 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
     endDate: endDate.toISOString().slice(0, 10),
     coverPhotoUrl: photos.coverPhotoUrl,
     backgroundPhotoUrl: photos.backgroundPhotoUrl,
+    backCoverPhotoUrl: photos.backCoverPhotoUrl,
   })
   console.log(`  Generated ${entries.length} book entries`)
 
