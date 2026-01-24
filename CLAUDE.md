@@ -212,6 +212,8 @@ make workspace-stop id=X                 # Stop a workspace container
 make workspace-destroy id=X              # Remove workspace completely
 make workspace-cleanup                   # Remove stale workspaces (inactive >24h)
 make workspace-info                      # Show current workspace context
+make workspace-merge pr=N                # Merge PR and sync main worktree (ALWAYS USE THIS)
+make sync-main                           # Sync main worktree with origin/main
 ```
 
 ### How It Works
@@ -240,8 +242,21 @@ Run `make workspace-info` to see the current context.
 2. Create workspaces for each task: `make workspace-claude name=<feature> prompt="task description"`
 3. Each Claude Code session works in its own workspace
 4. When done, create PR from workspace branch to main
-5. Wait for user to approve and merge the PR
+5. Wait for user to approve, then merge using: `make workspace-merge pr=<PR_NUMBER>`
 6. Cleanup workspace after merge: `make workspace-destroy id=<workspace-id>`
+
+### Merging PRs (IMPORTANT)
+
+**Always use `make workspace-merge pr=<N>` instead of `gh pr merge` directly.** This command:
+1. Merges the PR on GitHub (squash merge)
+2. Automatically syncs the main worktree with origin/main
+
+This prevents the main worktree from becoming stale, which would cause merge conflicts in future PRs.
+
+If someone merges a PR via GitHub UI (not using `make workspace-merge`), run:
+```bash
+make sync-main
+```
 
 ### Why Git Worktrees (Not Clones)
 The workspace system uses git worktrees rather than full clones. This is intentional:
