@@ -12,12 +12,13 @@
  * - Theme colors (no hardcoded values)
  */
 
-import { Page, View, Text, StyleSheet, Document, Image } from '@react-pdf/renderer'
+import { Page, View, Text, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // ============================================================================
 // TYPES
@@ -90,17 +91,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       overflow: 'hidden',
     },
     // Map container - shows satellite map with route overlay
+    // PdfImage handles positioning inside this container
     mapContainer: {
       width: '100%',
       height: 90 * format.scaleFactor,
       backgroundColor: theme.primaryColor + '10',
       overflow: 'hidden',
       position: 'relative',
-    },
-    mapImage: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
     },
     noMapPlaceholder: {
       width: '100%',
@@ -291,11 +288,7 @@ export const ActivityLog = ({
                 {/* Map Section - Satellite with route overlay */}
                 <View style={styles.mapContainer}>
                   {mapUrl ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image
-                      src={resolveImageForPdf(mapUrl) || mapUrl}
-                      style={styles.mapImage}
-                    />
+                    <PdfImage src={resolveImageForPdf(mapUrl) || mapUrl} />
                   ) : (
                     <View style={styles.noMapPlaceholder}>
                       <Text style={styles.noMapText}>

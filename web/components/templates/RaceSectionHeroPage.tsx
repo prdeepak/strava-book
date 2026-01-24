@@ -1,8 +1,9 @@
-import { Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -20,14 +21,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         padding: 0,
         position: 'relative',
     },
-    backgroundImage: {
+    // Background image container - PdfImage handles positioning
+    backgroundImageContainer: {
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        opacity: 0.65,
-        objectFit: 'cover',
+        overflow: 'hidden',
     },
     // Full-height gradient overlay for better text readability
     gradientOverlay: {
@@ -157,11 +158,9 @@ export const RaceSectionHeroPage = ({
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
             {/* Background Image Layer */}
             {bgImage && (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <Image
-                    src={bgImage}
-                    style={styles.backgroundImage}
-                />
+                <View style={styles.backgroundImageContainer}>
+                    <PdfImage src={bgImage} opacity={0.65} />
+                </View>
             )}
 
             {/* Full-height gradient overlay for better overall text readability */}

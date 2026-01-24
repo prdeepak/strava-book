@@ -1,7 +1,8 @@
-import { Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
     page: {
@@ -33,23 +34,27 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         flexWrap: 'wrap',
         gap: 8 * format.scaleFactor,
     },
+    // Photo containers - PdfImage handles positioning inside
     photoLarge: {
         width: '100%',
         height: '48%',
-        objectFit: 'cover',
         borderRadius: 4,
+        overflow: 'hidden',
+        position: 'relative',
     },
     photoMedium: {
         width: '48%',
         height: '45%',
-        objectFit: 'cover',
         borderRadius: 4,
+        overflow: 'hidden',
+        position: 'relative',
     },
     photoSmall: {
         width: '31%',
         height: '30%',
-        objectFit: 'cover',
         borderRadius: 4,
+        overflow: 'hidden',
+        position: 'relative',
     },
     photoCaption: {
         fontSize: Math.max(8, 10 * format.scaleFactor),
@@ -152,12 +157,9 @@ export const RaceSectionPhotosPage = ({
 
             <View style={styles.photosGrid}>
                 {pagePhotos.map((photoUrl, index) => (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image
-                        key={index}
-                        src={photoUrl}
-                        style={getPhotoStyle(pagePhotos.length, index)}
-                    />
+                    <View key={index} style={getPhotoStyle(pagePhotos.length, index)}>
+                        <PdfImage src={photoUrl} />
+                    </View>
                 ))}
             </View>
 

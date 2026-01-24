@@ -9,7 +9,7 @@
  * - Activity context (date, location, stats)
  */
 
-import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation, formatDistance, formatTime } from '@/lib/activity-utils'
@@ -21,6 +21,7 @@ import {
     GalleryLayout,
     PhotoData
 } from '@/lib/photo-gallery-utils'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // ============================================================================
 // TYPES
@@ -82,15 +83,11 @@ const createStyles = (format: BookFormat, theme: BookTheme, variant: PhotoGaller
             flex: 1,
             position: 'relative',
         },
+        // Photo slot container - PdfImage handles positioning inside
         photoSlot: {
             position: 'absolute',
             overflow: 'hidden',
             backgroundColor: '#f0f0f0',
-        },
-        photoImage: {
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
         },
         photoFrame: {
             position: 'absolute',
@@ -299,8 +296,7 @@ export const PhotoGallery = ({
                                         )}
 
                                         {/* Photo */}
-                                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                                        <Image src={photo.url} style={styles.photoImage} />
+                                        <PdfImage src={photo.url} />
 
                                         {/* Frame overlay for framed variant */}
                                         {variant === 'framed' && <View style={styles.photoFrame} />}
@@ -417,8 +413,7 @@ export const PhotoGalleryPage = ({
                                             height: dims.height,
                                         }]} />
                                     )}
-                                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                                    <Image src={photo.url} style={styles.photoImage} />
+                                    <PdfImage src={photo.url} />
                                     {variant === 'framed' && <View style={styles.photoFrame} />}
                                     {showCaptions && photo.caption && (
                                         <Text style={styles.caption}>{photo.caption}</Text>

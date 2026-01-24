@@ -21,6 +21,7 @@ import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { SplitsChartSVG, SplitData } from '@/lib/generateSplitsChart'
 import mapboxPolyline from '@mapbox/polyline'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // ============================================================================
 // TYPES
@@ -51,13 +52,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             height: format.dimensions.height,
             position: 'relative',
         },
-        heroImage: {
+        // Hero image container - PdfImage handles positioning
+        heroImageContainer: {
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            overflow: 'hidden',
         },
         heroOverlay: {
             position: 'absolute',
@@ -178,11 +180,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             overflow: 'hidden',
             borderWidth: 1,
             borderColor: '#e0e0e0',
-        },
-        mapImage: {
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
+            position: 'relative',
         },
         chartContainer: {
             height: 160 * scale,
@@ -263,10 +261,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             gap: 8 * scale,
             marginTop: 12 * scale,
         },
-        thumbnail: {
+        thumbnailContainer: {
             width: 60 * scale,
             height: 60 * scale,
-            objectFit: 'cover',
+            overflow: 'hidden',
+            position: 'relative',
         },
         noPhotoPlaceholder: {
             width: '100%',
@@ -357,8 +356,9 @@ const HeroPage = ({
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.heroPage}>
             {heroPhoto ? (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <Image src={heroPhoto} style={styles.heroImage} />
+                <View style={styles.heroImageContainer}>
+                    <PdfImage src={heroPhoto} />
+                </View>
             ) : (
                 <View style={styles.noPhotoPlaceholder}>
                     <Text style={styles.placeholderText}>{activity.name.charAt(0)}</Text>
@@ -477,8 +477,7 @@ const StatsPage = ({
             <Text style={styles.sectionTitle}>Route</Text>
             <View style={styles.mapContainer}>
                 {mapUrl ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={resolveImageForPdf(mapUrl) || mapUrl} style={styles.mapImage} />
+                    <PdfImage src={resolveImageForPdf(mapUrl) || mapUrl} />
                 ) : polyline ? (
                     <Svg width={mapWidth} height={mapHeight} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
                         <Polyline
@@ -515,8 +514,9 @@ const StatsPage = ({
             {thumbnails.length > 0 && (
                 <View style={styles.thumbnailStrip}>
                     {thumbnails.slice(0, 4).map((url, idx) => (
-                        // eslint-disable-next-line jsx-a11y/alt-text
-                        <Image key={idx} src={url} style={styles.thumbnail} />
+                        <View key={idx} style={styles.thumbnailContainer}>
+                            <PdfImage src={url} />
+                        </View>
                     ))}
                 </View>
             )}
