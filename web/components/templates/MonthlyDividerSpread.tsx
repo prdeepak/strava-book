@@ -13,6 +13,7 @@ import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesTo
 
 interface MonthlyDividerSpreadProps {
   activities?: StravaActivity[]
+  highlightActivity?: StravaActivity  // The featured activity for this month (from highlight selection)
   month?: number  // 0-11
   year?: number
   format?: BookFormat
@@ -20,6 +21,52 @@ interface MonthlyDividerSpreadProps {
   units?: 'metric' | 'imperial'
   // For test harness compatibility
   activity?: StravaActivity
+}
+
+// Check if an activity has photos
+function activityHasPhotos(activity: StravaActivity): boolean {
+  const comprehensivePhotos = activity.comprehensiveData?.photos || []
+  if (comprehensivePhotos.length > 0) return true
+
+  // Check primary photo
+  if (activity.photos?.primary?.urls) {
+    const sizes = Object.keys(activity.photos.primary.urls)
+    if (sizes.length > 0) return true
+  }
+
+  return false
+}
+
+// Get the best photo URL from an activity
+function getActivityHeroPhoto(activity: StravaActivity): string | null {
+  // Try comprehensive photos first (highest resolution)
+  const comprehensivePhotos = activity.comprehensiveData?.photos || []
+  for (const photo of comprehensivePhotos) {
+    const sizes = Object.keys(photo.urls || {}).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
+    if (sizes.length > 0) {
+      return photo.urls[String(sizes[0])]
+    }
+  }
+
+  // Fall back to primary photo
+  if (activity.photos?.primary?.urls) {
+    const sizes = Object.keys(activity.photos.primary.urls).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
+    if (sizes.length > 0) {
+      const urls = activity.photos.primary.urls as Record<string, string>
+      return urls[String(sizes[0])]
+    }
+  }
+
+  return null
+}
+
+// Get comments from an activity
+function getActivityComments(activity: StravaActivity, maxComments: number = 2): Array<{ text: string; authorName: string }> {
+  const comments = activity.comprehensiveData?.comments || []
+  return comments.slice(0, maxComments).map(comment => ({
+    text: comment.text,
+    authorName: `${comment.athlete?.firstname || ''} ${comment.athlete?.lastname || ''}`.trim() || 'Someone',
+  }))
 }
 
 // Activity scoring for hierarchy (higher = more important)
@@ -215,6 +262,17 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     letterSpacing: 3,
     textTransform: 'uppercase',
   },
+  // Full-bleed hero photo (single photo fills the content area)
+  fullBleedHeroContainer: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: 4 * format.scaleFactor,
+  },
+  fullBleedHeroPhoto: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
   photoGrid: {
     flex: 1,
     display: 'flex',
@@ -391,6 +449,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
 
 export const MonthlyDividerSpread = ({
   activities,
+  highlightActivity,
   month: propMonth,
   year: propYear,
   format: propFormat,
@@ -422,7 +481,29 @@ export const MonthlyDividerSpread = ({
 
   const monthName = getMonthName(month)
 
-  // Get top photos and comments
+  // Determine the featured activity for this month
+  // Priority: highlightActivity (if it has photos) > top-scored activity with photos > any activity with photos
+  let featuredActivity: StravaActivity | undefined = highlightActivity
+
+  // If highlight activity doesn't have photos, find the top-scored activity that does
+  if (!featuredActivity || !activityHasPhotos(featuredActivity)) {
+    const activitiesWithPhotos = allActivities
+      .filter(activityHasPhotos)
+      .map(a => ({ activity: a, score: scoreActivity(a) }))
+      .sort((a, b) => b.score - a.score)
+
+    if (activitiesWithPhotos.length > 0) {
+      featuredActivity = activitiesWithPhotos[0].activity
+    }
+  }
+
+  // Get hero photo from featured activity
+  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+
+  // Get comments from featured activity (1-2 comments as per spec)
+  const featuredComments = featuredActivity ? getActivityComments(featuredActivity, 2) : []
+
+  // Legacy: Get top photos for backward compatibility (used if no featured activity)
   const topPhotos = getTopPhotos(allActivities, 4)
   const topComments = getTopComments(allActivities, 4)
 
@@ -450,9 +531,15 @@ export const MonthlyDividerSpread = ({
           <Text style={styles.leftPageYear}>{year}</Text>
         </View>
 
-        {topPhotos.length > 0 ? (
+        {heroPhotoUrl ? (
+          <View style={styles.fullBleedHeroContainer}>
+            {/* Single hero photo from featured activity */}
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
+            <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+          </View>
+        ) : topPhotos.length > 0 ? (
           <View style={styles.photoGrid}>
-            {/* 2x2 photo grid for balanced layout */}
+            {/* Fallback: 2x2 photo grid if no featured activity photo */}
             <View style={styles.photoRow}>
               {topPhotos[0] && (
                 <View style={styles.photoCell}>
@@ -547,16 +634,31 @@ export const MonthlyDividerSpread = ({
           </View>
         </View>
 
-        {/* Comments Section */}
-        {topComments.length > 0 && (
+        {/* Comments Section - prefer featured activity comments, fallback to top comments */}
+        {(featuredComments.length > 0 || topComments.length > 0) && (
           <View style={styles.commentsSection}>
-            <Text style={styles.commentsLabel}>Month Highlights</Text>
-            {topComments.slice(0, 2).map((comment, idx) => (
-              <View key={idx} style={styles.commentItem}>
-                <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
-                <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
-              </View>
-            ))}
+            <Text style={styles.commentsLabel}>
+              {featuredComments.length > 0 && featuredActivity
+                ? featuredActivity.name || 'Highlight'
+                : 'Month Highlights'}
+            </Text>
+            {featuredComments.length > 0 ? (
+              // Show comments from the featured activity
+              featuredComments.map((comment, idx) => (
+                <View key={idx} style={styles.commentItem}>
+                  <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 150)}{comment.text.length > 150 ? '...' : ''}&rdquo;</Text>
+                  <Text style={styles.commentAuthor}>— {comment.authorName}</Text>
+                </View>
+              ))
+            ) : (
+              // Fallback to top comments from all activities
+              topComments.slice(0, 2).map((comment, idx) => (
+                <View key={idx} style={styles.commentItem}>
+                  <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
+                  <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
+                </View>
+              ))
+            )}
           </View>
         )}
       </Page>
@@ -579,12 +681,48 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
     ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getMonth()
     : new Date().getMonth())
 
+  const year = props.year ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getFullYear()
+    : new Date().getFullYear())
+
   const monthName = getMonthName(month)
+
+  // Determine the featured activity for this month
+  let featuredActivity = props.highlightActivity
+
+  // If highlight activity doesn't have photos, find the top-scored activity that does
+  if (!featuredActivity || !activityHasPhotos(featuredActivity)) {
+    const activitiesWithPhotos = allActivities
+      .filter(activityHasPhotos)
+      .map(a => ({ activity: a, score: scoreActivity(a) }))
+      .sort((a, b) => b.score - a.score)
+
+    if (activitiesWithPhotos.length > 0) {
+      featuredActivity = activitiesWithPhotos[0].activity
+    }
+  }
+
+  // Get hero photo from featured activity
+  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+
+  // Fallback to legacy top photos
   const topPhotos = getTopPhotos(allActivities, 4)
 
   return (
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.leftPage}>
-      {topPhotos.length > 0 ? (
+      {/* Header with month/year */}
+      <View style={styles.leftPageHeader}>
+        <Text style={styles.leftPageTitle}>{monthName}</Text>
+        <Text style={styles.leftPageYear}>{year}</Text>
+      </View>
+
+      {heroPhotoUrl ? (
+        <View style={styles.fullBleedHeroContainer}>
+          {/* Single hero photo from featured activity */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
+          <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+        </View>
+      ) : topPhotos.length > 0 ? (
         <View style={styles.photoGrid}>
           {topPhotos[0] && (
             // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
@@ -630,6 +768,25 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
   year = year ?? new Date().getFullYear()
 
   const monthName = getMonthName(month)
+
+  // Determine the featured activity (same logic as left page)
+  let featuredActivity = props.highlightActivity
+
+  if (!featuredActivity || !activityHasPhotos(featuredActivity)) {
+    const activitiesWithPhotos = allActivities
+      .filter(activityHasPhotos)
+      .map(a => ({ activity: a, score: scoreActivity(a) }))
+      .sort((a, b) => b.score - a.score)
+
+    if (activitiesWithPhotos.length > 0) {
+      featuredActivity = activitiesWithPhotos[0].activity
+    }
+  }
+
+  // Get comments from featured activity (1-2 comments as per spec)
+  const featuredComments = featuredActivity ? getActivityComments(featuredActivity, 2) : []
+
+  // Fallback to top comments from all activities
   const topComments = getTopComments(allActivities, 4)
   const calendarData = activitiesToCalendarData(allActivities)
   const { isPredominant } = getPredominantSportType(allActivities)
@@ -692,15 +849,31 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
         </View>
       </View>
 
-      {topComments.length > 0 && (
+      {/* Comments Section - prefer featured activity comments, fallback to top comments */}
+      {(featuredComments.length > 0 || topComments.length > 0) && (
         <View style={styles.commentsSection}>
-          <Text style={styles.commentsLabel}>Month Highlights</Text>
-          {topComments.slice(0, 4).map((comment, idx) => (
-            <View key={idx} style={styles.commentItem}>
-              <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
-              <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
-            </View>
-          ))}
+          <Text style={styles.commentsLabel}>
+            {featuredComments.length > 0 && featuredActivity
+              ? featuredActivity.name || 'Highlight'
+              : 'Month Highlights'}
+          </Text>
+          {featuredComments.length > 0 ? (
+            // Show comments from the featured activity
+            featuredComments.map((comment, idx) => (
+              <View key={idx} style={styles.commentItem}>
+                <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 150)}{comment.text.length > 150 ? '...' : ''}&rdquo;</Text>
+                <Text style={styles.commentAuthor}>— {comment.authorName}</Text>
+              </View>
+            ))
+          ) : (
+            // Fallback to top comments from all activities
+            topComments.slice(0, 2).map((comment, idx) => (
+              <View key={idx} style={styles.commentItem}>
+                <Text style={styles.commentText}>&ldquo;{comment.text.substring(0, 120)}{comment.text.length > 120 ? '...' : ''}&rdquo;</Text>
+                <Text style={styles.commentAuthor}>— {comment.authorName} on {comment.activityName}</Text>
+              </View>
+            ))
+          )}
         </View>
       )}
     </Page>

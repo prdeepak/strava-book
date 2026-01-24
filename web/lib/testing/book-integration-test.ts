@@ -201,6 +201,19 @@ function generateTestBookEntries(
 
     if (monthNonRaces.length === 0) continue
 
+    // Find a highlight activity with photos for this month
+    // First try to find one from the month's activities, then fall back to any activity with photos
+    const activityWithPhotos = monthActivities.find(a => {
+      const hasComprehensivePhotos = (a.comprehensiveData?.photos?.length ?? 0) > 0
+      const hasPrimaryPhoto = a.photos?.primary?.urls && Object.keys(a.photos.primary.urls).length > 0
+      return hasComprehensivePhotos || hasPrimaryPhoto
+    }) || activities.find(a => {
+      // Fall back to any activity with photos (e.g., race fixtures)
+      const hasComprehensivePhotos = (a.comprehensiveData?.photos?.length ?? 0) > 0
+      const hasPrimaryPhoto = a.photos?.primary?.urls && Object.keys(a.photos.primary.urls).length > 0
+      return hasComprehensivePhotos || hasPrimaryPhoto
+    })
+
     // MONTHLY DIVIDER
     entries.push({
       type: 'MONTHLY_DIVIDER',
@@ -208,6 +221,7 @@ function generateTestBookEntries(
       year: entryYear,
       title: new Date(entryYear, month, 1).toLocaleString('en-US', { month: 'long' }),
       highlightLabel: `${monthNonRaces.length} activities`,
+      highlightActivityId: activityWithPhotos?.id,
       pageNumber: currentPage++,
     })
 
