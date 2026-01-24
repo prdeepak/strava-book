@@ -23,7 +23,7 @@ export default async function PreviewPage(props: {
     const session = await getServerSession(authOptions)
 
     if (!session) {
-        redirect("/api/auth/signin/strava")
+        redirect("/signin")
     }
 
     // Validate template parameter against registry
