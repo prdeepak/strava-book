@@ -28,9 +28,15 @@ export interface BookEntry {
     highlightActivityId?: number  // For MONTHLY_DIVIDER (featured activity for the month)
     forewordText?: string   // For FOREWORD
     backgroundPhotoUrl?: string  // For FOREWORD, TOC, etc. (background image URL)
+    backgroundPhotoWidth?: number  // Source width in pixels (for aspect-fill)
+    backgroundPhotoHeight?: number // Source height in pixels (for aspect-fill)
     backCoverPhotoUrl?: string   // For BACK_COVER (background image URL)
+    backCoverPhotoWidth?: number // Source width in pixels
+    backCoverPhotoHeight?: number // Source height in pixels
     pageNumber?: number     // For TABLE_OF_CONTENTS, ACTIVITY_LOG (pagination)
     heroImage?: string      // For COVER (background image URL)
+    heroImageWidth?: number // Source width in pixels
+    heroImageHeight?: number // Source height in pixels
 }
 
 /**

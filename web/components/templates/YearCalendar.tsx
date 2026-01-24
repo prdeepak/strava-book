@@ -72,9 +72,9 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
   monthsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',  // Left-justify partial rows
     rowGap: 12 * format.scaleFactor,
-    columnGap: 12 * format.scaleFactor,
+    columnGap: 16 * format.scaleFactor,  // Explicit gap for 4-column layout
     marginBottom: 12 * format.scaleFactor,
   },
   monthBlock: {
@@ -122,40 +122,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     gap: 4,
     marginHorizontal: 8,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12 * format.scaleFactor,
-    borderTopWidth: 2,
-    borderTopColor: theme.primaryColor,
-    borderTopStyle: 'solid',
-  },
-  statItem: {
-    flex: 1,
-    paddingHorizontal: 12 * format.scaleFactor,
-  },
-  statValue: {
-    fontSize: Math.max(24, 32 * format.scaleFactor),
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    fontWeight: 'bold',
-    lineHeight: 1,
-    marginBottom: 4 * format.scaleFactor,
-  },
-  statLabel: {
-    fontSize: Math.max(8, 9 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.6,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  statUnit: {
-    fontSize: Math.max(10, 12 * format.scaleFactor),
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.75,
-  },
+  // Stats styles removed - summary stats now only on YearStats page
   // Monthly bar chart styles
   chartSection: {
     marginBottom: 12 * format.scaleFactor,
@@ -166,11 +133,11 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     color: theme.primaryColor,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 6 * format.scaleFactor,
+    marginBottom: 12 * format.scaleFactor,  // More space between title and chart
     opacity: 0.7,
   },
   chartContainer: {
-    height: 60 * format.scaleFactor,
+    height: 50 * format.scaleFactor,  // Slightly shorter to give title more clearance
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 4 * format.scaleFactor,
@@ -265,9 +232,9 @@ const getColor = (intensity: number, accentColor: string, backgroundColor: strin
   // Create proper opacity-based shades for better visual hierarchy
   const shades = [
     isLightBg ? '#f0f0f0' : '#2a2a2a',  // 0 - no activity
-    `${accentColor}40`,  // 1 - lightest (25% opacity)
-    `${accentColor}70`,  // 2 - light (44% opacity)
-    `${accentColor}A0`,  // 3 - medium (63% opacity)
+    `${accentColor}60`,  // 1 - lightest (37% opacity) - visible but light
+    `${accentColor}85`,  // 2 - light (52% opacity)
+    `${accentColor}B0`,  // 3 - medium (69% opacity)
     `${accentColor}`,    // 4 - full intensity
   ]
 
@@ -330,8 +297,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
   let activities: StravaActivity[]
   let dateMap: Map<string, number>
   let totalDistance: number
-  let totalTime: number
-  let totalElevation: number
+  // Note: totalTime and totalElevation removed - stats now only on YearStats page
   const colorBy = props.colorBy || 'distance'
 
   // Check if this is a year_calendar fixture with activityDates
@@ -353,8 +319,6 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
 
     // Use summary stats from fixture
     totalDistance = (fixture.summary?.totalDistance || 0) / 1000
-    totalTime = (fixture.summary?.totalTime || 0) / 3600
-    totalElevation = fixture.summary?.totalElevation || 0
   } else if (props.activity) {
     // Standard activity - generate mock year data
     const mockData = generateMockYearData(props.activity)
@@ -362,16 +326,13 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
     activities = mockData.activities
     dateMap = aggregateActivitiesByDate(activities, colorBy)
     totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
-    totalTime = activities.reduce((sum, a) => sum + a.moving_time / 3600, 0)
-    totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
   } else {
     // Direct props mode
     year = props.year || new Date().getFullYear()
     activities = props.activities || []
     dateMap = aggregateActivitiesByDate(activities, colorBy)
     totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
-    totalTime = activities.reduce((sum, a) => sum + a.moving_time / 3600, 0)
-    totalElevation = activities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0)
+    // Note: totalTime and totalElevation removed - stats now only on YearStats page
   }
 
   const styles = createStyles(format, theme)
@@ -532,34 +493,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
           </View>
         )}
 
-        {/* Summary Stats */}
-        <View style={styles.statsGrid} wrap={false}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {formatWithCommas(totalDistance)}
-              <Text style={styles.statUnit}> km</Text>
-            </Text>
-            <Text style={styles.statLabel}>Distance</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {formatWithCommas(totalTime)}
-              <Text style={styles.statUnit}> hrs</Text>
-            </Text>
-            <Text style={styles.statLabel}>Time</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {formatWithCommas(totalElevation)}
-              <Text style={styles.statUnit}> m</Text>
-            </Text>
-            <Text style={styles.statLabel}>Elevation</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatWithCommas(activities.length)}</Text>
-            <Text style={styles.statLabel}>Activities</Text>
-          </View>
-        </View>
+        {/* Summary Stats removed - duplicates YearStats page */}
         </View>
     </Page>
   )

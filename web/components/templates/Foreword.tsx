@@ -75,7 +75,7 @@ export const ForewordPage = ({
   const quoteMarkHeight = displayTypo.fontSize * 0.8
   const authorHeight = author ? captionTypo.fontSize + spacing.md : 0
   const bodyAreaHeight = contentHeight - headerHeight - quoteMarkHeight - authorHeight - spacing.lg
-  const bodyWidth = contentWidth - spacing.lg // Left padding for quote indent
+  const bodyWidth = contentWidth - spacing.lg * 2 // Padding for centered text
 
   const styles = StyleSheet.create({
     page: {
@@ -95,17 +95,19 @@ export const ForewordPage = ({
       display: 'flex',
       flexDirection: 'column',
     },
-    // Body content area
+    // Body content area - centered vertically
     bodyArea: {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
+      alignItems: 'center',
       paddingTop: spacing.md,
     },
-    // Decorative opening quote mark
+    // Decorative opening quote mark - stays left-aligned
     quoteMarkContainer: {
       height: quoteMarkHeight,
+      alignSelf: 'flex-start',
       marginLeft: spacing.sm,
     },
     quoteMarkText: {
@@ -114,16 +116,15 @@ export const ForewordPage = ({
       color: theme.accentColor,
       opacity: effects.textOverlayOpacity,
     },
-    // Container for body text (with left indent)
+    // Container for body text (centered)
     bodyTextContainer: {
-      marginLeft: spacing.lg,
       height: bodyAreaHeight,
       width: bodyWidth,
     },
-    // Author attribution
+    // Author attribution - centered below body
     authorContainer: {
-      marginLeft: spacing.lg,
       marginTop: spacing.md,
+      alignItems: 'center',
     },
     authorText: {
       fontSize: captionTypo.fontSize,
@@ -165,7 +166,7 @@ export const ForewordPage = ({
             <Text style={styles.quoteMarkText}>&ldquo;</Text>
           </View>
 
-          {/* Body text using AutoResizingPdfText */}
+          {/* Body text using AutoResizingPdfText - centered and italic */}
           <View style={styles.bodyTextContainer}>
             <AutoResizingPdfText
               text={body}
@@ -173,11 +174,12 @@ export const ForewordPage = ({
               height={bodyAreaHeight}
               font={bodyTypo.fontFamily}
               min_fontsize={bodyTypo.minFontSize}
-              max_fontsize={bodyTypo.fontSize * 1.2}
-              h_align="left"
-              v_align="top"
+              max_fontsize={bodyTypo.fontSize * 2}
+              h_align="center"
+              v_align="middle"
               textColor={theme.primaryColor}
               resize_to_text={false}
+              fontStyle="italic"
             />
           </View>
 

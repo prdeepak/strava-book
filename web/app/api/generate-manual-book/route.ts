@@ -10,6 +10,7 @@ import { StravaActivity } from '@/lib/strava'
 import { normalizeFontName } from '@/lib/ai-validation'
 import { createBookScoresReport, generateScoresMarkdown } from '@/lib/visual-scores-report'
 import { scorePdfPages } from '@/lib/visual-scoring'
+import { extractPdfPages, isPdftoppmAvailable } from '@/lib/pdf-to-images'
 import { BookEntry } from '@/lib/curator'
 import { generateBookEntries } from '@/lib/book-entry-generator'
 import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
@@ -55,8 +56,14 @@ interface ManualBookRequest {
     endDate: string
     forewordText?: string
     coverPhotoUrl?: string | null
+    coverPhotoWidth?: number
+    coverPhotoHeight?: number
     backgroundPhotoUrl?: string | null
+    backgroundPhotoWidth?: number
+    backgroundPhotoHeight?: number
     backCoverPhotoUrl?: string | null
+    backCoverPhotoWidth?: number
+    backCoverPhotoHeight?: number
     format?: BookFormat
     theme?: BookTheme
     // Debug/testing options
@@ -122,8 +129,14 @@ export async function POST(request: NextRequest) {
         endDate: config.endDate,
         forewordText: config.forewordText,
         coverPhotoUrl: config.coverPhotoUrl,
+        coverPhotoWidth: config.coverPhotoWidth,
+        coverPhotoHeight: config.coverPhotoHeight,
         backgroundPhotoUrl: config.backgroundPhotoUrl,
+        backgroundPhotoWidth: config.backgroundPhotoWidth,
+        backgroundPhotoHeight: config.backgroundPhotoHeight,
         backCoverPhotoUrl: config.backCoverPhotoUrl,
+        backCoverPhotoWidth: config.backCoverPhotoWidth,
+        backCoverPhotoHeight: config.backCoverPhotoHeight,
         highlightActivityIds: highlightMap,
       }
     )
@@ -136,8 +149,20 @@ export async function POST(request: NextRequest) {
 
     console.log('[ManualBook] Generated', entries.length, 'book entries')
 
-    // Compute year summary
-    const yearSummary = computeYearSummary(activities, primaryYear)
+    // Filter activities to date range for year summary
+    const startDateObj = new Date(config.startDate)
+    const endDateObj = new Date(config.endDate)
+    endDateObj.setHours(23, 59, 59, 999)
+
+    const filteredActivities = activities.filter(a => {
+      const actDate = new Date(a.start_date_local || a.start_date)
+      return actDate >= startDateObj && actDate <= endDateObj
+    })
+
+    console.log('[ManualBook] Filtered activities for stats:', filteredActivities.length, 'of', activities.length)
+
+    // Compute year summary from filtered activities only
+    const yearSummary = computeYearSummary(filteredActivities, primaryYear)
 
     // Create filenames with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
@@ -172,7 +197,7 @@ export async function POST(request: NextRequest) {
       console.log('[ManualBook] Generating individual page PDFs...')
 
       const pageRenderContext: PageRenderContext = {
-        activities,
+        activities: filteredActivities,  // Use date-filtered activities
         format,
         theme,
         athleteName: config.athleteName,
@@ -208,7 +233,7 @@ export async function POST(request: NextRequest) {
     const pdfBuffer = await renderToBuffer(
       BookDocument({
         entries,
-        activities,
+        activities: filteredActivities,  // Use date-filtered activities
         format,
         theme,
         athleteName: config.athleteName,
@@ -231,6 +256,26 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(pdfPath, pdfBuffer)
     console.log('[ManualBook] Saved PDF to:', pdfPath)
 
+    // Always extract PDF pages to PNG for preview (independent of scoring)
+    const pdftoppmAvailable = await isPdftoppmAvailable()
+    if (pdftoppmAvailable) {
+      console.log('[ManualBook] Extracting PDF pages to PNG...')
+      const extractStartTime = Date.now()
+      try {
+        const extraction = await extractPdfPages(Buffer.from(pdfBuffer), {
+          resolution: 150,
+          prefix: 'page',
+          outputDir: pagesDir,
+        })
+        console.log(`[ManualBook] Extracted ${extraction.totalPages} pages in ${Date.now() - extractStartTime}ms`)
+        console.log(`[ManualBook] Page images saved to: ${pagesDir}`)
+      } catch (extractError) {
+        console.error('[ManualBook] Failed to extract PDF pages:', extractError)
+      }
+    } else {
+      console.log('[ManualBook] pdftoppm not available - skipping PNG extraction')
+    }
+
     // Visual scoring (optional, off by default)
     let scoresMarkdown = ''
     if (enableScoring) {
@@ -248,14 +293,13 @@ export async function POST(request: NextRequest) {
         {
           verbose: true,
           provider: 'auto',
-          outputDir: pagesDir,
+          outputDir: pagesDir,  // Will use already-extracted PNGs
         }
       )
 
       const pageScores = scoringResult.pageScores
       console.log(`[ManualBook] Visual scoring complete in ${Date.now() - scoringStartTime}ms`)
       console.log(`[ManualBook] Scored ${scoringResult.scoredPages}/${scoringResult.totalPages} pages, avg score: ${scoringResult.averageScore.toFixed(1)}`)
-      console.log(`[ManualBook] Page images saved to: ${pagesDir}`)
 
       const scoresReport = createBookScoresReport(config.bookName, pageScores)
       scoresMarkdown = generateScoresMarkdown(scoresReport)
@@ -274,7 +318,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache',
         'X-Output-PDF': pdfFilename,
         'X-Output-Scores': enableScoring ? mdFilename : '',
-        'X-Output-Pages': pdfByPage ? pagesFolder : '',
+        'X-Output-Pages': pagesFolder,  // PNG pages always generated
       },
     })
 

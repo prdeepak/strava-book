@@ -94,6 +94,8 @@ interface AutoResizingPdfTextProps {
   resize_to_text?: boolean
   /** Padding around text when resize_to_text is true. Default: 8 */
   text_padding?: number
+  /** Font style: normal or italic. Default: normal */
+  fontStyle?: 'normal' | 'italic'
 }
 
 interface CalculatedState {
@@ -117,6 +119,7 @@ export const AutoResizingPdfText = ({
   backgroundOpacity = 0,
   resize_to_text = true,
   text_padding = 8,
+  fontStyle = 'normal',
 }: AutoResizingPdfTextProps) => {
   // Note: react-pdf doesn't support React hooks, so we compute directly
   // Helper wrapper for the specific inputs
@@ -259,6 +262,7 @@ export const AutoResizingPdfText = ({
       lineHeight: 1.2,
       margin: 0,
       padding: 0,
+      fontStyle: fontStyle,
     },
   })
 

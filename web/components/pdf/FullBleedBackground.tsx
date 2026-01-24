@@ -30,9 +30,13 @@ export interface FullBleedBackgroundProps {
   overlayOpacity?: number
   /** Overlay color (defaults to black) */
   overlayColor?: string
-  /** Page dimensions */
+  /** Page/container dimensions (points) */
   width: number
   height: number
+  /** Source image width in pixels (for precise aspect-fill) */
+  sourceWidth?: number
+  /** Source image height in pixels (for precise aspect-fill) */
+  sourceHeight?: number
 }
 
 export const FullBleedBackground = ({
@@ -44,6 +48,8 @@ export const FullBleedBackground = ({
   overlayColor = 'black',
   width,
   height,
+  sourceWidth,
+  sourceHeight,
 }: FullBleedBackgroundProps) => {
   // Resolve opacities based on role
   const resolvedImageOpacity = imageOpacity ?? (role === 'hero' ? 1.0 : DEFAULT_EFFECTS.backgroundImageOpacity)
@@ -99,7 +105,14 @@ export const FullBleedBackground = ({
       {/* Layer 2: Image in clipping container (if provided) */}
       {image && (
         <View style={styles.imageClip}>
-          <PdfImage src={image} opacity={resolvedImageOpacity} />
+          <PdfImage
+            src={image}
+            opacity={resolvedImageOpacity}
+            containerWidth={width}
+            containerHeight={height}
+            sourceWidth={sourceWidth}
+            sourceHeight={sourceHeight}
+          />
         </View>
       )}
 
