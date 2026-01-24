@@ -2,12 +2,12 @@
  * AllMonthlyDividers - Test component that renders MonthlyDividers for all months
  *
  * This component is used for iterative testing of MonthlyDivider templates.
- * It generates one page per month that has activities, allowing the visual
+ * It generates a 2-page spread per month that has activities, allowing the visual
  * judge to score each month independently.
  */
 
 import { Document } from '@react-pdf/renderer'
-import { MonthlyDivider } from './MonthlyDivider'
+import { MonthlyDividerSpreadPages } from './MonthlyDividerSpread'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 
@@ -60,9 +60,11 @@ export const AllMonthlyDividers = ({
   return (
     <Document>
       {monthGroups.map((group) => (
-        <MonthlyDivider
+        <MonthlyDividerSpreadPages
           key={`${group.year}-${group.month}`}
           activities={group.activities}
+          month={group.month}
+          year={group.year}
           format={format}
           theme={theme}
           units={units}

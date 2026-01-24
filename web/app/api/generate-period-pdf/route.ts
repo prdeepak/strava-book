@@ -11,7 +11,7 @@ import React from 'react'
 // Import templates
 import { YearStats } from '@/components/templates/YearStats'
 import { YearCalendar } from '@/components/templates/YearCalendar'
-import { MonthlyDivider } from '@/components/templates/MonthlyDivider'
+import { MonthlyDividerSpread } from '@/components/templates/MonthlyDividerSpread'
 import { ActivityLogDocument } from '@/components/templates/ActivityLog'
 
 // Register fonts for PDF generation
@@ -213,16 +213,15 @@ async function renderMonthlyDividers(
         const year = parseInt(yearStr, 10)
         const month = parseInt(monthStr, 10) - 1 // Convert to 0-indexed
 
-        // MonthlyDivider returns a Page, so we wrap it in a Document
-        const dividerPage = MonthlyDivider({
-            activities: monthActivities,
-            month,
-            year,
-            format: config.format,
-            theme: config.theme,
-        })
+        // MonthlyDividerSpread is a full Document (2-page spread)
         const buffer = await renderToBuffer(
-            React.createElement(Document, {}, dividerPage)
+            MonthlyDividerSpread({
+                activities: monthActivities,
+                month,
+                year,
+                format: config.format,
+                theme: config.theme,
+            })
         )
         buffers.push(Buffer.from(buffer))
     }
