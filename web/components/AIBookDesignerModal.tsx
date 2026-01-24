@@ -48,12 +48,13 @@ interface NarratorOutput {
     }
 }
 
-interface DesignerProgress {
-    completed: number
-    total: number
-    currentScore: number
-    currentPage?: string
-}
+// DesignerProgress interface reserved for future use
+// interface DesignerProgress {
+//     completed: number
+//     total: number
+//     currentScore: number
+//     currentPage?: string
+// }
 
 interface DesignSession {
     sessionId: string
@@ -102,7 +103,7 @@ export default function AIBookDesignerModal({
     initialConfig,
 }: AIBookDesignerModalProps) {
     // Configuration state - periodName serves as the book title
-    const [periodName, setPeriodName] = useState(initialConfig?.periodName || 'My Running Journey')
+    const [periodName] = useState(initialConfig?.periodName || 'My Running Journey')
     const [athleteName, setAthleteName] = useState(initialConfig?.athleteName || 'Athlete')
     const [startDate] = useState(initialConfig?.startDate || new Date().toISOString().split('T')[0])
     const [endDate] = useState(initialConfig?.endDate || new Date().toISOString().split('T')[0])

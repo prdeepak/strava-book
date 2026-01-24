@@ -256,15 +256,7 @@ async function findFontStyleUsages(): Promise<FontStyleUsage[]> {
         const content = fs.readFileSync(filePath, 'utf-8')
         const lines = content.split('\n')
 
-        // Track current fontFamily in scope (simplified)
-        let currentFont = ''
-
         lines.forEach((line, index) => {
-            // Check for fontFamily declaration
-            const fontMatch = line.match(/fontFamily:\s*['"]([^'"]+)['"]/)
-            if (fontMatch) {
-                currentFont = fontMatch[1]
-            }
 
             // Check for fontStyle: 'italic'
             if (line.includes("fontStyle: 'italic'") || line.includes('fontStyle: "italic"')) {

@@ -288,7 +288,8 @@ async function testDirectPdfGeneration(config: ApiTestConfig): Promise<ApiTestRe
 /**
  * Test: Font registration works
  */
-async function testFontRegistration(config: ApiTestConfig): Promise<ApiTestResult> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function testFontRegistration(_config: ApiTestConfig): Promise<ApiTestResult> {
     const startTime = Date.now()
     const testName = 'Font Registration'
 

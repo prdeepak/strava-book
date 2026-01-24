@@ -68,7 +68,8 @@ export const CalendarBubbleView = ({
   // Find max distance for bubble scaling
   const maxDistance = Math.max(...q1Activities.map(a => a.distance), 1)
 
-  const cellWidth = 80 * format.scaleFactor
+  // cellWidth reserved for future grid layouts
+  // const cellWidth = 80 * format.scaleFactor
   const cellHeight = 52 * format.scaleFactor
   const maxBubbleSize = 44 * format.scaleFactor
   const minBubbleSize = 18 * format.scaleFactor

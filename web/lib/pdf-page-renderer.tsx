@@ -275,7 +275,8 @@ export async function renderEntryAsPdf(
     }
 
     console.log(`[PageRenderer] Rendering ${entry.type} (entry ${index})...`)
-    const buffer = await renderToBuffer(pageElement)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(pageElement as any)
 
     return {
       filename: getEntryFilename(entry, index, activities),

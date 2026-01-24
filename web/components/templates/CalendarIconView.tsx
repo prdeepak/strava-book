@@ -48,9 +48,6 @@ export const CalendarIconView = ({
 
   // Calculate stats
   const q1Activities = monthsToShow.reduce((sum, m) => sum + (activitiesByMonth.get(m)?.length || 0), 0)
-  const totalDistance = allActivities
-    .filter(a => monthsToShow.includes(new Date(a.date).getMonth()))
-    .reduce((sum, a) => sum + a.distance, 0) / 1000
 
   const cellSize = 28 * format.scaleFactor
   const iconSize = 20 * format.scaleFactor

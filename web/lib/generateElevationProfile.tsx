@@ -13,7 +13,7 @@
  */
 
 import React from 'react'
-import { Svg, Polyline, View, Text, Rect, Line, Path, G } from '@react-pdf/renderer'
+import { Svg, Polyline, Text, Rect, Line, G } from '@react-pdf/renderer'
 
 export type ElevationPoint = {
     distance: number  // Cumulative distance in meters
@@ -197,7 +197,6 @@ export function ElevationProfileSVG({
     const baseFontSize = width < 300 ? 6 : 8
     const labelFontSize = baseFontSize
     const statsFontSize = baseFontSize + 1
-    const titleFontSize = baseFontSize + 2
 
     // Calculate stats display position
     const statsY = padding.top + 8

@@ -96,7 +96,7 @@ export function analyzeJudgmentForAdjustments(
   templateType: 'foreword' | 'monthly_divider' | 'generic'
 ): ParameterAdjustment[] {
   const adjustments: ParameterAdjustment[] = []
-  const { criteria, suggestions } = judgment
+  const { criteria } = judgment
 
   // Check print readability issues
   if (criteria.printReadability.score < 70) {
@@ -294,7 +294,6 @@ export async function iterateWithVisualJudge(
 
   // Return best result after all iterations
   const bestScore = Math.max(...allScores)
-  const bestIndex = allScores.indexOf(bestScore)
 
   return {
     finalScore: bestScore,

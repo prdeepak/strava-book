@@ -439,8 +439,7 @@ export const MonthlyDividerSpread = ({
   const calendarData = activitiesToCalendarData(allActivities)
   const { isPredominant } = getPredominantSportType(allActivities)
 
-  // Format numbers with commas
-  const formatWithCommas = (num: number) => Math.round(num).toLocaleString('en-US')
+  // formatWithCommas is available for future use via resolveSpacing utilities
 
   return (
     <Document>
@@ -458,11 +457,13 @@ export const MonthlyDividerSpread = ({
             <View style={styles.photoRow}>
               {topPhotos[0] && (
                 <View style={styles.photoCell}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                   <Image src={topPhotos[0].url} style={styles.photo} />
                 </View>
               )}
               {topPhotos[1] && (
                 <View style={styles.photoCell}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                   <Image src={topPhotos[1].url} style={styles.photo} />
                 </View>
               )}
@@ -470,11 +471,13 @@ export const MonthlyDividerSpread = ({
             <View style={styles.photoRow}>
               {topPhotos[2] && (
                 <View style={styles.photoCell}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                   <Image src={topPhotos[2].url} style={styles.photo} />
                 </View>
               )}
               {topPhotos[3] && (
                 <View style={styles.photoCell}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
                   <Image src={topPhotos[3].url} style={styles.photo} />
                 </View>
               )}
@@ -585,10 +588,12 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
       {topPhotos.length > 0 ? (
         <View style={styles.photoGrid}>
           {topPhotos[0] && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
             <Image src={topPhotos[0].url} style={styles.heroPhoto} />
           )}
           {topPhotos.slice(1, 4).map((photo, idx) => (
             <View key={idx} style={styles.smallPhotoContainer}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
               <Image src={photo.url} style={styles.smallPhoto} />
             </View>
           ))}

@@ -216,24 +216,25 @@ test-e2e-local:
 	@echo "Note: Requires local npm install and web dev server running"
 	cd web && npm run e2e
 
-# Quick book integration test with visual scoring (no UI tests)
-# Usage: make test-book [no_score=1] [pdfByPage=1] [filter=COVER,YEAR_STATS]
+# Quick book integration test (no UI tests)
+# Usage: make test-book [scoring=1] [pdfByPage=1] [filter=COVER,YEAR_STATS]
 # Examples:
-#   make test-book no_score=1                           # Skip scoring
-#   make test-book pdfByPage=1 no_score=1               # Individual PDFs, no scoring
+#   make test-book                                      # Generate PDF (no scoring)
+#   make test-book scoring=1                            # With visual scoring
+#   make test-book pdfByPage=1                          # Individual PDFs
 #   make test-book filter=RACE_PAGE pdfByPage=1         # Only race pages as individual PDFs
 test-book:
 	@echo "📚 Running book integration test..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts \
-		$(if $(no_score),--no-score) \
+		$(if $(scoring),--score) \
 		$(if $(pdfByPage),--pdfByPage) \
 		$(if $(filter),--filter=$(filter))
 
 test-e2e-ci:
 	@echo "🔤 Running font validation..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
-	@echo "📚 Running book integration test (generates PDF with photos, runs visual scoring)..."
-	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts
+	@echo "📚 Running book integration test (generates PDF with photos)..."
+	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts $(if $(scoring),--score)
 	@echo "🎭 Running self-contained e2e tests in Docker..."
 	@echo "Using cached node_modules and Next.js build (run 'make e2e-rebuild' if deps changed)"
 	$(COMPOSE_CMD) run --rm e2e

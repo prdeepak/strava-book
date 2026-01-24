@@ -13,6 +13,7 @@ import { Text, View, StyleSheet } from '@react-pdf/renderer'
  * 2. This is just used for pre-calculating optimal font sizes
  * 3. Avoids dependencies on canvas (Node.js native module)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getTextWidth = (text: string, fontSize: number, _fontFamily: string): number => {
   // Average character width varies by font, but ~0.55 of font size is reasonable
   // for most fonts used in PDF generation (sans-serif tends to be ~0.5, serif ~0.55)
