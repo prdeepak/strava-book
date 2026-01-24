@@ -12,6 +12,8 @@
 
 import { ReactElement } from 'react'
 import { Svg, Polyline, View, Text } from '@react-pdf/renderer'
+import { BookTheme, DEFAULT_THEME } from './book-types'
+import { resolveChartColors } from './typography'
 
 export type SplitData = {
     split: number  // Split/lap number
@@ -292,7 +294,8 @@ export function SplitsChartSVG({
     width,
     height,
     backgroundColor = 'white',
-    showElevation = false
+    showElevation = false,
+    theme = DEFAULT_THEME
 }: {
     splits: SplitData[]
     totalTime: number
@@ -301,6 +304,8 @@ export function SplitsChartSVG({
     backgroundColor?: string
     /** Whether to show the elevation profile at the bottom of the chart. Default: false */
     showElevation?: boolean
+    /** Theme for chart colors */
+    theme?: BookTheme
 }) {
     const chartData = generateSplitsChartData(splits, totalTime, { width, height, showElevation })
 
@@ -309,12 +314,17 @@ export function SplitsChartSVG({
     const { dimensions, paceData, elevData, barData, lapLabels, progressMarkers, finishMarker, axes, showElevation: includeElevation } = chartData
     const { padding, paceHeight, plotWidth, elevHeight } = dimensions
 
+    // Get chart colors from theme
+    const colors = resolveChartColors(theme)
+
     // Calculate font sizes based on chart size (smaller charts = smaller fonts)
-    const baseFontSize = width < 300 ? 5 : 7
+    // Using larger sizes for better readability
+    const baseFontSize = width < 300 ? 6 : 8
     const labelFontSize = baseFontSize
-    const percentageFontSize = baseFontSize - 1
-    const finishFontSize = baseFontSize + 1
-    const flagWidth = width < 300 ? 25 : 45
+    const markerTimeFontSize = baseFontSize + 2  // Larger for progress marker times
+    const markerPercentFontSize = baseFontSize   // Percentage labels
+    const finishFontSize = baseFontSize + 2
+    const flagWidth = width < 300 ? 30 : 50
 
     return (
         <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ backgroundColor }}>
@@ -322,16 +332,16 @@ export function SplitsChartSVG({
             <Polyline points={`0,0 ${width},0 ${width},${height} 0,${height}`} fill={backgroundColor} stroke="none" />
 
             {/* Axes */}
-            <Polyline points={`${axes.paceAxis.x1},${axes.paceAxis.y1} ${axes.paceAxis.x2},${axes.paceAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />
-            {includeElevation && <Polyline points={`${axes.elevAxis.x1},${axes.elevAxis.y1} ${axes.elevAxis.x2},${axes.elevAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />}
-            <Polyline points={`${axes.xAxis.x1},${axes.xAxis.y1} ${axes.xAxis.x2},${axes.xAxis.y2}`} stroke="#666" strokeWidth="1.5" fill="none" />
+            <Polyline points={`${axes.paceAxis.x1},${axes.paceAxis.y1} ${axes.paceAxis.x2},${axes.paceAxis.y2}`} stroke={colors.axisLine} strokeWidth="1.5" fill="none" />
+            {includeElevation && <Polyline points={`${axes.elevAxis.x1},${axes.elevAxis.y1} ${axes.elevAxis.x2},${axes.elevAxis.y2}`} stroke={colors.axisLine} strokeWidth="1.5" fill="none" />}
+            <Polyline points={`${axes.xAxis.x1},${axes.xAxis.y1} ${axes.xAxis.x2},${axes.xAxis.y2}`} stroke={colors.axisLine} strokeWidth="1.5" fill="none" />
 
             {/* Pace labels */}
             {paceData.paceTicks.map((tick, i) => (
                 <View key={`pace-${i}`}>
-                    <Polyline points={`${padding.left - 4},${tick.y} ${padding.left},${tick.y}`} stroke="#666" strokeWidth="0.5" fill="none" />
+                    <Polyline points={`${padding.left - 4},${tick.y} ${padding.left},${tick.y}`} stroke={colors.axisLine} strokeWidth="0.5" fill="none" />
                     <Svg>
-                        <Text x={padding.left - 6} y={tick.y + 2} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: '#666' }} textAnchor="end">
+                        <Text x={padding.left - 6} y={tick.y + 2} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: colors.axisLabel }} textAnchor="end">
                             {tick.label}
                         </Text>
                     </Svg>
@@ -341,9 +351,9 @@ export function SplitsChartSVG({
             {/* Elevation labels - only shown when elevation profile is enabled */}
             {includeElevation && elevData.elevTicks.map((tick, i) => (
                 <View key={`elev-${i}`}>
-                    <Polyline points={`${padding.left + plotWidth},${tick.y} ${padding.left + plotWidth + 4},${tick.y}`} stroke="#666" strokeWidth="0.5" fill="none" />
+                    <Polyline points={`${padding.left + plotWidth},${tick.y} ${padding.left + plotWidth + 4},${tick.y}`} stroke={colors.axisLine} strokeWidth="0.5" fill="none" />
                     <Svg>
-                        <Text x={padding.left + plotWidth + 6} y={tick.y + 2} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: '#666' }} textAnchor="start">
+                        <Text x={padding.left + plotWidth + 6} y={tick.y + 2} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: colors.axisLabel }} textAnchor="start">
                             {tick.label}
                         </Text>
                     </Svg>
@@ -355,7 +365,7 @@ export function SplitsChartSVG({
                 <Polyline
                     key={`grid-${i}`}
                     points={`${padding.left},${tick.y} ${padding.left + plotWidth},${tick.y}`}
-                    stroke="#e0e0e0"
+                    stroke={colors.gridLine}
                     strokeWidth="0.5"
                     strokeDasharray="2,2"
                     fill="none"
@@ -365,7 +375,7 @@ export function SplitsChartSVG({
             {/* Lap labels - only show labels that have content */}
             {lapLabels && lapLabels.filter(label => label.showLabel).map((label, i) => (
                 <Svg key={`lap-${i}`}>
-                    <Text x={label.x} y={label.y} style={{ fontSize: labelFontSize + 1, fontFamily: 'Helvetica', fill: '#444' }} textAnchor="middle">
+                    <Text x={label.x} y={label.y} style={{ fontSize: labelFontSize + 1, fontFamily: 'Helvetica', fill: colors.axisLabel }} textAnchor="middle">
                         {label.label}
                     </Text>
                 </Svg>
@@ -385,10 +395,10 @@ export function SplitsChartSVG({
 
                 elevPoints += ` ${padding.left + plotWidth},${elevY + elevHeight}`
 
-                return <Polyline points={elevPoints} fill="#e0e0e0" stroke="#999" strokeWidth="1" />
+                return <Polyline points={elevPoints} fill={colors.elevationFill} stroke={colors.elevationStroke} strokeWidth="1" />
             })()}
 
-            {/* Pace bars */}
+            {/* Pace bars - using Strava-style light blue */}
             {barData.map((bar, i) => {
                 const paceSeconds = bar.split.moving_time / (bar.split.distance / 1000)
                 const paceNorm = (paceSeconds - paceData.minPace) / paceData.paceRange
@@ -399,74 +409,43 @@ export function SplitsChartSVG({
                     <Polyline
                         key={i}
                         points={`${bar.x},${y} ${bar.x + bar.width - 0.5},${y} ${bar.x + bar.width - 0.5},${padding.top + paceHeight} ${bar.x},${padding.top + paceHeight}`}
-                        fill="#0a7ea4"
-                        stroke="none"
+                        fill={colors.barFill}
+                        stroke={colors.barStroke}
+                        strokeWidth="0.5"
                     />
                 )
             })}
 
-            {/* Pace values on bars - alternating display to prevent overlap */}
-            {barData.map((bar, i) => {
-                const paceSeconds = bar.split.moving_time / (bar.split.distance / 1000)
-                const paceNorm = (paceSeconds - paceData.minPace) / paceData.paceRange
-                const barHeight = paceNorm * paceHeight * 0.7 + paceHeight * 0.15
-                const y = padding.top + paceHeight - barHeight
-                // Show every Nth pace label based on number of splits
-                const paceInterval = barData.length > 30 ? 10 : barData.length > 15 ? 5 : barData.length > 8 ? 3 : 1
-                const showPace = i % paceInterval === 0 || i === barData.length - 1
-
-                if (!showPace) return null
-
-                const mins = Math.floor(paceSeconds / 60)
-                const secs = Math.round(paceSeconds % 60)
-                const paceLabel = `${mins}:${secs.toString().padStart(2, '0')}`
-
-                return (
-                    <Svg key={`pace-label-${i}`}>
-                        <Text
-                            x={bar.x + bar.width / 2}
-                            y={y - 3}
-                            style={{
-                                fontSize: baseFontSize + 1,
-                                fontFamily: 'Helvetica-Bold',
-                                fill: '#333'
-                            }}
-                            textAnchor="middle"
-                        >
-                            {paceLabel}
-                        </Text>
-                    </Svg>
-                )
-            })}
-
-            {/* Progress markers */}
+            {/* Progress markers with dashed lines and larger text */}
             {progressMarkers && progressMarkers.map((marker, i) => (
                 <View key={`progress-${i}`}>
                     <Polyline
                         points={`${marker.x},${padding.top} ${marker.x},${padding.top + paceHeight}`}
-                        stroke="#ccc"
-                        strokeWidth="1"
-                        strokeDasharray="3,3"
+                        stroke={colors.markerLine}
+                        strokeWidth="1.5"
+                        strokeDasharray="4,4"
                         fill="none"
                     />
                     <Svg>
-                        <Text x={marker.x} y={padding.top - 5} style={{ fontSize: labelFontSize, fontFamily: 'Helvetica', fill: '#666' }} textAnchor="middle">
+                        {/* Time at marker - larger and more prominent */}
+                        <Text x={marker.x} y={padding.top - 6} style={{ fontSize: markerTimeFontSize, fontFamily: 'Helvetica-Bold', fill: colors.markerText }} textAnchor="middle">
                             {marker.time}
                         </Text>
-                        <Text x={marker.x} y={padding.top - 14} style={{ fontSize: percentageFontSize, fontFamily: 'Helvetica', fill: '#999' }} textAnchor="middle">
+                        {/* Percentage label above time */}
+                        <Text x={marker.x} y={padding.top - 18} style={{ fontSize: markerPercentFontSize, fontFamily: 'Helvetica', fill: colors.axisLabel }} textAnchor="middle">
                             {Math.round(marker.percentage * 100)}%
                         </Text>
                     </Svg>
                 </View>
             ))}
 
-            {/* Finish flag - flying left */}
+            {/* Finish flag - flying left with prominent styling */}
             {finishMarker && (
                 <View>
-                    <Polyline points={`${finishMarker.x},${padding.top} ${finishMarker.x},${padding.top + paceHeight}`} stroke="#000" strokeWidth="2" fill="none" />
-                    <Polyline points={`${finishMarker.x - flagWidth},${padding.top - 4} ${finishMarker.x},${padding.top - 4} ${finishMarker.x},${padding.top - 18} ${finishMarker.x - flagWidth},${padding.top - 18}`} fill="#000" stroke="none" />
+                    <Polyline points={`${finishMarker.x},${padding.top} ${finishMarker.x},${padding.top + paceHeight}`} stroke={theme.primaryColor} strokeWidth="2" fill="none" />
+                    <Polyline points={`${finishMarker.x - flagWidth},${padding.top - 4} ${finishMarker.x},${padding.top - 4} ${finishMarker.x},${padding.top - 20} ${finishMarker.x - flagWidth},${padding.top - 20}`} fill={theme.primaryColor} stroke="none" />
                     <Svg>
-                        <Text x={finishMarker.x - flagWidth / 2} y={padding.top - 9} style={{ fontSize: finishFontSize, fontFamily: 'Helvetica-Bold', fill: '#fff' }} textAnchor="middle">
+                        <Text x={finishMarker.x - flagWidth / 2} y={padding.top - 10} style={{ fontSize: finishFontSize, fontFamily: 'Helvetica-Bold', fill: theme.backgroundColor }} textAnchor="middle">
                             {finishMarker.time}
                         </Text>
                     </Svg>

@@ -117,6 +117,7 @@ export function RaceDataViz({
                         height={splitsHeight}
                         backgroundColor={backgroundColor === 'transparent' ? 'white' : backgroundColor}
                         showElevation={false}
+                        theme={theme}
                     />
                 </View>
             )}

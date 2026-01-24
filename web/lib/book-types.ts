@@ -79,6 +79,31 @@ export const DEFAULT_EFFECTS: ThemeEffects = {
   textOverlayOpacity: 0.3,
 }
 
+// === CHART COLORS SYSTEM ===
+export interface ChartColors {
+  barFill: string       // Primary bar color (light blue default)
+  barStroke: string     // Bar border/outline
+  gridLine: string      // Horizontal/vertical grid lines
+  axisLine: string      // Axis lines
+  axisLabel: string     // Axis tick labels
+  markerLine: string    // Progress marker lines (dashed)
+  markerText: string    // Progress marker text (percentage, time)
+  elevationFill: string // Elevation profile fill
+  elevationStroke: string // Elevation profile line
+}
+
+export const DEFAULT_CHART_COLORS: ChartColors = {
+  barFill: '#7ed3f7',      // Strava-style light blue
+  barStroke: '#5bc0de',    // Slightly darker blue
+  gridLine: '#e5e7eb',     // Light gray
+  axisLine: '#9ca3af',     // Medium gray
+  axisLabel: '#6b7280',    // Dark gray for readability
+  markerLine: '#d1d5db',   // Light gray dashed lines
+  markerText: '#374151',   // Dark gray text
+  elevationFill: '#e5e7eb', // Light gray fill
+  elevationStroke: '#9ca3af', // Medium gray stroke
+}
+
 // === SPACING SYSTEM ===
 export interface SpacingScale {
   xs: number   // 8pt
@@ -118,6 +143,7 @@ export interface BookTheme {
   typography?: Partial<TypographyScale>
   effects?: Partial<ThemeEffects>
   spacing?: Partial<SpacingScale>
+  chartColors?: Partial<ChartColors>
 }
 
 // Default theme for when no theme is provided
