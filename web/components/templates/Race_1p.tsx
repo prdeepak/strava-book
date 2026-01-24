@@ -1,4 +1,4 @@
-import { Page, Text, View, Document, StyleSheet, Image, Svg, Polyline, Font } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet, Svg, Polyline, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import mapboxPolyline from '@mapbox/polyline'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -33,16 +34,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
 
     // Hero photo section - full bleed at top (compact for single-page layout)
+    // PdfImage handles positioning inside this container
     heroPhotoContainer: {
         width: '100%',
         height: 200 * format.scaleFactor,
         position: 'relative',
         overflow: 'hidden',
-    },
-    heroPhoto: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
     },
     photoOverlay: {
         position: 'absolute',
@@ -145,16 +142,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         gap: 8 * format.scaleFactor,
         marginBottom: 12 * format.scaleFactor,
     },
+    // Thumbnail container - PdfImage handles positioning inside
     thumbnailContainer: {
         width: 80 * format.scaleFactor,
         height: 60 * format.scaleFactor,
         borderRadius: 4,
         overflow: 'hidden',
-    },
-    thumbnail: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
+        position: 'relative',
     },
 
     // Dual image layout
@@ -163,10 +157,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         width: '100%',
         height: 200 * format.scaleFactor,
     },
+    // Half container for dual images - PdfImage handles positioning inside
     dualImageHalf: {
         width: '50%',
         height: '100%',
         overflow: 'hidden',
+        position: 'relative',
     },
 
     // Polyline hero container
@@ -449,29 +445,25 @@ export const Race_1p = ({
 
     const HeroPhoto = ({ height = 200 }: { height?: number }) => stravaPhoto ? (
         <View style={[styles.heroPhotoContainer, { height: height * format.scaleFactor }]}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={stravaPhoto} style={styles.heroPhoto} />
+            <PdfImage src={stravaPhoto} />
         </View>
     ) : null
 
     const HeroMap = ({ height = 200 }: { height?: number }) => satelliteMapUrl ? (
         <View style={[styles.heroPhotoContainer, { height: height * format.scaleFactor }]}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+            <PdfImage src={satelliteMapUrl} />
         </View>
     ) : null
 
     const SmallPhoto = () => stravaPhoto ? (
         <View style={styles.thumbnailContainer}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={stravaPhoto} style={styles.thumbnail} />
+            <PdfImage src={stravaPhoto} />
         </View>
     ) : null
 
     const SmallMap = () => satelliteMapUrl ? (
         <View style={styles.thumbnailContainer}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={satelliteMapUrl} style={styles.thumbnail} />
+            <PdfImage src={satelliteMapUrl} />
         </View>
     ) : null
 
@@ -603,14 +595,12 @@ export const Race_1p = ({
                 <View style={styles.dualImageRow}>
                     {satelliteMapUrl && (
                         <View style={styles.dualImageHalf}>
-                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                            <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                            <PdfImage src={satelliteMapUrl} />
                         </View>
                     )}
                     {stravaPhoto && (
                         <View style={styles.dualImageHalf}>
-                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                            <Image src={stravaPhoto} style={styles.heroPhoto} />
+                            <PdfImage src={stravaPhoto} />
                         </View>
                     )}
                 </View>
@@ -847,8 +837,7 @@ export const Race_1pPages = ({
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
             {stravaPhoto && (
                 <View style={styles.heroPhotoContainer}>
-                    {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                    <Image src={stravaPhoto} style={styles.heroPhoto} />
+                    <PdfImage src={stravaPhoto} />
                     <View style={styles.photoOverlay} />
                 </View>
             )}
@@ -867,8 +856,7 @@ export const Race_1pPages = ({
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
             {satelliteMapUrl && (
                 <View style={styles.heroPhotoContainer}>
-                    {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                    <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                    <PdfImage src={satelliteMapUrl} />
                     <View style={styles.photoOverlay} />
                 </View>
             )}
@@ -888,14 +876,12 @@ export const Race_1pPages = ({
             <View style={styles.dualImageRow}>
                 {satelliteMapUrl && (
                     <View style={styles.dualImageHalf}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={satelliteMapUrl} style={styles.heroPhoto} />
+                        <PdfImage src={satelliteMapUrl} />
                     </View>
                 )}
                 {stravaPhoto && (
                     <View style={styles.dualImageHalf}>
-                        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                        <Image src={stravaPhoto} style={styles.heroPhoto} />
+                        <PdfImage src={stravaPhoto} />
                     </View>
                 )}
             </View>

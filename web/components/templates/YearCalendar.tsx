@@ -1,6 +1,7 @@
-import { Page, Text, View, Document, StyleSheet, Svg, Rect, Image } from '@react-pdf/renderer'
+import { Page, Text, View, Document, StyleSheet, Svg, Rect } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 // Support both direct props and test harness interface
 interface YearCalendarProps {
@@ -37,14 +38,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     bottom: format.safeMargin,
     flexDirection: 'column',
   },
-  backgroundImage: {
+  // Background image container - PdfImage handles positioning
+  backgroundImageContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: format.dimensions.width,
     height: format.dimensions.height,
-    objectFit: 'cover',
-    opacity: 0.1,
+    overflow: 'hidden',
   },
   header: {
     marginBottom: 16 * format.scaleFactor,
@@ -415,8 +416,9 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
         {/* Background photo (if provided) */}
         {props.backgroundPhotoUrl && (
-          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-          <Image src={props.backgroundPhotoUrl} style={styles.backgroundImage} />
+          <View style={styles.backgroundImageContainer}>
+            <PdfImage src={props.backgroundPhotoUrl} opacity={0.1} />
+          </View>
         )}
 
         {/* Content container with safe margins */}

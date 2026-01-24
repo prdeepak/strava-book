@@ -7,14 +7,13 @@
  *
  * Falls back to solid color when no image is provided.
  *
- * Images are cropped to fit the target dimensions (cover behavior):
- * - Landscape image on square page: crops left/right edges
- * - Portrait image on square page: crops top/bottom edges
- * - Image is always centered on the cropped dimension
+ * Note: Uses PdfImage which fills the container. May stretch if aspect ratios differ.
+ * For most activity photos (landscape), this works well.
  */
 
-import { View, Image, StyleSheet } from '@react-pdf/renderer'
+import { View, StyleSheet } from '@react-pdf/renderer'
 import { DEFAULT_EFFECTS } from '@/lib/book-types'
+import { PdfImage } from './PdfImage'
 
 export type PhotoRole = 'hero' | 'background'
 
@@ -72,7 +71,7 @@ export const FullBleedBackground = ({
       height,
       backgroundColor: fallbackColor,
     },
-    // Clipping container for the image - crops overflow
+    // Clipping container for the image - uses PdfImage which fills via absolute positioning
     imageClip: {
       position: 'absolute',
       top: 0,
@@ -80,15 +79,6 @@ export const FullBleedBackground = ({
       width,
       height,
       overflow: 'hidden',
-    },
-    // Image uses objectFit: 'cover' to fill container while maintaining aspect ratio
-    // Combined with overflow: 'hidden' on parent, this crops the image
-    image: {
-      width,
-      height,
-      objectFit: 'cover',
-      objectPosition: 'center',
-      opacity: resolvedImageOpacity,
     },
     overlay: {
       position: 'absolute',
@@ -109,8 +99,7 @@ export const FullBleedBackground = ({
       {/* Layer 2: Image in clipping container (if provided) */}
       {image && (
         <View style={styles.imageClip}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image src={image} style={styles.image} />
+          <PdfImage src={image} opacity={resolvedImageOpacity} />
         </View>
       )}
 

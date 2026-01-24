@@ -20,6 +20,7 @@ import {
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 import { resolveImageForPdf } from '@/lib/pdf-image-loader';
 import { BookFormat, FORMATS } from '@/lib/book-types';
+import { PdfImage } from '@/components/pdf/PdfImage';
 
 // Register handwritten fonts for scrapbook aesthetic
 Font.register({
@@ -120,12 +121,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  mainPhotoImage: {
+  // Photo image container - PdfImage handles positioning inside
+  mainPhotoImageContainer: {
     width: '90%',
     height: '90%',
-    objectFit: 'cover',
     borderRadius: 4,
-    zIndex: 0
+    overflow: 'hidden',
+    position: 'relative',
   },
   washiCorner: {
     position: 'absolute',
@@ -164,6 +166,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingBottom: 20,
   },
+  // Note background - stretches to fill container
   noteBg: {
     position: 'absolute',
     top: 0,
@@ -171,7 +174,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     zIndex: -1,
-    objectFit: 'fill',
   },
   noteTitle: {
     fontFamily: 'PatrickHand', fontSize: 12,
@@ -196,6 +198,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
   },
+  // Washi tape background - stretches to fill container
   washiBg: {
     position: 'absolute',
     top: 0,
@@ -203,7 +206,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     zIndex: -1,
-    objectFit: 'fill',
   },
   washiValue: { fontFamily: 'PatrickHand', fontSize: 18, fontWeight: 'bold', color: '#333' },
   washiLabel: { fontFamily: 'PatrickHand', fontSize: 9, textTransform: 'uppercase', color: '#555', marginTop: 2 },
@@ -291,14 +293,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  polaroidImage: {
+  // Polaroid image container - PdfImage handles positioning inside
+  polaroidImageContainer: {
     position: 'absolute',
     top: 8,
     left: 8,
     width: 'calc(90% - 16px)',
     height: 'calc(90% - 40px)',
-    objectFit: 'cover',
     backgroundColor: '#ddd',
+    overflow: 'hidden',
   },
   polaroidCaption: {
     position: 'absolute',
@@ -346,7 +349,9 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
           <View style={styles.mainPhotosRow}>
             {/* Photo 1 */}
             <View style={styles.photoContainer}>
-              <Image src={mainPhotoUrl} style={styles.mainPhotoImage} />
+              <View style={styles.mainPhotoImageContainer}>
+                <PdfImage src={mainPhotoUrl} />
+              </View>
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
@@ -354,7 +359,9 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
             </View>
             {/* Photo 2 (Map) */}
             <View style={[styles.photoContainer, { transform: 'rotate(2deg)' }]}>
-              <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
+              <View style={styles.mainPhotoImageContainer}>
+                <PdfImage src={mapPhotoUrl} />
+              </View>
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
               <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
@@ -402,7 +409,9 @@ const ScrapbookPDFInternal: React.FC<ScrapbookPageProps> = (props) => {
                         }
                       ]}
                     >
-                      <Image src={photoUrl} style={styles.polaroidImage} />
+                      <View style={styles.polaroidImageContainer}>
+                        <PdfImage src={photoUrl} />
+                      </View>
                       <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
                     </View>
                   );
@@ -670,14 +679,18 @@ export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapbo
 
         <View style={styles.mainPhotosRow}>
           <View style={styles.photoContainer}>
-            <Image src={mainPhotoUrl} style={styles.mainPhotoImage} />
+            <View style={styles.mainPhotoImageContainer}>
+              <PdfImage src={mainPhotoUrl} />
+            </View>
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomRight]} />
           </View>
           <View style={[styles.photoContainer, { transform: 'rotate(2deg)' }]}>
-            <Image src={mapPhotoUrl} style={styles.mainPhotoImage} />
+            <View style={styles.mainPhotoImageContainer}>
+              <PdfImage src={mapPhotoUrl} />
+            </View>
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopLeft]} />
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerTopRight]} />
             <Image src="/assets/washi-corner.png" style={[styles.washiCorner, styles.cornerBottomLeft]} />
@@ -715,7 +728,9 @@ export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapbo
                       { transform: `rotate(${rotation}deg)`, width: polaroidWidth, height: polaroidHeight }
                     ]}
                   >
-                    <Image src={photoUrl} style={styles.polaroidImage} />
+                    <View style={styles.polaroidImageContainer}>
+                      <PdfImage src={photoUrl} />
+                    </View>
                     <Image src="/assets/polaroid-frame.png" style={styles.polaroidBg} />
                   </View>
                 );
