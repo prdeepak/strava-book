@@ -32,8 +32,6 @@ export async function GET(request: NextRequest) {
     const after = afterDate ? Math.floor(new Date(afterDate).getTime() / 1000) : undefined
     const before = beforeDate ? Math.floor(new Date(beforeDate).getTime() / 1000) : undefined
 
-    const athleteId = session.user?.id || 'unknown'
-
     try {
         console.log(`[Fetch All] Starting fetch: after=${afterDate}, before=${beforeDate}, useCache=${useCache}`)
 
@@ -99,7 +97,6 @@ export async function GET(request: NextRequest) {
         const result = await cachedStrava.batchFetchForPdf(
             session.accessToken,
             activityIds,
-            athleteId,
             {
                 onProgress: (progress) => {
                     console.log(`[Fetch All] Progress: ${progress.phase} - cached=${progress.cached}, fetched=${progress.fetched}`)

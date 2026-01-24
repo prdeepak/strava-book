@@ -168,7 +168,6 @@ async function getAthleteActivities(
 async function getActivity(
   accessToken: string,
   activityId: string,
-  athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<StravaActivity>> {
   if (!options?.forceRefresh) {
@@ -183,7 +182,7 @@ async function getActivity(
   }
 
   const activity = await fetchActivity(accessToken, activityId)
-  await cacheActivityDetails(activityId, athleteId, activity)
+  await cacheActivityDetails(activityId, activity)
 
   return {
     data: activity,
@@ -199,7 +198,6 @@ async function getActivity(
 async function getActivityLaps(
   accessToken: string,
   activityId: string,
-  athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<StravaLap[]>> {
   if (!options?.forceRefresh) {
@@ -215,7 +213,7 @@ async function getActivityLaps(
   }
 
   const laps = await fetchLaps(accessToken, activityId)
-  await cacheActivityLaps(activityId, athleteId, laps as unknown as CachedStravaLap[])
+  await cacheActivityLaps(activityId, laps as unknown as CachedStravaLap[])
 
   return {
     data: laps,
@@ -231,7 +229,6 @@ async function getActivityLaps(
 async function getActivityComments(
   accessToken: string,
   activityId: string,
-  athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<StravaComment[]>> {
   if (!options?.forceRefresh) {
@@ -246,7 +243,7 @@ async function getActivityComments(
   }
 
   const comments = await fetchComments(accessToken, activityId)
-  await cacheActivityComments(activityId, athleteId, comments)
+  await cacheActivityComments(activityId, comments)
 
   return {
     data: comments,
@@ -262,7 +259,6 @@ async function getActivityComments(
 async function getActivityPhotos(
   accessToken: string,
   activityId: string,
-  athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<StravaPhoto[]>> {
   if (!options?.forceRefresh) {
@@ -277,7 +273,7 @@ async function getActivityPhotos(
   }
 
   const photos = await fetchPhotos(accessToken, activityId)
-  await cacheActivityPhotos(activityId, athleteId, photos)
+  await cacheActivityPhotos(activityId, photos)
 
   return {
     data: photos,
@@ -293,7 +289,6 @@ async function getActivityPhotos(
 async function getActivityForPdf(
   accessToken: string,
   activityId: string,
-  athleteId: string,
   options?: CacheOptions
 ): Promise<CachedResult<{
   activity: StravaActivity
@@ -340,7 +335,7 @@ async function getActivityForPdf(
   ])
 
   // Cache what was fetched
-  await cacheCompleteActivity(activityId, athleteId, {
+  await cacheCompleteActivity(activityId, {
     activity: needsActivity ? (activityResult as StravaActivity) : undefined,
     laps: needsLaps ? (lapsResult as unknown as CachedStravaLap[]) : undefined,
     comments: needsComments ? commentsResult : undefined,
@@ -388,7 +383,6 @@ export interface BatchFetchResult {
 async function batchFetchForPdf(
   accessToken: string,
   activityIds: string[],
-  athleteId: string,
   options?: {
     onProgress?: (progress: BatchProgress) => void
     maxConcurrent?: number
@@ -453,7 +447,7 @@ async function batchFetchForPdf(
     const batchResults = await Promise.all(
       batch.map(async (activityId) => {
         try {
-          await getActivityForPdf(accessToken, activityId, athleteId)
+          await getActivityForPdf(accessToken, activityId)
           const cached = await getCachedActivity(activityId)
           return { activityId, cached, success: true }
         } catch (error) {

@@ -89,28 +89,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to read image' }, { status: 500 })
   }
 
-  try {
-    const pdfBuffer = await renderToBuffer(
-      <TestDocument
-        containerWidth={containerWidth}
-        containerHeight={containerHeight}
-        imageDataUrl={imageDataUrl}
-        sourceWidth={sourceWidth}
-        sourceHeight={sourceHeight}
-      />
-    )
+  // Create element outside try/catch - React errors during render won't be caught anyway
+  const document = (
+    <TestDocument
+      containerWidth={containerWidth}
+      containerHeight={containerHeight}
+      imageDataUrl={imageDataUrl}
+      sourceWidth={sourceWidth}
+      sourceHeight={sourceHeight}
+    />
+  )
 
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="pdf-image-test.pdf"',
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    })
+  let pdfBuffer: Buffer
+  try {
+    pdfBuffer = await renderToBuffer(document)
   } catch (error) {
     console.error('Failed to generate PDF:', error)
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 })
   }
+
+  return new NextResponse(new Uint8Array(pdfBuffer), {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="pdf-image-test.pdf"',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+  })
 }

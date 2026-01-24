@@ -53,11 +53,13 @@ export interface StravaLap {
 
 /**
  * Complete cached data for a single activity
+ *
+ * Note: athleteId is derived from activity.athlete.id, not stored at top level.
+ * This ensures we always use the authoritative Strava data.
  */
 export interface CachedActivity {
-  // Identifiers
+  // Identifier
   activityId: string
-  athleteId: string
 
   // Activity details from GET /activities/{id}
   // Includes: photos, splits_metric, best_efforts, map, etc.
@@ -161,7 +163,7 @@ export async function getCachedActivity(activityId: string): Promise<CachedActiv
 /**
  * Create or get existing cache entry for an activity
  */
-async function getOrCreateCacheEntry(activityId: string, athleteId: string): Promise<CachedActivity> {
+async function getOrCreateCacheEntry(activityId: string): Promise<CachedActivity> {
   const existing = await getCachedActivity(activityId)
   if (existing) {
     return existing
@@ -170,7 +172,6 @@ async function getOrCreateCacheEntry(activityId: string, athleteId: string): Pro
   const now = new Date().toISOString()
   return {
     activityId,
-    athleteId,
     activity: null,
     activityFetchedAt: null,
     laps: [],
@@ -201,10 +202,9 @@ async function saveCachedActivity(cached: CachedActivity): Promise<void> {
  */
 export async function cacheActivityDetails(
   activityId: string,
-  athleteId: string,
   activity: StravaActivity
 ): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  const cached = await getOrCreateCacheEntry(activityId)
   cached.activity = activity
   cached.activityFetchedAt = new Date().toISOString()
   await saveCachedActivity(cached)
@@ -215,10 +215,9 @@ export async function cacheActivityDetails(
  */
 export async function cacheActivityLaps(
   activityId: string,
-  athleteId: string,
   laps: StravaLap[]
 ): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  const cached = await getOrCreateCacheEntry(activityId)
   cached.laps = laps
   cached.lapsFetchedAt = new Date().toISOString()
   await saveCachedActivity(cached)
@@ -229,10 +228,9 @@ export async function cacheActivityLaps(
  */
 export async function cacheActivityComments(
   activityId: string,
-  athleteId: string,
   comments: StravaComment[]
 ): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  const cached = await getOrCreateCacheEntry(activityId)
   cached.comments = comments
   cached.commentsFetchedAt = new Date().toISOString()
   await saveCachedActivity(cached)
@@ -243,10 +241,9 @@ export async function cacheActivityComments(
  */
 export async function cacheActivityPhotos(
   activityId: string,
-  athleteId: string,
   photos: StravaPhoto[]
 ): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  const cached = await getOrCreateCacheEntry(activityId)
   cached.photos = photos
   cached.photosFetchedAt = new Date().toISOString()
   await saveCachedActivity(cached)
@@ -257,7 +254,6 @@ export async function cacheActivityPhotos(
  */
 export async function cacheCompleteActivity(
   activityId: string,
-  athleteId: string,
   data: {
     activity?: StravaActivity
     laps?: StravaLap[]
@@ -265,7 +261,7 @@ export async function cacheCompleteActivity(
     photos?: StravaPhoto[]
   }
 ): Promise<void> {
-  const cached = await getOrCreateCacheEntry(activityId, athleteId)
+  const cached = await getOrCreateCacheEntry(activityId)
   const now = new Date().toISOString()
 
   if (data.activity !== undefined) {

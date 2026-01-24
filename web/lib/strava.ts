@@ -182,6 +182,10 @@ export type StravaComment = {
 
 export type StravaActivity = {
     id: number
+    athlete?: {
+        id: number
+        resource_state?: number
+    }
     name: string
     distance: number
     moving_time: number
