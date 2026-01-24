@@ -241,12 +241,25 @@ The Makefile automatically detects if you're in a workspace and adjusts behavior
 Run `make workspace-info` to see the current context.
 
 ### Workflow for Parallel Development
+
+**One workspace = one PR.** Never reuse a workspace for multiple PRs.
+
 1. Main repo (`~/bin/strava-book`) stays clean - never edit directly
-2. Create workspaces for each task: `make workspace-claude name=<feature> prompt="task description"`
-3. Each Claude Code session works in its own workspace
-4. When done, create PR from workspace branch to main
-5. Wait for user to approve, then merge using: `make workspace-merge pr=<PR_NUMBER>`
-6. Cleanup workspace after merge: `make workspace-destroy id=<workspace-id>`
+2. Create workspace for the task: `make workspace-claude name=<feature> prompt="task description"`
+3. Work in the workspace, create PR when done
+4. Wait for user to approve, then merge using: `make workspace-merge pr=<PR_NUMBER>`
+5. **Immediately destroy the workspace:** `make workspace-destroy id=<workspace-id>`
+6. If more work is needed, create a fresh workspace (do not reuse the old one)
+
+### Avoiding Merge Conflicts
+
+GitHub squash-merges create new commits that don't share history with workspace branches. This causes git to see branches as "diverged" even when the code is already on main. To avoid conflicts:
+
+1. **Never reuse workspaces** - After a PR is merged, destroy the workspace. If you need to do follow-up work, create a new workspace. Reusing a workspace after its PR was squash-merged will cause conflicts.
+
+2. **Always use `make workspace-merge`** - This syncs the main worktree after merging, preventing staleness.
+
+3. **Clean up promptly** - Run `make workspace-cleanup` periodically to remove stale workspaces and their branches.
 
 ### Merging PRs (IMPORTANT)
 
