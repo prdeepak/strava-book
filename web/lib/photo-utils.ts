@@ -153,3 +153,73 @@ export async function convertPhotosToBase64(activity: StravaActivity): Promise<S
 
     return result
 }
+
+// ----- Aspect Fill Geometry -----
+
+type Box = { width: number; height: number }
+
+export interface ScaledImageGeometry {
+    /** The final scale factor applied to the source dimensions */
+    scale: number
+    /** The dimensions of the image after scaling (will be >= target box) */
+    scaledSize: Box
+    /**
+     * The amount to shift the image to center it in the box.
+     * Values are positive. e.g. if crop.x is 20, shift image left by 20px.
+     */
+    cropOffset: { x: number; y: number }
+    /** The actual rectangle of the source image that is visible */
+    sourceVisibleRect: { x: number; y: number; width: number; height: number }
+}
+
+/**
+ * Calculate geometry for aspect-fill (object-fit: cover) behavior.
+ *
+ * Given a source image size and a target container size, returns:
+ * - scale: the factor to scale the source by
+ * - scaledSize: the resulting image dimensions (will be >= target)
+ * - cropOffset: how much to shift the image to center it (for CSS positioning)
+ * - sourceVisibleRect: the portion of the original image that's visible (for backend cropping)
+ *
+ * Uses Math.max to ensure the image covers the entire target (aspect fill).
+ * Use Math.min instead for aspect fit (entire image visible, letterboxed).
+ */
+export function calculateAspectFill(
+    source: Box,
+    target: Box
+): ScaledImageGeometry {
+    const scaleW = target.width / source.width
+    const scaleH = target.height / source.height
+
+    // KEY: Use Math.max to ensure coverage (Aspect Fill / Object-Fit: Cover)
+    // Use Math.min if you wanted the image to fit entirely inside (Aspect Fit)
+    const scale = Math.max(scaleW, scaleH)
+
+    // 1. Calculate new scaled dimensions
+    const scaledWidth = source.width * scale
+    const scaledHeight = source.height * scale
+
+    // 2. Calculate centering offset (in target pixels)
+    // One of these will be 0, the other will be > 0
+    const offsetX = (scaledWidth - target.width) / 2
+    const offsetY = (scaledHeight - target.height) / 2
+
+    // 3. Calculate the visible rectangle in original source pixels
+    // This is useful for backend cropping (e.g. sharp, canvas)
+    const sourceVisibleWidth = target.width / scale
+    const sourceVisibleHeight = target.height / scale
+    const sourceX = (source.width - sourceVisibleWidth) / 2
+    const sourceY = (source.height - sourceVisibleHeight) / 2
+
+    return {
+        scale,
+        scaledSize: { width: scaledWidth, height: scaledHeight },
+        cropOffset: { x: offsetX, y: offsetY },
+        sourceVisibleRect: {
+            x: sourceX,
+            y: sourceY,
+            width: sourceVisibleWidth,
+            height: sourceVisibleHeight,
+        },
+    }
+}
