@@ -292,14 +292,14 @@ export function SplitsChartSVG({
     width,
     height,
     backgroundColor = 'white',
-    showElevation = true
+    showElevation = false
 }: {
     splits: SplitData[]
     totalTime: number
     width: number
     height: number
     backgroundColor?: string
-    /** Whether to show the elevation profile at the bottom of the chart. Default: true */
+    /** Whether to show the elevation profile at the bottom of the chart. Default: false */
     showElevation?: boolean
 }) {
     const chartData = generateSplitsChartData(splits, totalTime, { width, height, showElevation })
