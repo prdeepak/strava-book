@@ -2,7 +2,6 @@ import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation } from '@/lib/activity-utils'
-import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -10,101 +9,89 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
-const createStyles = (format: BookFormat, theme: BookTheme) => {
-    // Resolve design tokens
-    const displayTypo = resolveTypography('displaySmall', theme, format)
-    const headingTypo = resolveTypography('heading', theme, format)
-    const bodyTypo = resolveTypography('body', theme, format)
-    const captionTypo = resolveTypography('caption', theme, format)
-    const spacing = resolveSpacing(theme, format)
-    const effects = resolveEffects(theme)
-
-    return StyleSheet.create({
-        page: {
-            width: format.dimensions.width,
-            height: format.dimensions.height,
-            backgroundColor: theme.backgroundColor,
-            padding: format.safeMargin,
-            flexDirection: 'column',
-        },
-        header: {
-            marginBottom: spacing.md,
-        },
-        eventLabel: {
-            color: theme.accentColor,
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: headingTypo.fontFamily,
-            textTransform: 'uppercase',
-            letterSpacing: captionTypo.letterSpacing ?? 2,
-            marginBottom: spacing.xs,
-        },
-        title: {
-            fontSize: headingTypo.fontSize * 1.5,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.primaryColor,
-            marginBottom: spacing.xs,
-            lineHeight: headingTypo.lineHeight ?? 1.2,
-        },
-        meta: {
-            color: theme.primaryColor,
-            opacity: effects.backgroundImageOpacity + 0.15,
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: bodyTypo.fontFamily,
-            marginBottom: spacing.xs / 2,
-        },
-        divider: {
-            height: 3,
-            backgroundColor: theme.accentColor,
-            marginTop: spacing.sm,
-            marginBottom: spacing.md,
-            width: spacing.xl * 0.8,
-        },
-        descriptionContainer: {
-            flex: 1,
-        },
-        description: {
-            fontSize: bodyTypo.fontSize * 1.15,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.primaryColor,
-            lineHeight: bodyTypo.lineHeight ?? 1.6,
-            textAlign: 'left',
-        },
-        quoteDecoration: {
-            fontSize: displayTypo.fontSize * 1.5,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.accentColor,
-            opacity: effects.textOverlayOpacity * 0.65,
-            position: 'absolute',
-            top: -spacing.md,
-            left: -spacing.sm * 0.6,
-        },
-        statsFooter: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            borderTopWidth: 1,
-            borderTopColor: `${theme.primaryColor}20`,
-            paddingTop: spacing.sm,
-            marginTop: spacing.md,
-        },
-        footerStat: {
-            alignItems: 'center',
-        },
-        footerStatValue: {
-            fontSize: headingTypo.fontSize,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.primaryColor,
-        },
-        footerStatLabel: {
-            fontSize: captionTypo.fontSize,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.primaryColor,
-            opacity: effects.backgroundImageOpacity,
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-            marginTop: spacing.xs / 2,
-        },
-    })
-}
+const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
+    page: {
+        width: format.dimensions.width,
+        height: format.dimensions.height,
+        backgroundColor: theme.backgroundColor,
+        padding: format.safeMargin,
+        flexDirection: 'column',
+    },
+    header: {
+        marginBottom: 20 * format.scaleFactor,
+    },
+    eventLabel: {
+        color: theme.accentColor,
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        marginBottom: 8 * format.scaleFactor,
+    },
+    title: {
+        fontSize: Math.max(24, 36 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: theme.primaryColor,
+        marginBottom: 8 * format.scaleFactor,
+        lineHeight: 1.2,
+    },
+    meta: {
+        color: '#666',
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        marginBottom: 4 * format.scaleFactor,
+    },
+    divider: {
+        height: 3,
+        backgroundColor: theme.accentColor,
+        marginTop: 16 * format.scaleFactor,
+        marginBottom: 24 * format.scaleFactor,
+        width: 60,
+    },
+    descriptionContainer: {
+        flex: 1,
+    },
+    description: {
+        fontSize: Math.max(12, 16 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: theme.primaryColor,
+        lineHeight: 1.6,
+        textAlign: 'left',
+    },
+    quoteDecoration: {
+        fontSize: Math.max(48, 72 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: theme.accentColor,
+        opacity: 0.2,
+        position: 'absolute',
+        top: -20 * format.scaleFactor,
+        left: -10 * format.scaleFactor,
+    },
+    statsFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        borderTopWidth: 1,
+        borderTopColor: '#e0e0e0',
+        paddingTop: 16 * format.scaleFactor,
+        marginTop: 24 * format.scaleFactor,
+    },
+    footerStat: {
+        alignItems: 'center',
+    },
+    footerStatValue: {
+        fontSize: Math.max(16, 24 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: theme.primaryColor,
+    },
+    footerStatLabel: {
+        fontSize: Math.max(8, 10 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: '#999',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginTop: 4 * format.scaleFactor,
+    },
+})
 
 export interface RaceSectionDescriptionPageProps {
     activity: StravaActivity

@@ -1,7 +1,6 @@
 import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
-import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -9,117 +8,103 @@ Font.registerEmojiSource({
     url: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
 })
 
-const createStyles = (format: BookFormat, theme: BookTheme) => {
-    // Resolve design tokens
-    const headingTypo = resolveTypography('heading', theme, format)
-    const subheadingTypo = resolveTypography('subheading', theme, format)
-    const bodyTypo = resolveTypography('body', theme, format)
-    const captionTypo = resolveTypography('caption', theme, format)
-    const spacing = resolveSpacing(theme, format)
-    const effects = resolveEffects(theme)
-
-    return StyleSheet.create({
-        page: {
-            width: format.dimensions.width,
-            height: format.dimensions.height,
-            backgroundColor: theme.backgroundColor,
-            padding: format.safeMargin,
-            flexDirection: 'column',
-        },
-        header: {
-            marginBottom: spacing.md,
-        },
-        sectionLabel: {
-            color: theme.accentColor,
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: headingTypo.fontFamily,
-            textTransform: 'uppercase',
-            letterSpacing: captionTypo.letterSpacing ?? 2,
-        },
-        title: {
-            fontSize: headingTypo.fontSize,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.primaryColor,
-            marginTop: spacing.xs / 2,
-        },
-        kudosBanner: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.accentColor,
-            padding: spacing.sm * 0.75,
-            borderRadius: 8,
-            marginBottom: spacing.md,
-        },
-        kudosEmoji: {
-            fontSize: subheadingTypo.fontSize * 2,
-            marginRight: spacing.sm * 0.75,
-        },
-        kudosCount: {
-            fontSize: subheadingTypo.fontSize * 1.5,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.backgroundColor,
-        },
-        kudosLabel: {
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.backgroundColor,
-            opacity: effects.textOverlayOpacity * 2.5,
-            marginLeft: spacing.xs,
-        },
-        commentsContainer: {
-            flex: 1,
-            flexDirection: 'row',
-            gap: spacing.sm,
-        },
-        commentsColumn: {
-            flex: 1,
-        },
-        comment: {
-            marginBottom: spacing.sm,
-            paddingBottom: spacing.sm,
-            borderBottomWidth: 0.5,
-            borderBottomColor: `${theme.primaryColor}20`,
-        },
-        commentHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: spacing.xs * 0.75,
-        },
-        commentAuthor: {
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: headingTypo.fontFamily,
-            color: theme.primaryColor,
-        },
-        commentDate: {
-            fontSize: captionTypo.fontSize * 0.9,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.primaryColor,
-            opacity: effects.backgroundImageOpacity,
-        },
-        commentText: {
-            fontSize: captionTypo.fontSize * 1.2,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.primaryColor,
-            opacity: effects.backgroundImageOpacity + 0.4,
-            lineHeight: 1.5,
-        },
-        commentReaction: {
-            fontSize: captionTypo.fontSize * 0.9,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.accentColor,
-            marginTop: spacing.xs / 2,
-        },
-        noComments: {
-            fontSize: bodyTypo.fontSize,
-            fontFamily: bodyTypo.fontFamily,
-            color: theme.primaryColor,
-            opacity: effects.backgroundImageOpacity,
-            textAlign: 'center',
-            marginTop: spacing.lg,
-        },
-    })
-}
+const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
+    page: {
+        width: format.dimensions.width,
+        height: format.dimensions.height,
+        backgroundColor: theme.backgroundColor,
+        padding: format.safeMargin,
+        flexDirection: 'column',
+    },
+    header: {
+        marginBottom: 20 * format.scaleFactor,
+    },
+    sectionLabel: {
+        color: theme.accentColor,
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+    title: {
+        fontSize: Math.max(18, 24 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: theme.primaryColor,
+        marginTop: 4 * format.scaleFactor,
+    },
+    kudosBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.accentColor,
+        padding: 12 * format.scaleFactor,
+        borderRadius: 8,
+        marginBottom: 20 * format.scaleFactor,
+    },
+    kudosEmoji: {
+        fontSize: Math.max(24, 36 * format.scaleFactor),
+        marginRight: 12 * format.scaleFactor,
+    },
+    kudosCount: {
+        fontSize: Math.max(20, 28 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: '#ffffff',
+    },
+    kudosLabel: {
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginLeft: 8 * format.scaleFactor,
+    },
+    commentsContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        gap: 16 * format.scaleFactor,
+    },
+    commentsColumn: {
+        flex: 1,
+    },
+    comment: {
+        marginBottom: 16 * format.scaleFactor,
+        paddingBottom: 16 * format.scaleFactor,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#e0e0e0',
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6 * format.scaleFactor,
+    },
+    commentAuthor: {
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.heading,
+        color: theme.primaryColor,
+    },
+    commentDate: {
+        fontSize: Math.max(8, 9 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: '#999',
+    },
+    commentText: {
+        fontSize: Math.max(10, 12 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: '#444',
+        lineHeight: 1.5,
+    },
+    commentReaction: {
+        fontSize: Math.max(8, 9 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: theme.accentColor,
+        marginTop: 4 * format.scaleFactor,
+    },
+    noComments: {
+        fontSize: Math.max(12, 14 * format.scaleFactor),
+        fontFamily: theme.fontPairing.body,
+        color: '#999',
+        textAlign: 'center',
+        marginTop: 40 * format.scaleFactor,
+    },
+})
 
 export interface RaceSectionCommentsPageProps {
     activity: StravaActivity
@@ -215,7 +200,7 @@ export const RaceSectionCommentsPage = ({
                                 </View>
                             ))}
                             {sortedComments.length > displayComments.length && (
-                                <Text style={[styles.noComments, { textAlign: 'left' }]}>
+                                <Text style={[styles.noComments, { color: '#666', textAlign: 'left' }]}>
                                     +{sortedComments.length - displayComments.length} more comments
                                 </Text>
                             )}

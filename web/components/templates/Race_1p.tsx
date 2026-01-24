@@ -11,7 +11,6 @@ import {
 } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import mapboxPolyline from '@mapbox/polyline'
-import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -24,7 +23,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     page: {
         width: format.dimensions.width,
         height: format.dimensions.height,
-        backgroundColor: theme.primaryColor, // Dark background for dramatic race pages
+        backgroundColor: '#1a1a1a', // Dark background for dramatic race pages
     },
     // Full-page wrapper to ensure page dimensions are respected
     pageWrapper: {
@@ -75,7 +74,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     raceTitle: {
         fontSize: Math.max(20, 26 * format.scaleFactor),
         fontFamily: theme.fontPairing.heading,
-        color: theme.backgroundColor,
+        color: '#ffffff',
         fontWeight: 'bold',
         lineHeight: 1.1,
         marginBottom: 6 * format.scaleFactor,
@@ -83,7 +82,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     raceLocation: {
         fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}99`,
+        color: '#999999',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
@@ -95,7 +94,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 16 * format.scaleFactor,
         paddingBottom: 12 * format.scaleFactor,
         borderBottomWidth: 1,
-        borderBottomColor: `${theme.backgroundColor}33`,
+        borderBottomColor: '#333333',
     },
     heroStat: {
         alignItems: 'center',
@@ -109,7 +108,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     heroStatLabel: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}88`,
+        color: '#888888',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
         marginTop: 4 * format.scaleFactor,
@@ -173,7 +172,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     // Polyline hero container
     polylineHeroContainer: {
         width: '100%',
-        backgroundColor: theme.primaryColor,
+        backgroundColor: '#0a0a0a',
         padding: format.safeMargin,
         marginBottom: 8 * format.scaleFactor,
     },
@@ -197,7 +196,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 6 * format.scaleFactor,
         letterSpacing: 1,
         borderBottomWidth: 1,
-        borderBottomColor: `${theme.backgroundColor}33`,
+        borderBottomColor: '#333333',
         paddingBottom: 3 * format.scaleFactor,
     },
 
@@ -210,17 +209,17 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         justifyContent: 'space-between',
         paddingVertical: 2 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: `${theme.backgroundColor}2a`,
+        borderBottomColor: '#2a2a2a',
     },
     splitLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}99`,
+        color: '#999999',
     },
     splitValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica', // Sans-serif for stats
-        color: theme.backgroundColor,
+        color: '#ffffff',
     },
 
     // Best efforts (more compact)
@@ -230,18 +229,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         alignItems: 'center',
         paddingVertical: 2 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: `${theme.backgroundColor}2a`,
+        borderBottomColor: '#2a2a2a',
     },
     effortLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}99`,
+        color: '#999999',
         flex: 1,
     },
     effortValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
-        color: theme.backgroundColor,
+        color: '#ffffff',
     },
     prBadge: {
         backgroundColor: theme.accentColor,
@@ -253,7 +252,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     prBadgeText: {
         fontSize: Math.max(5, 6 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
-        color: theme.primaryColor,
+        color: '#000000',
     },
 
     // Comments (more compact)
@@ -264,7 +263,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 6 * format.scaleFactor,
         paddingBottom: 4 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: `${theme.backgroundColor}2a`,
+        borderBottomColor: '#2a2a2a',
     },
     commentAuthor: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
@@ -275,7 +274,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     commentText: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}cc`,
+        color: '#cccccc',
         lineHeight: 1.3,
     },
     kudosCount: {
@@ -289,7 +288,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     mapSection: {
         width: '100%',
         height: 100 * format.scaleFactor,
-        backgroundColor: theme.primaryColor,
+        backgroundColor: '#0a0a0a',
         borderRadius: 4,
         overflow: 'hidden',
         marginBottom: 12 * format.scaleFactor,
@@ -299,7 +298,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     description: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: `${theme.backgroundColor}cc`,
+        color: '#cccccc',
         fontStyle: 'italic',
         lineHeight: 1.3,
         marginBottom: 12 * format.scaleFactor,

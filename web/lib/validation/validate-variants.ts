@@ -151,8 +151,7 @@ function getDefaultFixture(): ActivityFixture | null {
 async function renderVariant(
   Template: TemplateComponent,
   fixture: ActivityFixture,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _variant: string
+  variant: string
 ): Promise<{ buffer: Buffer; reactElement: React.ReactElement } | { error: string }> {
   try {
     // Import book types
