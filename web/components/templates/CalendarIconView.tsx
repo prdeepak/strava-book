@@ -7,6 +7,7 @@ import { Page, View, Text, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { SportIcon, SportLegend, DayActivity, SportType, SPORT_COLORS, getSportCategory } from '@/lib/calendar-views'
 import { getDaysInMonth, getFirstDayOfMonth, MONTH_NAMES_FULL } from '@/lib/heatmap-utils'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 interface CalendarIconViewProps {
   activity?: {
@@ -124,7 +125,7 @@ export const CalendarIconView = ({
             return (
               <View key={monthIndex} style={{
                 marginBottom: idx < 2 ? 12 * format.scaleFactor : 0,
-                backgroundColor: '#fafafa',
+                backgroundColor: `${theme.primaryColor}08`,
                 borderRadius: 8,
                 padding: 10 * format.scaleFactor,
               }}>
@@ -198,7 +199,7 @@ export const CalendarIconView = ({
                             justifyContent: 'center',
                             alignItems: 'center',
                           }}>
-                            <SportIcon sport={dayActivity.sportType} size={iconSize} color="#ffffff" />
+                            <SportIcon sport={dayActivity.sportType} size={iconSize} color={theme.backgroundColor} />
                           </View>
                         </View>
                       )

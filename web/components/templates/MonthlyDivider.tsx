@@ -2,6 +2,7 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
+import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 
 interface MonthlyDividerProps {
   // Primary input: array of activities for this month
@@ -28,131 +29,143 @@ interface MonthlyDividerProps {
   activity?: StravaActivity
 }
 
-const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
-  page: {
-    width: format.dimensions.width,
-    height: format.dimensions.height,
-    backgroundColor: theme.backgroundColor,
-    padding: 0,
-  },
-  container: {
-    width: '100%',
-    height: '100%',
-    flexDirection: 'column',
-  },
-  // Top header section - dramatic month name with full width
-  headerSection: {
-    height: '45%',
-    backgroundColor: theme.primaryColor,
-    padding: format.safeMargin,
-    paddingTop: format.safeMargin * 1.5,
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-  },
-  dateLabel: {
-    fontSize: 14 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.backgroundColor,
-    opacity: 0.6,
-    letterSpacing: 3,
-    marginBottom: 8 * format.scaleFactor,
-    textTransform: 'uppercase',
-  },
-  monthName: {
-    fontSize: 96 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.backgroundColor,
-    lineHeight: 1,
-    letterSpacing: -2,
-    marginBottom: 8 * format.scaleFactor,
-  },
-  yearLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8 * format.scaleFactor,
-  },
-  year: {
-    fontSize: 32 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.accentColor,
-    letterSpacing: 4,
-  },
-  decorativeBar: {
-    width: 80 * format.scaleFactor,
-    height: 4 * format.scaleFactor,
-    backgroundColor: theme.accentColor,
-    marginLeft: 20 * format.scaleFactor,
-  },
-  // Bottom content section - stats and highlights
-  contentSection: {
-    height: '55%',
-    padding: format.safeMargin,
-    paddingTop: format.safeMargin * 1.2,
-    flexDirection: 'column',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 30 * format.scaleFactor,
-  },
-  statBox: {
-    width: '33.33%',
-    paddingRight: 10 * format.scaleFactor,
-    marginBottom: 24 * format.scaleFactor,
-  },
-  statValue: {
-    fontSize: 42 * format.scaleFactor,
-    fontFamily: theme.fontPairing.heading,
-    color: theme.primaryColor,
-    lineHeight: 1,
-    marginBottom: 6 * format.scaleFactor,
-  },
-  statLabel: {
-    fontSize: 10 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.5,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  statValueSmall: {
-    fontSize: 32 * format.scaleFactor,
-  },
-  divider: {
-    width: '100%',
-    height: 1,
-    backgroundColor: theme.primaryColor,
-    opacity: 0.12,
-    marginTop: 10 * format.scaleFactor,
-    marginBottom: 24 * format.scaleFactor,
-  },
-  highlightsSection: {
-    flex: 1,
-  },
-  highlightLabel: {
-    fontSize: 10 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    opacity: 0.4,
-    letterSpacing: 2,
-    marginBottom: 16 * format.scaleFactor,
-    textTransform: 'uppercase',
-  },
-  quote: {
-    fontSize: 15 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.primaryColor,
-    fontStyle: 'italic',
-    lineHeight: 1.6,
-    marginBottom: 8 * format.scaleFactor,
-  },
-  quoteAuthor: {
-    fontSize: 11 * format.scaleFactor,
-    fontFamily: theme.fontPairing.body,
-    color: theme.accentColor,
-    marginBottom: 20 * format.scaleFactor,
-  },
-})
+const createStyles = (format: BookFormat, theme: BookTheme) => {
+  // Resolve design tokens from theme
+  const displayTypo = resolveTypography('displayLarge', theme, format)
+  const headingTypo = resolveTypography('heading', theme, format)
+  const subheadingTypo = resolveTypography('subheading', theme, format)
+  const bodyTypo = resolveTypography('body', theme, format)
+  const captionTypo = resolveTypography('caption', theme, format)
+  const statTypo = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
+
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: 0,
+    },
+    container: {
+      width: '100%',
+      height: '100%',
+      flexDirection: 'column',
+    },
+    // Top header section - dramatic month name with full width
+    headerSection: {
+      height: '45%',
+      backgroundColor: theme.primaryColor,
+      padding: format.safeMargin,
+      paddingTop: format.safeMargin * 1.5,
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+    },
+    dateLabel: {
+      fontSize: bodyTypo.fontSize,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.backgroundColor,
+      opacity: effects.backgroundImageOpacity + 0.1,
+      letterSpacing: 3,
+      marginBottom: spacing.xs,
+      textTransform: 'uppercase',
+    },
+    monthName: {
+      fontSize: displayTypo.fontSize * 1.3,
+      fontFamily: displayTypo.fontFamily,
+      color: theme.backgroundColor,
+      lineHeight: 1,
+      letterSpacing: displayTypo.letterSpacing ?? -2,
+      marginBottom: spacing.xs,
+    },
+    yearLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.xs,
+    },
+    year: {
+      fontSize: statTypo.fontSize,
+      fontFamily: headingTypo.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 4,
+    },
+    decorativeBar: {
+      width: spacing.xl,
+      height: spacing.xs / 2,
+      backgroundColor: theme.accentColor,
+      marginLeft: spacing.md,
+    },
+    // Bottom content section - stats and highlights
+    contentSection: {
+      height: '55%',
+      padding: format.safeMargin,
+      paddingTop: format.safeMargin * 1.2,
+      flexDirection: 'column',
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginBottom: spacing.lg * 0.6,
+    },
+    statBox: {
+      width: '33.33%',
+      paddingRight: spacing.sm * 0.6,
+      marginBottom: spacing.md,
+    },
+    statValue: {
+      fontSize: statTypo.fontSize * 1.3,
+      fontFamily: headingTypo.fontFamily,
+      color: theme.primaryColor,
+      lineHeight: 1,
+      marginBottom: spacing.xs * 0.75,
+    },
+    statLabel: {
+      fontSize: captionTypo.fontSize,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: captionTypo.letterSpacing ?? 1.5,
+      textTransform: 'uppercase',
+    },
+    statValueSmall: {
+      fontSize: statTypo.fontSize,
+    },
+    divider: {
+      width: '100%',
+      height: 1,
+      backgroundColor: theme.primaryColor,
+      opacity: effects.textOverlayOpacity * 0.4,
+      marginTop: spacing.sm * 0.6,
+      marginBottom: spacing.md,
+    },
+    highlightsSection: {
+      flex: 1,
+    },
+    highlightLabel: {
+      fontSize: captionTypo.fontSize,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.textOverlayOpacity + 0.1,
+      letterSpacing: 2,
+      marginBottom: spacing.sm,
+      textTransform: 'uppercase',
+    },
+    quote: {
+      fontSize: bodyTypo.fontSize * 1.1,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.primaryColor,
+      fontStyle: 'italic',
+      lineHeight: bodyTypo.lineHeight ?? 1.6,
+      marginBottom: spacing.xs,
+    },
+    quoteAuthor: {
+      fontSize: captionTypo.fontSize * 1.1,
+      fontFamily: bodyTypo.fontFamily,
+      color: theme.accentColor,
+      marginBottom: spacing.md,
+    },
+  })
+}
 
 export const MonthlyDivider = ({
   activities,

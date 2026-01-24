@@ -271,11 +271,36 @@ const TEMPLATES: Record<string, {
   },
   activity_log: {
     component: ActivityLog,
-    getProps: () => ({
-      activities: [TEST_ACTIVITY, TEST_ACTIVITY, TEST_ACTIVITY],
-      format: FORMATS['10x10'],
-      theme: DEFAULT_THEME,
-    }),
+    getProps: (variant) => {
+      // Map spec variants to component variants:
+      // compact-table → grid (multi-activity dense layout)
+      // with-maps → concise (single activity with map)
+      // journal-style → full (single activity with description/comments)
+      const variantMap: Record<string, string> = {
+        'compact-table': 'grid',
+        'with-maps': 'concise',
+        'journal-style': 'full',
+      }
+      const componentVariant = variant ? variantMap[variant] || 'grid' : 'grid'
+
+      // concise and full variants expect a single activity
+      if (componentVariant === 'concise' || componentVariant === 'full') {
+        return {
+          activity: TEST_ACTIVITY,
+          format: FORMATS['10x10'],
+          theme: DEFAULT_THEME,
+          variant: componentVariant,
+        }
+      }
+
+      // grid variant expects activities array
+      return {
+        activities: [TEST_ACTIVITY, TEST_ACTIVITY, TEST_ACTIVITY],
+        format: FORMATS['10x10'],
+        theme: DEFAULT_THEME,
+        variant: componentVariant,
+      }
+    },
     variants: ['compact-table', 'with-maps', 'journal-style'],
   },
   back_cover: {
