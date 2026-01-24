@@ -22,6 +22,7 @@ Typography Utilities (typography.ts)
 
 Primitives (components/pdf/)
 ├── FullBleedBackground - hero/background images with cropping
+├── PdfImage - images with "cover" behavior (fills container, clips excess)
 ├── AutoResizingPdfText - text with auto-sizing and background opacity
 └── PageHeader - standardized section headers
 
@@ -224,6 +225,29 @@ import { PageHeader } from '@/components/pdf/PageHeader'
 />
 ```
 
+### PdfImage
+
+Images with "cover" behavior - fills container, maintains aspect ratio, clips excess.
+
+**Important:** react-pdf does NOT support `objectFit` or `objectPosition`. Never use these properties. Use `PdfImage` instead.
+
+```tsx
+import { PdfImage } from '@/components/pdf/PdfImage'
+
+// Container must have known dimensions and position: 'relative'
+<View style={{ width: 300, height: 200, position: 'relative', overflow: 'hidden' }}>
+  <PdfImage
+    src={imageUrl}
+    containerWidth={300}
+    containerHeight={200}
+    sourceWidth={1920}        // Optional: enables precise centering
+    sourceHeight={1080}
+  />
+</View>
+```
+
+When source dimensions are unknown, omit them - the component falls back to flexbox centering.
+
 ## Page Layout Pattern
 
 ### The Problem
@@ -336,6 +360,19 @@ The system supports multiple book formats:
 | 12x12 | 864 × 864pt | 1.2 |
 
 Future non-square formats (8x10, 10x8) will work automatically - the typography system derives scale factors from dimensions.
+
+## react-pdf Limitations
+
+These CSS properties do NOT work reliably in react-pdf:
+
+| Property | Workaround |
+|----------|------------|
+| `objectFit` | Use `PdfImage` component |
+| `objectPosition` | Use `PdfImage` component |
+| `transform` | Use absolute positioning with calculated offsets |
+| Page `padding` with absolute children | Use content container pattern (see above) |
+
+ESLint is configured to flag `objectFit` usage.
 
 ## Files Reference
 
