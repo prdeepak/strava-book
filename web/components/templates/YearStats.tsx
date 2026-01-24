@@ -328,7 +328,40 @@ export const YearStatsPage = ({
     : 0
 
   const totalKudos = yearSummary.races?.reduce((sum, race) => sum + (race.kudos_count || 0), 0) || 0
-  const bestEfforts = yearSummary.fastestActivity?.best_efforts?.slice(0, 4) || []
+
+  // Aggregate best efforts across all activities - find best time for each distance
+  const aggregateBestEfforts = () => {
+    const effortsByDistance = new Map<string, { name: string; elapsed_time: number; distance: number; pr_rank: number | null }>()
+
+    // Collect efforts from all activities
+    const allActivities = activities || []
+    for (const act of allActivities) {
+      for (const effort of act.best_efforts || []) {
+        const existing = effortsByDistance.get(effort.name)
+        // Keep the fastest time for each distance, preserving pr_rank if it's a PR
+        if (!existing || effort.elapsed_time < existing.elapsed_time) {
+          effortsByDistance.set(effort.name, {
+            name: effort.name,
+            elapsed_time: effort.elapsed_time,
+            distance: effort.distance,
+            pr_rank: effort.pr_rank ?? null,
+          })
+        }
+      }
+    }
+
+    // Convert to array and sort by distance (shorter first)
+    const efforts = Array.from(effortsByDistance.values())
+    efforts.sort((a, b) => a.distance - b.distance)
+
+    // Prioritize PRs first, then by distance
+    const prs = efforts.filter(e => e.pr_rank && e.pr_rank <= 3)
+    const others = efforts.filter(e => !e.pr_rank || e.pr_rank > 3)
+
+    return [...prs, ...others].slice(0, 4)
+  }
+
+  const bestEfforts = aggregateBestEfforts()
 
   const styles = StyleSheet.create({
     page: {
@@ -424,7 +457,7 @@ export const YearStatsPage = ({
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    // Best efforts section
+    // Best efforts section with gold/silver/bronze styling
     bestEffortsSection: {
       marginTop: spacing.sm,
     },
@@ -432,10 +465,17 @@ export const YearStatsPage = ({
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingVertical: spacing.xs / 2,
-      borderBottomWidth: 0.5,
-      borderBottomColor: theme.primaryColor,
-      borderBottomStyle: 'solid',
-      opacity: 0.8,
+      paddingHorizontal: spacing.xs / 2,
+      marginBottom: 2,
+    },
+    bestEffortRowGold: {
+      backgroundColor: '#FFD700',
+    },
+    bestEffortRowSilver: {
+      backgroundColor: '#C0C0C0',
+    },
+    bestEffortRowBronze: {
+      backgroundColor: '#CD7F32',
     },
     bestEffortName: {
       fontSize: caption.fontSize,
@@ -443,11 +483,19 @@ export const YearStatsPage = ({
       color: theme.primaryColor,
       flex: 1,
     },
+    bestEffortNamePR: {
+      fontFamily: 'Helvetica-Bold',
+      color: '#000',
+    },
     bestEffortTime: {
       fontSize: caption.fontSize,
       fontFamily: caption.fontFamily,
       color: theme.accentColor,
       textAlign: 'right',
+    },
+    bestEffortTimePR: {
+      fontFamily: 'Helvetica-Bold',
+      color: '#000',
     },
     // Monthly graph section
     graphSection: {
@@ -551,19 +599,34 @@ export const YearStatsPage = ({
           </View>
         </View>
 
-        {/* Best Efforts Section */}
+        {/* Best Efforts Section with gold/silver/bronze for PRs */}
         {bestEfforts.length > 0 && (
           <View style={styles.bestEffortsSection}>
             <Text style={styles.sectionTitle}>Best Efforts</Text>
             {bestEfforts.slice(0, 4).map((effort, i) => {
               const minutes = Math.floor(effort.elapsed_time / 60)
-              const seconds = effort.elapsed_time % 60
+              const seconds = Math.round(effort.elapsed_time % 60)
               const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
 
+              // Determine medal styling based on pr_rank
+              const prRank = effort.pr_rank || 0
+              const rowStyle = [
+                styles.bestEffortRow,
+                prRank === 1 && styles.bestEffortRowGold,
+                prRank === 2 && styles.bestEffortRowSilver,
+                prRank === 3 && styles.bestEffortRowBronze,
+              ].filter(Boolean)
+
+              const isPR = prRank >= 1 && prRank <= 3
+
               return (
-                <View key={i} style={styles.bestEffortRow}>
-                  <Text style={styles.bestEffortName}>{effort.name}</Text>
-                  <Text style={styles.bestEffortTime}>{timeStr}</Text>
+                <View key={i} style={rowStyle}>
+                  <Text style={[styles.bestEffortName, isPR && styles.bestEffortNamePR]}>
+                    {effort.name}
+                  </Text>
+                  <Text style={[styles.bestEffortTime, isPR && styles.bestEffortTimePR]}>
+                    {timeStr}
+                  </Text>
                 </View>
               )
             })}
