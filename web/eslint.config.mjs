@@ -13,6 +13,24 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Custom rules for react-pdf compatibility
+  {
+    files: ["components/templates/**/*.tsx", "components/pdf/**/*.tsx"],
+    rules: {
+      // Ban objectFit/objectPosition - they don't work in react-pdf
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Property[key.name='objectFit']",
+          message: "objectFit doesn't work in react-pdf. Use absolute positioning with width/height: '100%' instead. See CLAUDE.md for the correct pattern.",
+        },
+        {
+          selector: "Property[key.name='objectPosition']",
+          message: "objectPosition doesn't work in react-pdf. Use absolute positioning instead. See CLAUDE.md for the correct pattern.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

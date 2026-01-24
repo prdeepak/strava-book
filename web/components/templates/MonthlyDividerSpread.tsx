@@ -282,14 +282,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       borderRadius: 4 * format.scaleFactor,
       position: 'relative',
     },
-    // Image uses absolute positioning with transform centering (objectFit doesn't work in react-pdf)
+    // Image fills container using absolute positioning
+    // Note: transform: 'translateY(-50%)' doesn't work reliably in react-pdf
+    // Instead, we position from top: 0 and use height: '100%' with overflow clipping
     fullBleedHeroPhoto: {
       position: 'absolute',
-      top: '50%',
+      top: 0,
       left: 0,
       width: '100%',
-      minHeight: '100%',
-      transform: 'translateY(-50%)',
+      height: '100%',
     },
     photoGrid: {
       flex: 1,
@@ -303,7 +304,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       flexDirection: 'row',
       gap: spacing.xs + 2,
     },
-    // Photo cell uses clipping pattern
+    // Photo cell for grid layout - uses clipping pattern
     photoCell: {
       flex: 1,
       height: '100%',
@@ -311,14 +312,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       borderRadius: 4 * format.scaleFactor,
       position: 'relative',
     },
-    // Image uses absolute positioning with transform centering
+    // Image fills container with absolute positioning
     photo: {
       position: 'absolute',
-      top: '50%',
+      top: 0,
       left: 0,
       width: '100%',
-      minHeight: '100%',
-      transform: 'translateY(-50%)',
+      height: '100%',
     },
     // Legacy styles for backward compatibility (used in MonthlyDividerLeftPage fallback)
     heroPhotoContainer: {
@@ -330,11 +330,10 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
     },
     heroPhoto: {
       position: 'absolute',
-      top: '50%',
+      top: 0,
       left: 0,
       width: '100%',
-      minHeight: '100%',
-      transform: 'translateY(-50%)',
+      height: '100%',
     },
     smallPhotosRow: {
       height: 195 * format.scaleFactor,
@@ -349,11 +348,10 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
     },
     smallPhoto: {
       position: 'absolute',
-      top: '50%',
+      top: 0,
       left: 0,
       width: '100%',
-      minHeight: '100%',
-      transform: 'translateY(-50%)',
+      height: '100%',
     },
     photoCaption: {
       position: 'absolute',

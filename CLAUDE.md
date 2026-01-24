@@ -125,7 +125,11 @@ Required in `web/.env.local`:
 
 ### react-pdf Limitations
 
-**`objectFit: cover` does not work.** To crop images to fit a container, use a clipping pattern:
+**NEVER use `objectFit` or `objectPosition`** - they don't work reliably in react-pdf. ESLint will flag any usage.
+
+**NEVER use `transform: 'translateY(-50%)'`** for centering - transforms don't work reliably either.
+
+To fill a container with an image, use simple absolute positioning:
 
 ```tsx
 // Container clips overflow
@@ -135,22 +139,21 @@ Required in `web/.env.local`:
   overflow: 'hidden',
   position: 'relative',
 }}>
-  {/* Image fills width, vertically centered, excess clipped */}
+  {/* Image fills container - may stretch if aspect ratio differs */}
   <Image
     src={imageUrl}
     style={{
       position: 'absolute',
-      top: '50%',
+      top: 0,
       left: 0,
-      width: 300,
-      minHeight: 200,
-      transform: 'translateY(-50%)',
+      width: '100%',
+      height: '100%',
     }}
   />
 </View>
 ```
 
-See `FullBleedBackground` component for the standard implementation.
+For true "cover" behavior (fill container, maintain aspect ratio, clip excess), you must know image dimensions ahead of time. Most activity photos are landscape, so filling width/height works well.
 
 ### Style Guide (IMPORTANT)
 
