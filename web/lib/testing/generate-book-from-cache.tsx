@@ -225,9 +225,9 @@ async function generateBookFromCache(): Promise<void> {
       startDate: options.startDate,
       endDate: options.endDate,
       forewordText: options.foreword,
-      coverPhotoUrl: photos.coverPhotoUrl,
-      backgroundPhotoUrl: photos.backgroundPhotoUrl,
-      backCoverPhotoUrl: photos.backCoverPhotoUrl,
+      coverPhoto: photos.coverPhoto,
+      backgroundPhoto: photos.backgroundPhoto,
+      backCoverPhoto: photos.backCoverPhoto,
       maxRaces: options.maxRaces,
       maxMonths: options.maxMonths,
     }

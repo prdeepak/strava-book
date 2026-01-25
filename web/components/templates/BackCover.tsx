@@ -16,6 +16,8 @@ export interface BackCoverProps {
   startDate?: string   // ISO date string for period start
   endDate?: string     // ISO date string for period end
   backCoverPhoto?: string  // Background photo for the back cover
+  backCoverPhotoWidth?: number   // Source width in pixels (for aspect-fill)
+  backCoverPhotoHeight?: number  // Source height in pixels (for aspect-fill)
   format?: BookFormat
   theme?: BookTheme
 }
@@ -199,6 +201,8 @@ export const BackCoverPage = ({
   startDate: propStartDate,
   endDate: propEndDate,
   backCoverPhoto,
+  backCoverPhotoWidth,
+  backCoverPhotoHeight,
   format = FORMATS['10x10'],
   theme = DEFAULT_THEME,
 }: BackCoverProps) => {
@@ -248,6 +252,8 @@ export const BackCoverPage = ({
         role="background"
         width={format.dimensions.width}
         height={format.dimensions.height}
+        sourceWidth={backCoverPhotoWidth}
+        sourceHeight={backCoverPhotoHeight}
       />
       <View style={styles.contentContainer}>
         {/* Top section with period and stats */}

@@ -59,10 +59,20 @@ async function ensureOutputsDir(): Promise<string> {
   return outputsDir
 }
 
+interface PhotoWithDimensions {
+  url: string | null
+  width?: number
+  height?: number
+}
+
 /**
  * Find photos from activities and resolve local fixture paths
  */
 function findPhotosFromActivities(activities: StravaActivity[]): {
+  coverPhoto: PhotoWithDimensions
+  backgroundPhoto: PhotoWithDimensions
+  backCoverPhoto: PhotoWithDimensions
+  // Legacy fields
   coverPhotoUrl: string | null
   backgroundPhotoUrl: string | null
   backCoverPhotoUrl: string | null
@@ -78,6 +88,10 @@ function findPhotosFromActivities(activities: StravaActivity[]): {
   }
 
   const result = {
+    coverPhoto: { ...photos.coverPhoto, url: resolveUrl(photos.coverPhoto.url) },
+    backgroundPhoto: { ...photos.backgroundPhoto, url: resolveUrl(photos.backgroundPhoto.url) },
+    backCoverPhoto: { ...photos.backCoverPhoto, url: resolveUrl(photos.backCoverPhoto.url) },
+    // Legacy fields
     coverPhotoUrl: resolveUrl(photos.coverPhotoUrl),
     backgroundPhotoUrl: resolveUrl(photos.backgroundPhotoUrl),
     backCoverPhotoUrl: resolveUrl(photos.backCoverPhotoUrl),
@@ -158,9 +172,9 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
       startDate: startDate.toISOString().slice(0, 10),
       endDate: endDate.toISOString().slice(0, 10),
       forewordText: 'This is a test book generated for integration testing. It includes activities, races, and photos from the test fixtures.',
-      coverPhotoUrl: photos.coverPhotoUrl,
-      backgroundPhotoUrl: photos.backgroundPhotoUrl,
-      backCoverPhotoUrl: photos.backCoverPhotoUrl,
+      coverPhoto: photos.coverPhoto,
+      backgroundPhoto: photos.backgroundPhoto,
+      backCoverPhoto: photos.backCoverPhoto,
       // Test limits for faster execution
       maxRaces: 3,
       maxMonths: 2,

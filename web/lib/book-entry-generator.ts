@@ -9,6 +9,15 @@ import { BookEntry } from './curator'
 import { StravaActivity } from './strava'
 
 /**
+ * Photo with optional dimension information for proper aspect-fill rendering
+ */
+export interface PhotoWithDimensions {
+  url: string | null
+  width?: number   // Source width in pixels
+  height?: number  // Source height in pixels
+}
+
+/**
  * Configuration for book entry generation
  */
 export interface BookGenerationConfig {
@@ -20,15 +29,9 @@ export interface BookGenerationConfig {
 
   // Optional content
   forewordText?: string
-  coverPhotoUrl?: string | null
-  coverPhotoWidth?: number
-  coverPhotoHeight?: number
-  backgroundPhotoUrl?: string | null
-  backgroundPhotoWidth?: number
-  backgroundPhotoHeight?: number
-  backCoverPhotoUrl?: string | null
-  backCoverPhotoWidth?: number
-  backCoverPhotoHeight?: number
+  coverPhoto?: PhotoWithDimensions      // Cover page hero image
+  backgroundPhoto?: PhotoWithDimensions // Background for foreword/TOC/stats pages
+  backCoverPhoto?: PhotoWithDimensions  // Back cover photo
 
   // Highlight activity IDs by month (key format: "YYYY-MM" with 1-indexed month)
   // If not provided, will auto-select activities with photos
@@ -105,9 +108,9 @@ export function generateBookEntries(
     type: 'COVER',
     title: config.bookName,
     pageNumber: currentPage++,
-    heroImage: config.coverPhotoUrl || undefined,
-    heroImageWidth: config.coverPhotoWidth,
-    heroImageHeight: config.coverPhotoHeight,
+    heroImage: config.coverPhoto?.url || undefined,
+    heroImageWidth: config.coverPhoto?.width,
+    heroImageHeight: config.coverPhoto?.height,
   })
 
   // 2. FOREWORD
@@ -115,9 +118,7 @@ export function generateBookEntries(
     type: 'FOREWORD',
     title: 'Foreword',
     forewordText: config.forewordText || undefined,
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
-    backgroundPhotoWidth: config.backgroundPhotoWidth,
-    backgroundPhotoHeight: config.backgroundPhotoHeight,
+    backgroundPhoto: config.backgroundPhoto,
     pageNumber: currentPage++,
   })
 
@@ -125,7 +126,7 @@ export function generateBookEntries(
   entries.push({
     type: 'TABLE_OF_CONTENTS',
     title: 'Contents',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
+    backgroundPhoto: config.backgroundPhoto,
     pageNumber: currentPage++,
   })
 
@@ -134,7 +135,7 @@ export function generateBookEntries(
   if (allActivities.length === 0) {
     entries.push({
       type: 'BACK_COVER',
-      backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
+      backCoverPhoto: config.backCoverPhoto,
       pageNumber: currentPage++,
     })
     return entries
@@ -145,7 +146,7 @@ export function generateBookEntries(
     type: 'YEAR_STATS',
     year: primaryYear,
     title: 'Summary',
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
+    backgroundPhoto: config.backgroundPhoto,
     pageNumber: currentPage++,
   })
 
@@ -153,7 +154,7 @@ export function generateBookEntries(
   entries.push({
     type: 'YEAR_AT_A_GLANCE',
     year: primaryYear,
-    backgroundPhotoUrl: config.backgroundPhotoUrl || undefined,
+    backgroundPhoto: config.backgroundPhoto,
     title: 'Year at a Glance',
     pageNumber: currentPage++,
   })
@@ -271,17 +272,11 @@ export function generateBookEntries(
   entries.push({
     type: 'BACK_COVER',
     title: 'Back Cover',
-    backCoverPhotoUrl: config.backCoverPhotoUrl || undefined,
+    backCoverPhoto: config.backCoverPhoto,
     pageNumber: currentPage++,
   })
 
   return entries
-}
-
-export interface PhotoWithDimensions {
-  url: string | null
-  width?: number
-  height?: number
 }
 
 /**

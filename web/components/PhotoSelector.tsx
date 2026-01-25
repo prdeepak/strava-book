@@ -10,12 +10,21 @@ export interface PhotoOption {
   activityName: string
   activityId: number
   caption?: string
+  width?: number   // Source image width in pixels
+  height?: number  // Source image height in pixels
+}
+
+/** Data passed when a photo is selected */
+export interface SelectedPhoto {
+  url: string
+  width?: number
+  height?: number
 }
 
 interface PhotoSelectorProps {
   photos: PhotoOption[]
   selectedUrl: string | null
-  onSelect: (url: string | null) => void
+  onSelect: (photo: SelectedPhoto | null) => void
   label: string
   description?: string
 }
@@ -37,7 +46,8 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
         .sort((a, b) => b - a)
 
       if (sizes.length > 0) {
-        const highResUrl = photo.urls[String(sizes[0])]
+        const largestWidth = sizes[0]
+        const highResUrl = photo.urls[String(largestWidth)]
         // Use smaller size for thumbnail if available
         const thumbSize = sizes.find(s => s <= 600) || sizes[sizes.length - 1]
         const thumbnailUrl = photo.urls[String(thumbSize)] || highResUrl
@@ -48,6 +58,8 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
           activityName: activity.name || 'Activity',
           activityId: activity.id,
           caption: photo.caption,
+          width: largestWidth,
+          // Height not available from Strava API - let PdfImage calculate aspect ratio
         })
       }
     }
@@ -61,7 +73,8 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
         .sort((a, b) => b - a)
 
       if (sizes.length > 0) {
-        const highResUrl = photo.urls[String(sizes[0])]
+        const largestWidth = sizes[0]
+        const highResUrl = photo.urls[String(largestWidth)]
         const thumbSize = sizes.find(s => s <= 600) || sizes[sizes.length - 1]
         const thumbnailUrl = photo.urls[String(thumbSize)] || highResUrl
 
@@ -73,6 +86,7 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
             activityName: activity.name || 'Activity',
             activityId: activity.id,
             caption: photo.caption,
+            width: largestWidth,
           })
         }
       }
@@ -82,13 +96,20 @@ export function extractPhotosFromActivities(activities: StravaActivity[]): Photo
     const hasComprehensivePhotos = comprehensivePhotos.length > 0
     if (!hasComprehensivePhotos && activity.photos?.primary?.urls) {
       const primaryUrls = activity.photos.primary.urls as Record<string, string>
-      const url600 = primaryUrls['600']
-      if (url600 && !photos.some(p => p.url === url600)) {
+      const primarySizes = Object.keys(primaryUrls)
+        .map(Number)
+        .filter(n => !isNaN(n))
+        .sort((a, b) => b - a)
+      const largestWidth = primarySizes[0] || 600
+      const highResUrl = primaryUrls[String(largestWidth)] || primaryUrls['600']
+
+      if (highResUrl && !photos.some(p => p.url === highResUrl)) {
         photos.push({
-          url: url600,
-          thumbnailUrl: url600,
+          url: highResUrl,
+          thumbnailUrl: primaryUrls['600'] || highResUrl,
           activityName: activity.name || 'Activity',
           activityId: activity.id,
+          width: largestWidth,
         })
       }
     }
@@ -126,6 +147,7 @@ export default function PhotoSelector({
           <button
             onClick={() => onSelect(null)}
             className="text-xs text-red-600 hover:text-red-700"
+            type="button"
           >
             Clear selection
           </button>
@@ -144,13 +166,18 @@ export default function PhotoSelector({
               return (
                 <button
                   key={`${photo.activityId}-${idx}`}
-                  onClick={() => onSelect(isSelected ? null : photo.url)}
+                  onClick={() => onSelect(isSelected ? null : {
+                    url: photo.url,
+                    width: photo.width,
+                    height: photo.height,
+                  })}
                   className={`relative aspect-square overflow-hidden rounded-lg border-2 transition-all ${
                     isSelected
                       ? 'border-blue-500 ring-2 ring-blue-200'
                       : 'border-transparent hover:border-stone-300'
                   }`}
                   title={photo.caption || photo.activityName}
+                  type="button"
                 >
                   <img
                     src={photo.thumbnailUrl}
