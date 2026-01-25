@@ -15,6 +15,15 @@ export type BookPageType =
     | 'BACK_COVER'
     | 'BLANK_PAGE'
 
+/**
+ * Photo with optional dimension information for proper aspect-fill rendering
+ */
+export interface PhotoWithDimensions {
+    url: string | null
+    width?: number   // Source width in pixels
+    height?: number  // Source height in pixels
+}
+
 export interface BookEntry {
     type: BookPageType
     title?: string
@@ -27,12 +36,8 @@ export interface BookEntry {
     activityIds?: number[]  // For ACTIVITY_LOG (multiple activities per page)
     highlightActivityId?: number  // For MONTHLY_DIVIDER (featured activity for the month)
     forewordText?: string   // For FOREWORD
-    backgroundPhotoUrl?: string  // For FOREWORD, TOC, etc. (background image URL)
-    backgroundPhotoWidth?: number  // Source width in pixels (for aspect-fill)
-    backgroundPhotoHeight?: number // Source height in pixels (for aspect-fill)
-    backCoverPhotoUrl?: string   // For BACK_COVER (background image URL)
-    backCoverPhotoWidth?: number // Source width in pixels
-    backCoverPhotoHeight?: number // Source height in pixels
+    backgroundPhoto?: PhotoWithDimensions  // For FOREWORD, TOC, YEAR_STATS, etc.
+    backCoverPhoto?: PhotoWithDimensions   // For BACK_COVER
     pageNumber?: number     // For TABLE_OF_CONTENTS, ACTIVITY_LOG (pagination)
     heroImage?: string      // For COVER (background image URL)
     heroImageWidth?: number // Source width in pixels

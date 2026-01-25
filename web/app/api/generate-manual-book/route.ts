@@ -45,6 +45,12 @@ function normalizeThemeFonts(theme: BookTheme): BookTheme {
   }
 }
 
+interface PhotoWithDimensions {
+  url: string | null
+  width?: number
+  height?: number
+}
+
 interface ManualBookRequest {
   activities: StravaActivity[]
   races: StravaActivity[]
@@ -55,15 +61,9 @@ interface ManualBookRequest {
     startDate: string
     endDate: string
     forewordText?: string
-    coverPhotoUrl?: string | null
-    coverPhotoWidth?: number
-    coverPhotoHeight?: number
-    backgroundPhotoUrl?: string | null
-    backgroundPhotoWidth?: number
-    backgroundPhotoHeight?: number
-    backCoverPhotoUrl?: string | null
-    backCoverPhotoWidth?: number
-    backCoverPhotoHeight?: number
+    coverPhoto?: PhotoWithDimensions | null
+    backgroundPhoto?: PhotoWithDimensions | null
+    backCoverPhoto?: PhotoWithDimensions | null
     format?: BookFormat
     theme?: BookTheme
     // Debug/testing options
@@ -128,15 +128,9 @@ export async function POST(request: NextRequest) {
         startDate: config.startDate,
         endDate: config.endDate,
         forewordText: config.forewordText,
-        coverPhotoUrl: config.coverPhotoUrl,
-        coverPhotoWidth: config.coverPhotoWidth,
-        coverPhotoHeight: config.coverPhotoHeight,
-        backgroundPhotoUrl: config.backgroundPhotoUrl,
-        backgroundPhotoWidth: config.backgroundPhotoWidth,
-        backgroundPhotoHeight: config.backgroundPhotoHeight,
-        backCoverPhotoUrl: config.backCoverPhotoUrl,
-        backCoverPhotoWidth: config.backCoverPhotoWidth,
-        backCoverPhotoHeight: config.backCoverPhotoHeight,
+        coverPhoto: config.coverPhoto || undefined,
+        backgroundPhoto: config.backgroundPhoto || undefined,
+        backCoverPhoto: config.backCoverPhoto || undefined,
         highlightActivityIds: highlightMap,
       }
     )

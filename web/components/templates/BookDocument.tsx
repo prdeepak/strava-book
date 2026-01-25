@@ -511,7 +511,7 @@ export const BookDocument = ({
                             entries={tocEntries}
                             format={format}
                             theme={theme}
-                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
                             pageIndex={pageIdx}
                             totalPages={tocPageCount}
                         />
@@ -580,7 +580,7 @@ export const BookDocument = ({
                             theme={theme}
                             startDate={startDate}
                             endDate={endDate}
-                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
                         />
                     )
                 }
@@ -596,7 +596,7 @@ export const BookDocument = ({
                             endDate={endDate}
                             format={format}
                             theme={theme}
-                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
                         />
                     )
                 }
@@ -632,7 +632,7 @@ export const BookDocument = ({
                             key={index}
                             title={entry.title || 'Foreword'}
                             body={entry.forewordText}
-                            backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                            backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
                             format={format}
                             theme={theme}
                         />
@@ -689,7 +689,9 @@ export const BookDocument = ({
                             periodName={displayPeriod}
                             startDate={startDate}
                             endDate={endDate}
-                            backCoverPhoto={entry.backCoverPhotoUrl}
+                            backCoverPhoto={entry.backCoverPhoto?.url || undefined}
+                            backCoverPhotoWidth={entry.backCoverPhoto?.width}
+                            backCoverPhotoHeight={entry.backCoverPhoto?.height}
                             format={format}
                             theme={theme}
                         />

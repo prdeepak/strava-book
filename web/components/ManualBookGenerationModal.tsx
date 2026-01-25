@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, FORMATS, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
+import { PhotoWithDimensions } from '@/lib/curator'
 import { FOREWORD_MAX_CHARS } from '@/components/templates/Foreword'
 import { generatePeriodName, getDefaultDateRange } from '@/lib/period-name-generator'
 import { getRaces, getMonthlyHighlights } from '@/lib/activity-scoring'
-import PhotoSelector, { extractPhotosFromActivities, PhotoOption } from './PhotoSelector'
+import PhotoSelector, { extractPhotosFromActivities, PhotoOption, SelectedPhoto } from './PhotoSelector'
 
 interface ManualBookGenerationModalProps {
   activities: StravaActivity[]
@@ -27,9 +28,9 @@ interface FetchProgress {
 interface BookConfig {
   bookName: string
   forewordText: string
-  coverPhotoUrl: string | null
-  backgroundPhotoUrl: string | null
-  backCoverPhotoUrl: string | null
+  coverPhoto: PhotoWithDimensions | null
+  backgroundPhoto: PhotoWithDimensions | null
+  backCoverPhoto: PhotoWithDimensions | null
   startDate: string
   endDate: string
   format: BookFormat
@@ -84,9 +85,9 @@ export default function ManualBookGenerationModal({
   const [config, setConfig] = useState<BookConfig>({
     bookName: '',
     forewordText: '',
-    coverPhotoUrl: null,
-    backgroundPhotoUrl: null,
-    backCoverPhotoUrl: null,
+    coverPhoto: null,
+    backgroundPhoto: null,
+    backCoverPhoto: null,
     startDate: initialDates.startDate,
     endDate: initialDates.endDate,
     format: FORMATS['10x10'],
@@ -296,9 +297,9 @@ export default function ManualBookGenerationModal({
             startDate: config.startDate,
             endDate: config.endDate,
             forewordText: config.forewordText || undefined,
-            coverPhotoUrl: config.coverPhotoUrl,
-            backgroundPhotoUrl: config.backgroundPhotoUrl,
-            backCoverPhotoUrl: config.backCoverPhotoUrl,
+            coverPhoto: config.coverPhoto,
+            backgroundPhoto: config.backgroundPhoto,
+            backCoverPhoto: config.backCoverPhoto,
             format: config.format,
             theme: config.theme,
           },
@@ -562,24 +563,33 @@ export default function ManualBookGenerationModal({
 
                 <PhotoSelector
                   photos={generatedData.allPhotos}
-                  selectedUrl={config.coverPhotoUrl}
-                  onSelect={(url) => setConfig(prev => ({ ...prev, coverPhotoUrl: url }))}
+                  selectedUrl={config.coverPhoto?.url ?? null}
+                  onSelect={(photo: SelectedPhoto | null) => setConfig(prev => ({
+                    ...prev,
+                    coverPhoto: photo ? { url: photo.url, width: photo.width, height: photo.height } : null,
+                  }))}
                   label="Cover Photo"
                   description="Main photo for the book cover"
                 />
 
                 <PhotoSelector
                   photos={generatedData.allPhotos}
-                  selectedUrl={config.backgroundPhotoUrl}
-                  onSelect={(url) => setConfig(prev => ({ ...prev, backgroundPhotoUrl: url }))}
+                  selectedUrl={config.backgroundPhoto?.url ?? null}
+                  onSelect={(photo: SelectedPhoto | null) => setConfig(prev => ({
+                    ...prev,
+                    backgroundPhoto: photo ? { url: photo.url, width: photo.width, height: photo.height } : null,
+                  }))}
                   label="Page Background"
                   description="Background photo for foreword, TOC, and stats pages (faded)"
                 />
 
                 <PhotoSelector
                   photos={generatedData.allPhotos}
-                  selectedUrl={config.backCoverPhotoUrl}
-                  onSelect={(url) => setConfig(prev => ({ ...prev, backCoverPhotoUrl: url }))}
+                  selectedUrl={config.backCoverPhoto?.url ?? null}
+                  onSelect={(photo: SelectedPhoto | null) => setConfig(prev => ({
+                    ...prev,
+                    backCoverPhoto: photo ? { url: photo.url, width: photo.width, height: photo.height } : null,
+                  }))}
                   label="Back Cover Photo"
                   description="Photo for the back cover"
                 />

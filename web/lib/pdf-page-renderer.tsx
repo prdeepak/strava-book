@@ -121,7 +121,7 @@ export async function renderEntryAsPdf(
             <ForewordPage
               title={entry.title || 'Foreword'}
               body={entry.forewordText}
-              backgroundPhotoUrl={entry.backgroundPhotoUrl}
+              backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
               format={format}
               theme={theme}
             />
@@ -140,7 +140,7 @@ export async function renderEntryAsPdf(
                   entries={tocEntries}
                   format={format}
                   theme={theme}
-                  backgroundPhotoUrl={entry.backgroundPhotoUrl}
+                  backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
                   pageIndex={pageIdx}
                   totalPages={tocPageCount}
                 />
@@ -160,7 +160,7 @@ export async function renderEntryAsPdf(
               endDate={endDate}
               format={format}
               theme={theme}
-              backgroundPhotoUrl={entry.backgroundPhotoUrl}
+              backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
             />
           </Document>
         )
@@ -177,7 +177,7 @@ export async function renderEntryAsPdf(
               theme={theme}
               startDate={startDate}
               endDate={endDate}
-              backgroundPhotoUrl={entry.backgroundPhotoUrl}
+              backgroundPhotoUrl={entry.backgroundPhoto?.url || undefined}
             />
           </Document>
         )
@@ -259,7 +259,7 @@ export async function renderEntryAsPdf(
               periodName={periodName}
               startDate={startDate}
               endDate={endDate}
-              backCoverPhoto={entry.backCoverPhotoUrl}
+              backCoverPhoto={entry.backCoverPhoto?.url || undefined}
               format={format}
               theme={theme}
             />
