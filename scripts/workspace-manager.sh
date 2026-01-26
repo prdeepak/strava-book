@@ -4,8 +4,8 @@ set -e
 # Workspace Manager for Multi-Agent Development
 # Creates isolated git worktrees with dedicated Docker containers
 
-MAIN_REPO="$HOME/bin/strava-book"
-WORKSPACES_DIR="$HOME/bin/strava-workspaces"
+MAIN_REPO="$HOME/bin/strava-book/main"
+WORKSPACES_DIR="$HOME/bin/strava-book/workspaces"
 REGISTRY_FILE="$WORKSPACES_DIR/registry.json"
 STALE_HOURS=24
 PORT_MIN=3001
