@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/deepak/bin/strava-book/.claude/hooks/eslint-fix.sh"
+            "command": "/Users/deepak/bin/strava-book/main/.claude/hooks/eslint-fix.sh"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/deepak/bin/strava-book/.claude/hooks/stop-hook.sh"
+            "command": "/Users/deepak/bin/strava-book/main/.claude/hooks/stop-hook.sh"
           }
         ]
       }
