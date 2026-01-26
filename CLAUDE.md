@@ -18,7 +18,7 @@ make test-e2e-ci     # Run e2e tests (required before PRs)
 
 ## Mandatory Rules
 
-1. **Always use workspaces for code changes.** Never edit code in the main repo (`~/bin/strava-book`). Ask the user how to launch the workspace first.
+1. **Always use workspaces for code changes.** Never edit code in `~/bin/strava-book/main`. Each workspace runs in its own devcontainer for isolation.
 
 2. **Always create PRs.** Branch protection prevents direct pushes to main.
 
@@ -30,14 +30,39 @@ make test-e2e-ci     # Run e2e tests (required before PRs)
 
 ## Workspace Workflow
 
-```bash
-make workspace-claude name=X prompt="Y"  # Create workspace + launch Claude
-make workspace-list                      # Show all workspaces
-make workspace-merge pr=N                # Merge PR (always use this, not gh pr merge)
-make workspace-destroy id=X              # Remove workspace after merge
+Development happens in isolated workspaces, each running in its own devcontainer.
+
+### Directory Structure
+
+```
+~/bin/strava-book/
+├── main/           # Read-only main branch (for oversight, creating worktrees)
+└── workspaces/     # Development workspaces (devcontainer per workspace)
 ```
 
-**Avoiding conflicts:** GitHub squash-merges create new commits that diverge from workspace branches. Never reuse a workspace after its PR is merged—destroy it and create a fresh one.
+### Creating a Workspace
+
+```bash
+# From ~/bin/strava-book/main
+make workspace-claude name=X prompt="Y"  # Create workspace + launch Claude
+make workspace-list                      # Show all workspaces
+```
+
+### Working in a Workspace
+
+Each workspace should be opened in VS Code/Cursor and reopened in its devcontainer:
+1. Open the workspace folder (e.g., `~/bin/strava-book/workspaces/ws-abc123`)
+2. VS Code will detect `.devcontainer/` and offer to reopen in container
+3. Accept to get the isolated development environment
+
+### After PR is Merged
+
+```bash
+make workspace-merge pr=N    # Merge PR (always use this, not gh pr merge)
+make workspace-destroy id=X  # Remove workspace after merge
+```
+
+**Never reuse a workspace after its PR is merged** - GitHub squash-merges create new commits that diverge from workspace branches.
 
 ## Architecture
 

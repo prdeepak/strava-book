@@ -1,14 +1,18 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart web-install
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-attach dev-stop dev-rebuild
 
 # =============================================================================
-# Workspace Detection
+# Environment Detection
 # =============================================================================
-# Automatically detect if running in a workspace and configure accordingly.
-# This allows the same Makefile to work in both main repo and workspaces.
+# Automatically detect if running in a devcontainer or workspace.
+# This allows the same Makefile to work in all environments.
 # =============================================================================
 
+# Devcontainer detection (set by containerEnv in devcontainer.json)
+IS_DEVCONTAINER := $(shell test "$$DEVCONTAINER" = "1" && echo yes || echo no)
+
+# Workspace detection
 WORKSPACE_FILE := .workspace.json
 IS_WORKSPACE := $(shell test -f $(WORKSPACE_FILE) && echo yes || echo no)
 
@@ -61,7 +65,18 @@ help:
 	@echo "  make workspace-info                    - Show current workspace context"
 	@echo "  make workspace-merge pr=N              - Merge PR and sync main worktree"
 	@echo "  make sync-main                         - Sync main worktree with origin/main"
-ifeq ($(IS_WORKSPACE),yes)
+	@echo ""
+	@echo "Devcontainer commands:"
+	@echo "  make dev           - Start devcontainer and attach interactive shell"
+	@echo "  make dev-attach    - Attach to running devcontainer"
+	@echo "  make dev-stop      - Stop devcontainer"
+	@echo "  make dev-rebuild   - Rebuild devcontainer from scratch"
+	@echo "  make restart       - Restart dev server (alias for web-restart)"
+ifeq ($(IS_DEVCONTAINER),yes)
+	@echo ""
+	@echo "Current context: DEVCONTAINER"
+	@echo "  Commands run directly (no docker-compose)"
+else ifeq ($(IS_WORKSPACE),yes)
 	@echo ""
 	@echo "Current context: WORKSPACE ($(WORKSPACE_ID))"
 	@echo "  Port: $(WEB_PORT) | Container: $(CONTAINER_NAME)"
@@ -125,95 +140,185 @@ sync:
 	git push origin main
 
 
-# --- Web App Commands (workspace-aware) ---
+# --- Web App Commands (workspace-aware, devcontainer-aware) ---
 web-shell:
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && /bin/bash
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web /bin/sh
+endif
 
 web-dev:
+ifeq ($(IS_DEVCONTAINER),yes)
+	@echo "Starting dev server (devcontainer, port: 3000)..."
+	cd /app/web && ./scripts/smart-npm-install.sh && npm run dev
+else
 	@echo "Starting dev server (context: $(WORKSPACE_ID), port: $(WEB_PORT))..."
 	$(COMPOSE_CMD) run --rm --service-ports -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run dev"
+endif
 
 web-install:
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npm install --legacy-peer-deps
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npm install --legacy-peer-deps
+endif
 
 web-build:
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && ./scripts/smart-npm-install.sh && npm run build
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run build"
+endif
 
 web-check:
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && ./scripts/smart-npm-install.sh && npm run lint && npm run build
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run lint && npm run build"
+endif
 
 web-restart:
+ifeq ($(IS_DEVCONTAINER),yes)
+	@echo "Stopping dev server..."
+	@pkill -f "next dev" 2>/dev/null || true
+	@echo "Starting dev server..."
+	@$(MAKE) web-dev
+else
 	@echo "Stopping web containers (context: $(WORKSPACE_ID))..."
 	@docker ps -q --filter "$(CONTAINER_FILTER)" | xargs -r docker stop
 	@echo "Starting new web server on port $(WEB_PORT)..."
 	$(MAKE) web-dev
+endif
+
+# Shorthand alias for restart
+restart: web-restart
 
 # Show current workspace context
 workspace-info:
-	@echo "Workspace Detection:"
+	@echo "Environment Detection:"
+	@echo "  IS_DEVCONTAINER: $(IS_DEVCONTAINER)"
 	@echo "  IS_WORKSPACE: $(IS_WORKSPACE)"
 	@echo "  WORKSPACE_ID: $(WORKSPACE_ID)"
 	@echo "  WEB_PORT: $(WEB_PORT)"
+ifeq ($(IS_DEVCONTAINER),yes)
+	@echo "  Mode: Running directly (no docker-compose)"
+else
 	@echo "  CONTAINER_NAME: $(CONTAINER_NAME)"
 	@echo "  COMPOSE_CMD: $(COMPOSE_CMD)"
 	@echo "  CONTAINER_FILTER: $(CONTAINER_FILTER)"
+endif
 
 
-# --- Testing Commands (workspace-aware) ---
+# --- Testing Commands (workspace-aware, devcontainer-aware) ---
 test-visual:
 	@echo "🧪 Running visual template tests..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/test-harness.ts --all --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --all --verbose
+endif
 
 test-template:
 	@echo "🧪 Testing template $(template) with fixture $(fixture)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --verbose
+endif
 
 test-list:
 	@echo "📋 Available templates and fixtures:"
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/test-harness.ts --list
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --list
+endif
 
 test-pdf:
 	@echo "📄 Generating PDF only (no visual judge)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/test-harness.ts --template $(template) --fixture $(fixture) --skip-judge --verbose
+endif
 
 test-graphic:
 	@echo "🎨 Testing $(graphic) graphic with fixture $(fixture)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/graphic-test-harness.tsx --graphic $(graphic) --fixture $(fixture) --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --graphic $(graphic) --fixture $(fixture) --verbose
+endif
 
 test-graphic-list:
 	@echo "🎨 Available graphics and fixtures:"
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/graphic-test-harness.tsx --list
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/graphic-test-harness.tsx --list
+endif
 
 test-integration:
 	@echo "📚 Running integration tests (full book generation)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/integration-tests.ts --all --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --verbose
+endif
 
 test-integration-quick:
 	@echo "📚 Running integration tests (no visual judge)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/integration-tests.ts --all --skip-judge --verbose
+endif
 
 test-book-generation:
 	@echo "📖 Running book generation tests..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/book-generation-tests.ts --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-generation-tests.ts --verbose
+endif
 
 test-api:
 	@echo "🔌 Running API-level tests (matches browser environment)..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/api-tests.ts --verbose
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/api-tests.ts --verbose
+endif
 
 test-ai:
 	@echo "🤖 Running AI output validation tests..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/ai-output-tests.ts
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/ai-output-tests.ts
+endif
 
 test-fonts:
 	@echo "🔤 Running font validation tests..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/font-validation-tests.ts
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
+endif
 
 test-e2e:
 	@echo "🔤 Running font validation..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/font-validation-tests.ts
+	@echo "🎭 Running Playwright e2e tests..."
+	cd /app/web && npx playwright test --reporter=line
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "🎭 Running Playwright e2e tests (requires web dev server)"
 	@echo "Note: Start server with 'make web-dev' first"
 	$(COMPOSE_CMD) run --rm playwright npx playwright test --reporter=line
+endif
 
 test-e2e-local:
 	@echo "🎭 Running Playwright e2e tests locally..."
@@ -229,19 +334,34 @@ test-e2e-local:
 #   make test-book filter=RACE_PAGE pdfByPage=1         # Only race pages as individual PDFs
 test-book:
 	@echo "📚 Running book integration test..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/book-integration-test.ts \
+		$(if $(scoring),--score) \
+		$(if $(pdfByPage),--pdfByPage) \
+		$(if $(filter),--filter=$(filter))
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts \
 		$(if $(scoring),--score) \
 		$(if $(pdfByPage),--pdfByPage) \
 		$(if $(filter),--filter=$(filter))
+endif
 
 test-e2e-ci:
 	@echo "🔤 Running font validation..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app/web && npx tsx lib/testing/font-validation-tests.ts
+	@echo "📚 Running book integration test (generates PDF with photos)..."
+	cd /app/web && npx tsx lib/testing/book-integration-test.ts $(if $(scoring),--score)
+	@echo "🎭 Running Playwright e2e tests..."
+	cd /app/web && npx playwright test --reporter=line
+else
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/font-validation-tests.ts
 	@echo "📚 Running book integration test (generates PDF with photos)..."
 	$(COMPOSE_CMD) run --rm -w /app/web web npx tsx lib/testing/book-integration-test.ts $(if $(scoring),--score)
 	@echo "🎭 Running self-contained e2e tests in Docker..."
 	@echo "Using cached node_modules and Next.js build (run 'make e2e-rebuild' if deps changed)"
 	$(COMPOSE_CMD) run --rm e2e
+endif
 
 # Rebuild e2e Docker image (needed when package.json changes)
 e2e-rebuild:
@@ -285,9 +405,9 @@ workspace-cleanup:
 # Sync main worktree with origin/main (run after PRs are merged)
 sync-main:
 	@echo "🔄 Syncing main worktree with origin/main..."
-	@git -C ~/bin/strava-book fetch origin main
-	@git -C ~/bin/strava-book reset --hard origin/main
-	@echo "✅ Main worktree updated to $(shell git -C ~/bin/strava-book rev-parse --short HEAD)"
+	@git -C ~/bin/strava-book/main fetch origin main
+	@git -C ~/bin/strava-book/main reset --hard origin/main
+	@echo "✅ Main worktree updated to $(shell git -C ~/bin/strava-book/main rev-parse --short HEAD)"
 
 # Merge a PR and sync main worktree
 # Usage: make workspace-merge pr=83
@@ -296,6 +416,33 @@ workspace-merge:
 	@echo "🔀 Merging PR #$(pr)..."
 	@gh pr merge $(pr) --squash
 	@echo "🔄 Syncing main worktree..."
-	@git -C ~/bin/strava-book fetch origin main
-	@git -C ~/bin/strava-book reset --hard origin/main
+	@git -C ~/bin/strava-book/main fetch origin main
+	@git -C ~/bin/strava-book/main reset --hard origin/main
 	@echo "✅ PR #$(pr) merged and main worktree synced"
+
+
+# =============================================================================
+# Development Container (devcontainer CLI)
+# =============================================================================
+
+# Start devcontainer and attach interactive shell
+dev:
+	@command -v devcontainer >/dev/null 2>&1 || { echo "Install devcontainer CLI: npm install -g @devcontainers/cli"; exit 1; }
+	@echo "Starting devcontainer..."
+	@devcontainer up --workspace-folder .
+	@echo ""
+	@echo "Attaching to container... Run 'claude' to start Claude Code"
+	@echo ""
+	@devcontainer exec --workspace-folder . /bin/bash
+
+# Attach to running devcontainer
+dev-attach:
+	@devcontainer exec --workspace-folder . /bin/bash
+
+# Stop devcontainer
+dev-stop:
+	@docker stop $$(docker ps -q --filter "label=devcontainer.local_folder=$$(pwd)") 2>/dev/null || true
+
+# Rebuild devcontainer from scratch
+dev-rebuild:
+	@devcontainer up --workspace-folder . --remove-existing-container
