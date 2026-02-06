@@ -1,11 +1,15 @@
 import { Document } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
-import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS, RaceSectionVariant } from '@/lib/book-types'
 import { RaceSectionHeroPage } from './RaceSectionHeroPage'
 import { RaceSectionStatsPage } from './RaceSectionStatsPage'
 import { RaceSectionDescriptionPage } from './RaceSectionDescriptionPage'
 import { RaceSectionPhotosPage, getPhotoPageCount } from './RaceSectionPhotosPage'
 import { RaceSectionCommentsPage } from './RaceSectionCommentsPage'
+import { RaceSectionMapHeroPages } from './RaceSectionMapHero'
+import { RaceSectionPhotoEssayPages } from './RaceSectionPhotoEssay'
+import { RaceSectionStatsForwardPages } from './RaceSectionStatsForward'
+import { RaceSectionCompactPages } from './RaceSectionCompact'
 
 export interface RaceSectionProps {
     activity: StravaActivity
@@ -13,10 +17,11 @@ export interface RaceSectionProps {
     theme?: BookTheme
     mapboxToken?: string
     highlightLabel?: string
+    variant?: RaceSectionVariant
 }
 
 /**
- * Render race section pages
+ * Render default race section pages (full multi-page treatment)
  *
  * Page order prioritizes emotionally-compelling content:
  * 1. Hero photo with stats overlay (always)
@@ -27,7 +32,7 @@ export interface RaceSectionProps {
  *
  * Pages are conditionally rendered based on available content.
  */
-const renderPages = (props: {
+const renderDefaultPages = (props: {
     activity: StravaActivity
     format: BookFormat
     theme: BookTheme
@@ -94,6 +99,66 @@ const renderPages = (props: {
 }
 
 /**
+ * Route to the appropriate variant renderer based on the variant prop
+ */
+const renderPages = (props: {
+    activity: StravaActivity
+    format: BookFormat
+    theme: BookTheme
+    mapboxToken: string
+    highlightLabel: string
+    variant: RaceSectionVariant
+}) => {
+    const { variant, ...rest } = props
+
+    switch (variant) {
+        case 'map-hero':
+            return (
+                <RaceSectionMapHeroPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'photo-essay':
+            return (
+                <RaceSectionPhotoEssayPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'stats-forward':
+            return (
+                <RaceSectionStatsForwardPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'compact':
+            return (
+                <RaceSectionCompactPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'default':
+        default:
+            return renderDefaultPages(rest)
+    }
+}
+
+/**
  * RaceSection - Multi-page race section component
  * Returns a Document with pages for a race activity
  */
@@ -103,13 +168,15 @@ export const RaceSection = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
+    variant = 'default',
 }: RaceSectionProps) => {
     const props = {
         activity,
         format,
         theme,
         mapboxToken: mapboxToken || '',
-        highlightLabel: highlightLabel || ''
+        highlightLabel: highlightLabel || '',
+        variant,
     }
 
     return (
@@ -129,21 +196,22 @@ export const RaceSectionPages = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
+    variant = 'default',
 }: RaceSectionProps) => {
     const props = {
         activity,
         format,
         theme,
         mapboxToken: mapboxToken || '',
-        highlightLabel: highlightLabel || ''
+        highlightLabel: highlightLabel || '',
+        variant,
     }
 
     return renderPages(props)
 }
 
 // Legacy exports for backwards compatibility
-export type RaceSectionVariant = 'auto' | 'full'
-export type Race2pVariant = RaceSectionVariant
+export type Race2pVariant = 'auto' | 'full'
 export const Race_2p = RaceSection
 export const Race_2pSpread = RaceSection
 export const Race_2pSpreadPages = RaceSectionPages

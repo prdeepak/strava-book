@@ -13,7 +13,7 @@
  */
 
 import { Page, View, Text, StyleSheet, Document } from '@react-pdf/renderer'
-import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { BookFormat, BookTheme, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
@@ -34,6 +34,7 @@ interface ActivityLogProps {
   units?: 'metric' | 'imperial'
   title?: string
   mapboxToken?: string
+  variant?: ActivityLogVariant
 }
 
 // ============================================================================
@@ -238,8 +239,24 @@ export const ActivityLog = ({
   theme = DEFAULT_THEME,
   units = 'metric',
   title = 'Activity Log',
-  mapboxToken
+  mapboxToken,
+  variant = 'grid',
 }: ActivityLogProps) => {
+  // Route to dense-list variant if requested
+  if (variant === 'dense-list') {
+    return (
+      <ActivityLogDenseList
+        activities={activitiesProp}
+        activity={activityProp}
+        startIndex={startIndex}
+        activitiesPerPage={activitiesPerPage}
+        format={format}
+        theme={theme}
+        units={units}
+        title={title}
+      />
+    )
+  }
   const styles = createStyles(format, theme)
   const spacing = resolveSpacing(theme, format)
 
@@ -370,6 +387,224 @@ export const ActivityLog = ({
             )
           })}
         </View>
+      </View>
+    </Page>
+  )
+}
+
+// ============================================================================
+// DENSE LIST VARIANT
+// ============================================================================
+
+const createDenseListStyles = (format: BookFormat, theme: BookTheme) => {
+  const spacing = resolveSpacing(theme, format)
+  const heading = resolveTypography('heading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+
+  return StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: 0,
+      position: 'relative',
+    },
+    contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
+    },
+    pageHeader: {
+      marginBottom: spacing.sm,
+      paddingBottom: spacing.xs,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+    },
+    pageTitle: {
+      fontSize: heading.fontSize,
+      fontFamily: heading.fontFamily,
+      color: theme.primaryColor,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      paddingVertical: spacing.xs * 0.5,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.primaryColor + '40',
+      marginBottom: 2,
+    },
+    colDate: {
+      width: '12%',
+    },
+    colActivity: {
+      width: '32%',
+    },
+    colDistance: {
+      width: '14%',
+      alignItems: 'flex-end',
+    },
+    colTime: {
+      width: '16%',
+      alignItems: 'flex-end',
+    },
+    colPace: {
+      width: '14%',
+      alignItems: 'flex-end',
+    },
+    colElev: {
+      width: '12%',
+      alignItems: 'flex-end',
+    },
+    headerText: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '80',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      paddingVertical: 3 * format.scaleFactor,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.primaryColor + '15',
+      alignItems: 'center',
+    },
+    tableRowAlt: {
+      backgroundColor: theme.primaryColor + '05',
+    },
+    dateText: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '80',
+    },
+    activityName: {
+      fontSize: caption.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor,
+    },
+    activityType: {
+      fontSize: caption.fontSize * 0.8,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      marginTop: 1,
+    },
+    valueText: {
+      fontSize: caption.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.primaryColor,
+    },
+    prIndicator: {
+      fontSize: caption.fontSize * 0.75,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+    },
+  })
+}
+
+const ActivityLogDenseList = ({
+  activities: activitiesProp,
+  activity: activityProp,
+  startIndex = 0,
+  activitiesPerPage = 15,
+  format = FORMATS['10x10'],
+  theme = DEFAULT_THEME,
+  units = 'metric',
+  title = 'Activity Log',
+}: Omit<ActivityLogProps, 'mapboxToken' | 'variant'>) => {
+  const styles = createDenseListStyles(format, theme)
+
+  const activities = activitiesProp || (activityProp ? [activityProp] : [])
+  const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
+
+  return (
+    <Page
+      size={[format.dimensions.width, format.dimensions.height]}
+      style={styles.page}
+    >
+      <View style={styles.contentContainer}>
+        {/* Page Header */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>{title}</Text>
+        </View>
+
+        {/* Table Header */}
+        <View style={styles.tableHeader}>
+          <View style={styles.colDate}>
+            <Text style={styles.headerText}>Date</Text>
+          </View>
+          <View style={styles.colActivity}>
+            <Text style={styles.headerText}>Activity</Text>
+          </View>
+          <View style={styles.colDistance}>
+            <Text style={styles.headerText}>{units === 'metric' ? 'km' : 'mi'}</Text>
+          </View>
+          <View style={styles.colTime}>
+            <Text style={styles.headerText}>Time</Text>
+          </View>
+          <View style={styles.colPace}>
+            <Text style={styles.headerText}>Pace</Text>
+          </View>
+          <View style={styles.colElev}>
+            <Text style={styles.headerText}>Elev</Text>
+          </View>
+        </View>
+
+        {/* Table Rows */}
+        {pageActivities.map((activity, index) => {
+          const date = new Date(activity.start_date_local)
+          const dateStr = date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+          })
+          const time = formatTime(activity.moving_time)
+          const pace = formatPace(activity.moving_time, activity.distance, units)
+          const distance = units === 'metric'
+            ? (activity.distance / 1000).toFixed(1)
+            : (activity.distance / 1609.34).toFixed(1)
+          const elev = activity.total_elevation_gain > 0
+            ? `${Math.round(activity.total_elevation_gain)}m`
+            : '-'
+          const hasPR = (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
+
+          return (
+            <View
+              key={activity.id || index}
+              style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
+            >
+              <View style={styles.colDate}>
+                <Text style={styles.dateText}>{dateStr}</Text>
+              </View>
+              <View style={styles.colActivity}>
+                <Text style={styles.activityName}>
+                  {activity.name.length > 28
+                    ? activity.name.substring(0, 28) + '...'
+                    : activity.name}
+                </Text>
+                <Text style={styles.activityType}>
+                  {activity.sport_type || activity.type}
+                  {hasPR ? ' \u2605' : ''}
+                </Text>
+              </View>
+              <View style={styles.colDistance}>
+                <Text style={styles.valueText}>{distance}</Text>
+              </View>
+              <View style={styles.colTime}>
+                <Text style={styles.valueText}>{time}</Text>
+              </View>
+              <View style={styles.colPace}>
+                <Text style={styles.valueText}>{pace}</Text>
+              </View>
+              <View style={styles.colElev}>
+                <Text style={styles.valueText}>{elev}</Text>
+              </View>
+            </View>
+          )
+        })}
       </View>
     </Page>
   )

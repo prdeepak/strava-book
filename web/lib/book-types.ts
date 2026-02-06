@@ -4,6 +4,11 @@ import { BookPageType } from "./curator"
 // Re-export BookPageType for convenience
 export type { BookPageType }
 
+// === TEMPLATE VARIANT TYPES ===
+export type RaceSectionVariant = 'default' | 'map-hero' | 'photo-essay' | 'stats-forward' | 'compact'
+export type MonthlyDividerVariant = 'default' | 'photo-hero' | 'training-volume' | 'quote-calendar'
+export type ActivityLogVariant = 'grid' | 'dense-list'
+
 // === BOOK FORMAT (Square, print-ready) ===
 export interface BookFormat {
   size: '8x8' | '10x10' | '12x12'

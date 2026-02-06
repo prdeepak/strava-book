@@ -11,7 +11,7 @@ import { YearStatsPage } from './YearStats'
 import { MonthlyDividerSpreadPages } from './MonthlyDividerSpread'
 import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
-import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { BookFormat, BookTheme, YearSummary, MonthlyStats, RaceSectionVariant, MonthlyDividerVariant, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -209,6 +209,138 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
 }
 
 // ============================================================================
+// VARIANT SELECTION LOGIC
+// ============================================================================
+
+/**
+ * Get the photo count for a race activity
+ */
+function getRacePhotoCount(activity: StravaActivity): number {
+    const comprehensiveCount = activity.comprehensiveData?.photos?.length || 0
+    if (comprehensiveCount > 0) return comprehensiveCount
+    return activity.photos?.count || activity.total_photo_count || 0
+}
+
+/**
+ * Check if an activity has personal records
+ */
+function hasPersonalRecords(activity: StravaActivity): boolean {
+    return (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
+}
+
+/**
+ * Select the appropriate race section variant for each race.
+ *
+ * Selection rules (evaluated in order):
+ * 1. A-Race (longest distance): variant = 'default' (full 4-6 page treatment)
+ * 2. Races with 4+ photos: variant = 'photo-essay'
+ * 3. Races with no photos: variant = 'map-hero'
+ * 4. Races with PRs or exceptional stats: variant = 'stats-forward'
+ * 5. Remaining races: rotate variants based on position (never two identical adjacent)
+ */
+function selectRaceVariants(
+    races: StravaActivity[],
+    aRace: StravaActivity | undefined,
+): Map<number, RaceSectionVariant> {
+    const variantMap = new Map<number, RaceSectionVariant>()
+    const rotationVariants: RaceSectionVariant[] = ['compact', 'map-hero', 'stats-forward', 'compact']
+    let rotationIdx = 0
+    let lastVariant: RaceSectionVariant | null = null
+
+    for (const race of races) {
+        let variant: RaceSectionVariant
+
+        // Rule 1: A-Race gets the full treatment
+        if (aRace && race.id === aRace.id) {
+            variant = 'default'
+        }
+        // Rule 2: 4+ photos -> photo-essay
+        else if (getRacePhotoCount(race) >= 4) {
+            variant = 'photo-essay'
+        }
+        // Rule 3: No photos -> map-hero
+        else if (getRacePhotoCount(race) === 0) {
+            variant = 'map-hero'
+        }
+        // Rule 4: Has PRs -> stats-forward
+        else if (hasPersonalRecords(race)) {
+            variant = 'stats-forward'
+        }
+        // Rule 5: Rotate remaining
+        else {
+            variant = rotationVariants[rotationIdx % rotationVariants.length]
+            rotationIdx++
+        }
+
+        // Ensure no two adjacent races use the same variant
+        if (variant === lastVariant && variant !== 'default') {
+            const alternatives: RaceSectionVariant[] = ['compact', 'map-hero', 'stats-forward', 'photo-essay']
+            const alt = alternatives.find(v => v !== variant)
+            if (alt) variant = alt
+        }
+
+        variantMap.set(race.id, variant)
+        lastVariant = variant
+    }
+
+    return variantMap
+}
+
+/**
+ * Select monthly divider variant based on month data.
+ *
+ * Selection rules:
+ * - Month has featured photo -> 'photo-hero'
+ * - Month has 15+ activities -> 'training-volume'
+ * - Month has notable comments -> 'quote-calendar'
+ * - Rotate to avoid adjacent identical styles
+ */
+function selectMonthlyDividerVariant(
+    activities: StravaActivity[],
+    previousVariant: MonthlyDividerVariant | null,
+): MonthlyDividerVariant {
+    // Check for featured photo
+    const hasPhotos = activities.some(a => {
+        const photoCount = a.comprehensiveData?.photos?.length || a.photos?.count || a.total_photo_count || 0
+        return photoCount > 0
+    })
+
+    // Check for comments
+    const hasComments = activities.some(a =>
+        (a.comprehensiveData?.comments?.length || 0) > 0
+    )
+
+    let variant: MonthlyDividerVariant
+
+    if (hasPhotos) {
+        variant = 'photo-hero'
+    } else if (activities.length >= 15) {
+        variant = 'training-volume'
+    } else if (hasComments) {
+        variant = 'quote-calendar'
+    } else {
+        variant = 'default'
+    }
+
+    // Avoid adjacent identical variants
+    if (variant === previousVariant) {
+        const alternatives: MonthlyDividerVariant[] = ['default', 'training-volume', 'quote-calendar', 'photo-hero']
+        const alt = alternatives.find(v => v !== variant)
+        if (alt) variant = alt
+    }
+
+    return variant
+}
+
+/**
+ * Select activity log variant based on activity count.
+ * 10+ activities -> dense-list, otherwise grid
+ */
+function selectActivityLogVariant(activityCount: number): ActivityLogVariant {
+    return activityCount >= 10 ? 'dense-list' : 'grid'
+}
+
+// ============================================================================
 // BOOK ENTRY GENERATION
 // ============================================================================
 
@@ -329,20 +461,26 @@ export function generateBookEntries(
 
     // 6. ALL RACE PAGES (grouped together, no monthly dividers)
     const allRaces = activities.filter(a => a.workout_type === 1)
+    const raceVariantMap = selectRaceVariants(allRaces, aRace)
+
     allRaces.forEach(race => {
+        const raceVariant = raceVariantMap.get(race.id) || 'compact'
         entries.push({
             type: 'RACE_PAGE',
             activityId: race.id,
             title: race.name,
             pageNumber: currentPage,
+            raceVariant,
         })
-        // RaceSection uses 2 pages (spread) for compact variant
-        currentPage += 2
+        // Default variant uses more pages; others use 1-2
+        currentPage += raceVariant === 'default' ? 4 : 2
     })
 
     // 7. ACTIVITY LOG with Monthly Dividers
     // For each year-month with non-race activities: Monthly Divider → that month's activities
     // Sorted chronologically (Dec 2025 before Jan 2026)
+    let previousDividerVariant: MonthlyDividerVariant | null = null
+
     for (const yearMonthKey of sortedYearMonths) {
         const [yearStr, monthStr] = yearMonthKey.split('-')
         const entryYear = parseInt(yearStr, 10)
@@ -356,6 +494,13 @@ export function generateBookEntries(
             continue
         }
 
+        // Select monthly divider variant
+        const dividerVariant = selectMonthlyDividerVariant(monthActivities, previousDividerVariant)
+        previousDividerVariant = dividerVariant
+
+        // Select activity log variant
+        const logVariant = selectActivityLogVariant(monthNonRaces.length)
+
         // 7a. MONTHLY DIVIDER
         // When fewer than 3 activities, merge them into the divider (no separate log page)
         const mergeIntoMonthlyDivider = monthNonRaces.length < 3
@@ -366,17 +511,19 @@ export function generateBookEntries(
             title: MONTH_NAMES[month],
             highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
+            monthlyDividerVariant: dividerVariant,
             // Pass inline activity IDs for small months
             activityIds: mergeIntoMonthlyDivider ? monthNonRaces.map(a => a.id) : undefined,
         })
 
         // 7b. ACTIVITY LOG PAGES for this month (skip if merged into divider)
         if (!mergeIntoMonthlyDivider) {
-            const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
+            const effectivePerPage = logVariant === 'dense-list' ? 15 : activitiesPerPage
+            const totalLogPages = Math.ceil(monthNonRaces.length / effectivePerPage)
 
             for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
-                const startIdx = pageNum * activitiesPerPage
-                const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
+                const startIdx = pageNum * effectivePerPage
+                const pageActivities = monthNonRaces.slice(startIdx, startIdx + effectivePerPage)
 
                 entries.push({
                     type: 'ACTIVITY_LOG',
@@ -385,6 +532,7 @@ export function generateBookEntries(
                     title: totalLogPages > 1
                         ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
                         : `${MONTH_NAMES[month]} ${entryYear}`,
+                    activityLogVariant: logVariant,
                 })
             }
         }
@@ -541,6 +689,7 @@ export const BookDocument = ({
                             theme={theme}
                             mapboxToken={mapboxToken}
                             highlightLabel={entry.highlightLabel}
+                            variant={entry.raceVariant || 'default'}
                         />
                     )
                 }
@@ -576,6 +725,7 @@ export const BookDocument = ({
                             format={format}
                             theme={theme}
                             inlineActivities={inlineActivities}
+                            variant={entry.monthlyDividerVariant || 'default'}
                         />
                     )
                 }
@@ -629,10 +779,11 @@ export const BookDocument = ({
                             key={index}
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page
-                            activitiesPerPage={perPage}
+                            activitiesPerPage={entry.activityLogVariant === 'dense-list' ? 15 : perPage}
                             format={format}
                             theme={theme}
                             mapboxToken={mapboxToken}
+                            variant={entry.activityLogVariant || 'grid'}
                         />
                     )
                 }
