@@ -135,13 +135,15 @@ export interface RaceSectionHeroPageProps {
     format: BookFormat
     theme: BookTheme
     highlightLabel?: string
+    mapboxToken?: string
 }
 
 export const RaceSectionHeroPage = ({
     activity,
     format,
     theme = DEFAULT_THEME,
-    highlightLabel
+    highlightLabel,
+    mapboxToken
 }: RaceSectionHeroPageProps) => {
     // Check for high-res photo - prefer higher resolution if available
     let bgImage: string | null = null
@@ -160,6 +162,13 @@ export const RaceSectionHeroPage = ({
             // For PDF generation we want the direct external URL
             bgImage = resolveImageForPdf(rawUrl)
         }
+    }
+
+    // Fallback: use Mapbox satellite map of the route when no photo is available
+    if (!bgImage && mapboxToken && activity.map?.summary_polyline) {
+        const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
+        const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/600x600?access_token=${mapboxToken}&logo=false&attrib=false`
+        bgImage = resolveImageForPdf(rawUrl)
     }
 
     const styles = createStyles(format, theme, !!bgImage)

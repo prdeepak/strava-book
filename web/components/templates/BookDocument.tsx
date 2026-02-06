@@ -357,6 +357,8 @@ export function generateBookEntries(
         }
 
         // 7a. MONTHLY DIVIDER
+        // When fewer than 3 activities, merge them into the divider (no separate log page)
+        const mergeIntoMonthlyDivider = monthNonRaces.length < 3
         entries.push({
             type: 'MONTHLY_DIVIDER',
             month,
@@ -364,23 +366,27 @@ export function generateBookEntries(
             title: MONTH_NAMES[month],
             highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
+            // Pass inline activity IDs for small months
+            activityIds: mergeIntoMonthlyDivider ? monthNonRaces.map(a => a.id) : undefined,
         })
 
-        // 7b. ACTIVITY LOG PAGES for this month
-        const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
+        // 7b. ACTIVITY LOG PAGES for this month (skip if merged into divider)
+        if (!mergeIntoMonthlyDivider) {
+            const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
 
-        for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
-            const startIdx = pageNum * activitiesPerPage
-            const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
+            for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
+                const startIdx = pageNum * activitiesPerPage
+                const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
 
-            entries.push({
-                type: 'ACTIVITY_LOG',
-                activityIds: pageActivities.map(a => a.id),
-                pageNumber: currentPage++,
-                title: totalLogPages > 1
-                    ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
-                    : `${MONTH_NAMES[month]} ${entryYear}`,
-            })
+                entries.push({
+                    type: 'ACTIVITY_LOG',
+                    activityIds: pageActivities.map(a => a.id),
+                    pageNumber: currentPage++,
+                    title: totalLogPages > 1
+                        ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
+                        : `${MONTH_NAMES[month]} ${entryYear}`,
+                })
+            }
         }
     }
 
@@ -554,6 +560,11 @@ export const BookDocument = ({
                         ? activities.find(a => a.id === entry.highlightActivityId)
                         : undefined
 
+                    // When activityIds are set, these are inline activities to show on the divider
+                    const inlineActivities = entry.activityIds
+                        ? activities.filter(a => entry.activityIds?.includes(a.id))
+                        : undefined
+
                     // MonthlyDividerSpreadPages is a 2-page spread with photos and calendar (no Document wrapper)
                     return (
                         <MonthlyDividerSpreadPages
@@ -564,6 +575,7 @@ export const BookDocument = ({
                             year={entry.year!}
                             format={format}
                             theme={theme}
+                            inlineActivities={inlineActivities}
                         />
                     )
                 }
