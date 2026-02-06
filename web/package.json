@@ -23,6 +23,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "@types/mapbox__polyline": "^1.0.5",
     "dotenv": "^17.2.4",
+    "fit-file-parser": "^2.3.1",
     "next": "16.0.10",
     "next-auth": "^4.24.13",
     "pdf-lib": "^1.17.1",
