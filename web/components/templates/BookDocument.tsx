@@ -341,6 +341,53 @@ function selectActivityLogVariant(activityCount: number): ActivityLogVariant {
 }
 
 // ============================================================================
+// VARIANT ENRICHMENT (applied at render time to entries from any source)
+// ============================================================================
+
+/**
+ * Enrich entries with variant selections if not already set.
+ * This ensures variants are applied regardless of which generateBookEntries
+ * function produced the entries (BookDocument.tsx or book-entry-generator.ts).
+ */
+function applyVariantSelection(
+    entries: BookEntry[],
+    activities: StravaActivity[],
+): BookEntry[] {
+    // Find races for variant selection
+    const raceEntries = entries.filter(e => e.type === 'RACE_PAGE' && e.activityId)
+    const raceActivities = raceEntries
+        .map(e => activities.find(a => a.id === e.activityId))
+        .filter((a): a is StravaActivity => !!a)
+    const aRace = raceActivities.length > 0
+        ? raceActivities.reduce((longest, a) => a.distance > longest.distance ? a : longest)
+        : undefined
+    const raceVariantMap = selectRaceVariants(raceActivities, aRace)
+
+    // Track previous divider variant for alternation
+    let previousDividerVariant: MonthlyDividerVariant | null = null
+
+    return entries.map(entry => {
+        if (entry.type === 'RACE_PAGE' && entry.activityId && !entry.raceVariant) {
+            return { ...entry, raceVariant: raceVariantMap.get(entry.activityId) || 'compact' }
+        }
+        if (entry.type === 'MONTHLY_DIVIDER' && !entry.monthlyDividerVariant) {
+            const monthActivities = activities.filter(a => {
+                const d = new Date(a.start_date_local || a.start_date)
+                return d.getMonth() === entry.month && d.getFullYear() === entry.year
+            })
+            const variant = selectMonthlyDividerVariant(monthActivities, previousDividerVariant)
+            previousDividerVariant = variant
+            return { ...entry, monthlyDividerVariant: variant }
+        }
+        if (entry.type === 'ACTIVITY_LOG' && !entry.activityLogVariant) {
+            const count = entry.activityIds?.length || 6
+            return { ...entry, activityLogVariant: selectActivityLogVariant(count) }
+        }
+        return entry
+    })
+}
+
+// ============================================================================
 // BOOK ENTRY GENERATION
 // ============================================================================
 
@@ -611,8 +658,11 @@ export const BookDocument = ({
     // Uses the comprehensive computeYearSummary function for proper monthly stats
     const computedYearSummary: YearSummary = yearSummary || computeYearSummary(activities, year)
 
+    // Apply variant selection to entries that don't already have variants set
+    const enrichedEntries = applyVariantSelection(entries, activities)
+
     // Insert blank pages for print-ready output if requested
-    const processedEntries = printReady ? insertBlankPagesForPrint(entries) : entries
+    const processedEntries = printReady ? insertBlankPagesForPrint(enrichedEntries) : enrichedEntries
 
     // Build TOC entries from draft entries
     // Exclude: COVER, TABLE_OF_CONTENTS, ACTIVITY_LOG (only show dividers, not individual log pages)
