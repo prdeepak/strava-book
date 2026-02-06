@@ -37,8 +37,8 @@ const renderPages = (props: {
     const { activity, format, theme, mapboxToken, highlightLabel } = props
     const photoPageCount = getPhotoPageCount(activity)
     const hasDescription = !!activity.description
-    const hasComments = (activity.comprehensiveData?.comments?.length || activity.comments?.length || 0) > 0 ||
-        (activity.kudos_count || 0) > 0
+    const commentCount = activity.comprehensiveData?.comments?.length || activity.comments?.length || 0
+    const hasEnoughComments = commentCount >= 3
 
     return (
         <>
@@ -48,19 +48,22 @@ const renderPages = (props: {
                 format={format}
                 theme={theme}
                 highlightLabel={highlightLabel}
+                mapboxToken={mapboxToken}
             />
 
             {/* 2. Description page - the athlete's story */}
+            {/*    When < 3 comments, inline them here instead of a separate page */}
             {hasDescription && (
                 <RaceSectionDescriptionPage
                     activity={activity}
                     format={format}
                     theme={theme}
+                    inlineComments={!hasEnoughComments}
                 />
             )}
 
-            {/* 3. Comments & kudos page - community support */}
-            {hasComments && (
+            {/* 3. Comments & kudos page - only when 3+ comments justify a full page */}
+            {hasEnoughComments && (
                 <RaceSectionCommentsPage
                     activity={activity}
                     format={format}

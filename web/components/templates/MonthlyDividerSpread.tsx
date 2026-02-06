@@ -22,6 +22,8 @@ interface MonthlyDividerSpreadProps {
   units?: 'metric' | 'imperial'
   // For test harness compatibility
   activity?: StravaActivity
+  /** Activities to display inline on the right page (when < 3 activities, merged from activity log) */
+  inlineActivities?: StravaActivity[]
 }
 
 // Check if an activity has photos
@@ -368,12 +370,38 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       justifyContent: 'center',
       alignItems: 'center',
       borderRadius: 4 * format.scaleFactor,
+      padding: spacing.lg,
     },
     noPhotosText: {
       color: theme.backgroundColor,
-      fontSize: displaySmall.fontSize,
+      fontSize: displaySmall.fontSize * 1.5,
       fontFamily: displaySmall.fontFamily,
-      opacity: effects.textOverlayOpacity,
+      opacity: 0.15,
+      textTransform: 'uppercase',
+      letterSpacing: displaySmall.letterSpacing ?? 2,
+    },
+    noPhotosStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      width: '100%',
+      marginTop: spacing.lg,
+    },
+    noPhotosStatItem: {
+      alignItems: 'center',
+    },
+    noPhotosStatValue: {
+      fontSize: stat.fontSize * 1.5,
+      fontFamily: stat.fontFamily,
+      color: theme.accentColor,
+      marginBottom: spacing.xs * 0.5,
+    },
+    noPhotosStatLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.backgroundColor,
+      opacity: 0.6,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
     },
 
     // Right page styles
@@ -398,9 +426,10 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       letterSpacing: 2,
     },
 
-    // Calendar section
+    // Calendar section - enlarged to fill more space
     calendarSection: {
       marginBottom: spacing.md,
+      flex: 1,
     },
     calendarLabel: {
       fontSize: caption.fontSize,
@@ -427,18 +456,65 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       flex: 1,
     },
     statValue: {
-      fontSize: stat.fontSize,
+      fontSize: stat.fontSize * 1.2,
       fontFamily: stat.fontFamily,
       color: theme.accentColor,
       marginBottom: spacing.xs * 0.5,
     },
     statLabel: {
-      fontSize: caption.fontSize * 0.8,
+      fontSize: caption.fontSize,
       fontFamily: caption.fontFamily,
       color: theme.primaryColor,
       opacity: effects.backgroundImageOpacity + 0.1,
       textTransform: 'uppercase',
-      letterSpacing: 1,
+      letterSpacing: 1.5,
+    },
+
+    // Inline activity cards (for small months merged into divider)
+    inlineActivitiesSection: {
+      marginBottom: spacing.sm,
+    },
+    inlineActivitiesLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm * 0.75,
+    },
+    inlineActivityCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm * 0.75,
+      paddingBottom: spacing.sm * 0.75,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.primaryColor,
+      borderBottomStyle: 'solid',
+    },
+    inlineActivityName: {
+      fontSize: body.fontSize * 0.9,
+      fontFamily: heading.fontFamily,
+      color: theme.primaryColor,
+      flex: 1,
+      marginRight: spacing.xs,
+    },
+    inlineActivityDate: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: 0.6,
+      marginBottom: spacing.xs * 0.25,
+    },
+    inlineActivityStats: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    inlineActivityStat: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
     },
 
     // Comments section
@@ -602,6 +678,20 @@ export const MonthlyDividerSpread = ({
         ) : (
           <View style={styles.noPhotosPage}>
             <Text style={styles.noPhotosText}>{monthName}</Text>
+            <View style={styles.noPhotosStatsRow}>
+              <View style={styles.noPhotosStatItem}>
+                <Text style={styles.noPhotosStatValue}>{stats.activityCount}</Text>
+                <Text style={styles.noPhotosStatLabel}>Activities</Text>
+              </View>
+              <View style={styles.noPhotosStatItem}>
+                <Text style={styles.noPhotosStatValue}>{formatDistance(stats.totalDistance, units)}</Text>
+                <Text style={styles.noPhotosStatLabel}>Distance</Text>
+              </View>
+              <View style={styles.noPhotosStatItem}>
+                <Text style={styles.noPhotosStatValue}>{formatTime(stats.totalTime)}</Text>
+                <Text style={styles.noPhotosStatLabel}>Time</Text>
+              </View>
+            </View>
           </View>
         )}
       </Page>
@@ -627,7 +717,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
-              cellSize={22 * format.scaleFactor}
+              cellSize={32 * format.scaleFactor}
             />
           ) : (
             // Use icon calendar for mixed-sport months
@@ -639,7 +729,7 @@ export const MonthlyDividerSpread = ({
               theme={theme}
               showMonthLabel={false}
               showWeekdayLabels={true}
-              cellSize={22 * format.scaleFactor}
+              cellSize={32 * format.scaleFactor}
             />
           )}
         </View>
@@ -768,6 +858,24 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
       ) : (
         <View style={styles.noPhotosPage}>
           <Text style={styles.noPhotosText}>{monthName}</Text>
+          <View style={styles.noPhotosStatsRow}>
+            <View style={styles.noPhotosStatItem}>
+              <Text style={styles.noPhotosStatValue}>{allActivities.length}</Text>
+              <Text style={styles.noPhotosStatLabel}>Activities</Text>
+            </View>
+            <View style={styles.noPhotosStatItem}>
+              <Text style={styles.noPhotosStatValue}>
+                {formatDistance(allActivities.reduce((sum, a) => sum + (a.distance || 0), 0), props.units || 'metric')}
+              </Text>
+              <Text style={styles.noPhotosStatLabel}>Distance</Text>
+            </View>
+            <View style={styles.noPhotosStatItem}>
+              <Text style={styles.noPhotosStatValue}>
+                {formatTime(allActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0))}
+              </Text>
+              <Text style={styles.noPhotosStatLabel}>Time</Text>
+            </View>
+          </View>
         </View>
       )}
     </Page>
@@ -828,6 +936,9 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
     activeDays: new Set(allActivities.map(a => (a.start_date_local || a.start_date).split('T')[0])).size,
   }
 
+  // Inline activities (merged from activity log for small months)
+  const inlineActivities = props.inlineActivities || []
+
   return (
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
       <View style={styles.rightPageHeader}>
@@ -878,6 +989,34 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
           <Text style={styles.statLabel}>Time</Text>
         </View>
       </View>
+
+      {/* Inline Activities Section (for small months merged from activity log) */}
+      {inlineActivities.length > 0 && (
+        <View style={styles.inlineActivitiesSection}>
+          <Text style={styles.inlineActivitiesLabel}>Activities</Text>
+          {inlineActivities.map((act, idx) => (
+            <View key={idx} style={styles.inlineActivityCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inlineActivityDate}>
+                  {new Date(act.start_date_local || act.start_date).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+                <Text style={styles.inlineActivityName}>{act.name}</Text>
+              </View>
+              <View style={styles.inlineActivityStats}>
+                <Text style={styles.inlineActivityStat}>
+                  {formatDistance(act.distance || 0, units)}
+                </Text>
+                <Text style={styles.inlineActivityStat}>
+                  {formatTime(act.moving_time || 0)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Comments Section - prefer featured activity comments, fallback to top comments */}
       {(featuredComments.length > 0 || topComments.length > 0) && (
