@@ -27,7 +27,7 @@ import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
-// AutoResizingPdfText available if needed for future editorial pages
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 import { RaceDataViz } from '@/components/pdf/RaceDataViz'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
 import mapboxPolyline from '@mapbox/polyline'
@@ -213,7 +213,17 @@ const P1PhotoGallery = ({
             <View style={styles.contentContainer}>
                 <View style={styles.header}>
                     <Text style={styles.labelText}>{highlightLabel || dateStr}</Text>
-                    <Text style={styles.raceName}>{activity.name}</Text>
+                    <AutoResizingPdfText
+                        text={activity.name}
+                        width={contentWidth}
+                        height={displaySmall.fontSize * 2}
+                        font={displaySmall.fontFamily}
+                        min_fontsize={displaySmall.minFontSize}
+                        max_fontsize={displaySmall.fontSize}
+                        h_align="left"
+                        v_align="top"
+                        textColor={theme.primaryColor}
+                    />
                     {location && <Text style={styles.locationText}>{location}</Text>}
                 </View>
 
@@ -498,7 +508,17 @@ const P3DescriptionSplits = ({
             <View style={styles.contentContainer}>
                 <View style={styles.header}>
                     <Text style={styles.sectionLabel}>Race Story</Text>
-                    <Text style={styles.raceName}>{activity.name}</Text>
+                    <AutoResizingPdfText
+                        text={activity.name}
+                        width={contentWidth}
+                        height={heading.fontSize * 2}
+                        font={heading.fontFamily}
+                        min_fontsize={heading.minFontSize}
+                        max_fontsize={heading.fontSize}
+                        h_align="left"
+                        v_align="top"
+                        textColor={theme.primaryColor}
+                    />
                 </View>
 
                 <View style={styles.divider} />

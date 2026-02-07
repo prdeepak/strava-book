@@ -176,9 +176,9 @@ endif
 
 web-check:
 ifeq ($(IS_DEVCONTAINER),yes)
-	cd /app/web && ./scripts/smart-npm-install.sh && npm run lint && npm run build
+	cd /app/web && ./scripts/smart-npm-install.sh && npm run lint && npx tsx scripts/lint-templates.ts && npm run build
 else
-	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run lint && npm run build"
+	$(COMPOSE_CMD) run --rm -w /app/web web sh -c "./scripts/smart-npm-install.sh && npm run lint && npx tsx scripts/lint-templates.ts && npm run build"
 endif
 
 web-restart:

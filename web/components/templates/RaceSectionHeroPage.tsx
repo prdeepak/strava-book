@@ -5,6 +5,7 @@ import { resolveActivityLocation, formatDistanceValue, formatTime, formatPace, f
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { PdfImage } from '@/components/pdf/PdfImage'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
 // Register emoji source for proper emoji rendering in PDFs
 Font.registerEmojiSource({
@@ -172,6 +173,7 @@ export const RaceSectionHeroPage = ({
     }
 
     const styles = createStyles(format, theme, !!bgImage)
+    const heading = resolveTypography('heading', theme, format)
 
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)
@@ -217,7 +219,17 @@ export const RaceSectionHeroPage = ({
 
                 {location ? <Text style={styles.meta}>{location}</Text> : null}
 
-                <Text style={styles.title}>{activity.name}</Text>
+                <AutoResizingPdfText
+                    text={activity.name}
+                    width={format.dimensions.width - (format.safeMargin * 2)}
+                    height={heading.fontSize * 2.5}
+                    font={heading.fontFamily}
+                    min_fontsize={heading.minFontSize}
+                    max_fontsize={heading.fontSize}
+                    h_align="left"
+                    v_align="bottom"
+                    textColor={theme.backgroundColor}
+                />
 
                 <View style={styles.statsRow}>
                     <View style={styles.stat}>

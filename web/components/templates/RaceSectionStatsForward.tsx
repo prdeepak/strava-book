@@ -14,6 +14,7 @@ import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValu
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
 interface RaceSectionStatsForwardProps {
     activity: StravaActivity
@@ -150,6 +151,7 @@ export const RaceSectionStatsForwardPages = ({
     highlightLabel,
 }: RaceSectionStatsForwardProps) => {
     const styles = createStyles(format, theme)
+    const heading = resolveTypography('heading', theme, format)
 
     const location = resolveActivityLocation(activity)
     const distanceKm = formatDistanceValue(activity.distance)
@@ -188,7 +190,17 @@ export const RaceSectionStatsForwardPages = ({
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.dateText}>{dateStr}</Text>
-                    <Text style={styles.raceName}>{activity.name}</Text>
+                    <AutoResizingPdfText
+                        text={activity.name}
+                        width={format.dimensions.width - (format.safeMargin * 2)}
+                        height={heading.fontSize * 2}
+                        font={heading.fontFamily}
+                        min_fontsize={heading.minFontSize}
+                        max_fontsize={heading.fontSize}
+                        h_align="left"
+                        v_align="top"
+                        textColor={theme.primaryColor}
+                    />
                     {location && <Text style={styles.locationText}>{location}</Text>}
                 </View>
 

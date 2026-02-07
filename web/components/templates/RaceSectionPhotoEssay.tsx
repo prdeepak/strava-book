@@ -14,6 +14,7 @@ import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValu
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
 interface RaceSectionPhotoEssayProps {
     activity: StravaActivity
@@ -152,6 +153,7 @@ export const RaceSectionPhotoEssayPages = ({
     highlightLabel,
 }: RaceSectionPhotoEssayProps) => {
     const styles = createStyles(format, theme)
+    const heading = resolveTypography('heading', theme, format)
     const spacing = resolveSpacing(theme, format)
 
     const location = resolveActivityLocation(activity)
@@ -185,7 +187,17 @@ export const RaceSectionPhotoEssayPages = ({
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.dateText}>{highlightLabel || dateStr}</Text>
-                    <Text style={styles.raceName}>{activity.name}</Text>
+                    <AutoResizingPdfText
+                        text={activity.name}
+                        width={contentWidth}
+                        height={heading.fontSize * 2}
+                        font={heading.fontFamily}
+                        min_fontsize={heading.minFontSize}
+                        max_fontsize={heading.fontSize}
+                        h_align="left"
+                        v_align="top"
+                        textColor={theme.primaryColor}
+                    />
                     {location && <Text style={styles.locationText}>{location}</Text>}
                 </View>
 
