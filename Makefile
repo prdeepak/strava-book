@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-attach dev-stop dev-rebuild
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-attach dev-stop dev-rebuild real-book
 
 # =============================================================================
 # Environment Detection
@@ -53,6 +53,7 @@ help:
 	@echo "  make test-list        - List available templates and fixtures"
 	@echo "  make test-graphic-list - List available graphics (splits, elevation, map, heatmap)"
 	@echo "  make test-book        - Generate test book PDF (filter=X scoring=1 pdfByPage=1)"
+	@echo "  make real-book        - Generate book from real Strava data (label=X)"
 	@echo ""
 	@echo "Multi-agent workspace commands:"
 	@echo "  make workspace-new name=X              - Create isolated workspace"
@@ -344,6 +345,27 @@ else
 		$(if $(scoring),--score) \
 		$(if $(pdfByPage),--pdfByPage) \
 		$(if $(filter),--filter=$(filter))
+endif
+
+# Generate book from real cached Strava data
+# Usage: make real-book [label=NAME]
+# Examples:
+#   make real-book                    # Generate with default label
+#   make real-book label=comrades     # Generate with custom label
+real-book:
+	@echo "📖 Generating real-data book..."
+ifeq ($(IS_DEVCONTAINER),yes)
+	cd /app && export $$(grep NEXT_PUBLIC_MAPBOX_TOKEN /app/web/.env.local) && \
+		NODE_PATH=web/node_modules npx tsx --tsconfig web/tsconfig.json scripts/generate-real-book.ts \
+		$(if $(label),--label=$(label))
+	@echo "📂 Opening PDF..."
+	@ls -t /app/web/outputs/*.pdf 2>/dev/null | head -1 | xargs -I{} echo "PDF: {}"
+else
+	export $$(grep NEXT_PUBLIC_MAPBOX_TOKEN web/.env.local) && \
+		NODE_PATH=web/node_modules npx tsx --tsconfig web/tsconfig.json scripts/generate-real-book.ts \
+		$(if $(label),--label=$(label))
+	@echo "📂 Opening PDF..."
+	@ls -t web/outputs/*.pdf 2>/dev/null | head -1 | xargs -I{} open "{}"
 endif
 
 test-e2e-ci:
