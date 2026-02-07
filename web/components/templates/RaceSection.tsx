@@ -10,6 +10,8 @@ import { RaceSectionMapHeroPages } from './RaceSectionMapHero'
 import { RaceSectionPhotoEssayPages } from './RaceSectionPhotoEssay'
 import { RaceSectionStatsForwardPages } from './RaceSectionStatsForward'
 import { RaceSectionCompactPages } from './RaceSectionCompact'
+import { RaceSectionMagazinePages } from './RaceSectionMagazine'
+import { RaceSectionEditorialPages } from './RaceSectionEditorial'
 
 export interface RaceSectionProps {
     activity: StravaActivity
@@ -18,6 +20,8 @@ export interface RaceSectionProps {
     mapboxToken?: string
     highlightLabel?: string
     variant?: RaceSectionVariant
+    /** Alias for variant - used by test harness */
+    layoutVariant?: RaceSectionVariant
 }
 
 /**
@@ -142,6 +146,26 @@ const renderPages = (props: {
                     highlightLabel={rest.highlightLabel}
                 />
             )
+        case 'magazine':
+            return (
+                <RaceSectionMagazinePages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'editorial':
+            return (
+                <RaceSectionEditorialPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
         case 'compact':
             return (
                 <RaceSectionCompactPages
@@ -168,15 +192,17 @@ export const RaceSection = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
-    variant = 'default',
+    variant,
+    layoutVariant,
 }: RaceSectionProps) => {
+    const resolvedVariant = variant || layoutVariant || 'default'
     const props = {
         activity,
         format,
         theme,
         mapboxToken: mapboxToken || '',
         highlightLabel: highlightLabel || '',
-        variant,
+        variant: resolvedVariant,
     }
 
     return (
@@ -196,15 +222,17 @@ export const RaceSectionPages = ({
     theme = DEFAULT_THEME,
     mapboxToken,
     highlightLabel,
-    variant = 'default',
+    variant,
+    layoutVariant,
 }: RaceSectionProps) => {
+    const resolvedVariant = variant || layoutVariant || 'default'
     const props = {
         activity,
         format,
         theme,
         mapboxToken: mapboxToken || '',
         highlightLabel: highlightLabel || '',
-        variant,
+        variant: resolvedVariant,
     }
 
     return renderPages(props)

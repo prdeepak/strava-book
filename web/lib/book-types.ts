@@ -5,7 +5,7 @@ import { BookPageType } from "./curator"
 export type { BookPageType }
 
 // === TEMPLATE VARIANT TYPES ===
-export type RaceSectionVariant = 'default' | 'map-hero' | 'photo-essay' | 'stats-forward' | 'compact'
+export type RaceSectionVariant = 'default' | 'map-hero' | 'photo-essay' | 'stats-forward' | 'compact' | 'magazine' | 'editorial'
 export type MonthlyDividerVariant = 'default' | 'photo-hero' | 'training-volume' | 'quote-calendar'
 export type ActivityLogVariant = 'grid' | 'dense-list'
 
@@ -137,6 +137,12 @@ export interface BookTheme {
   // Ensures proper contrast for accent-colored text on stats pages
   accentBackground?: string
   backgroundColor: string
+  /** Subtle background for inset containers, map fallbacks, empty states */
+  surfaceColor?: string
+  /** Subtle color for borders, grid lines, dividers — must be a valid hex for SVG use */
+  borderColor?: string
+  /** Text color for use on accent-colored backgrounds (e.g., kudos banner) */
+  textOverAccent?: string
   fontPairing: {
     heading: string         // e.g., "Oswald"
     body: string            // e.g., "Source Sans Pro"
@@ -153,9 +159,12 @@ export interface BookTheme {
 
 // Default theme for when no theme is provided
 export const DEFAULT_THEME: BookTheme = {
-  primaryColor: '#1a1a1a',
+  primaryColor: '#2d2d2d',
   accentColor: '#ff6b35',
   backgroundColor: '#ffffff',
+  surfaceColor: '#f5f5f5',
+  borderColor: '#e0e0e0',
+  textOverAccent: '#ffffff',
   fontPairing: {
     heading: 'Helvetica-Bold',
     body: 'Helvetica',

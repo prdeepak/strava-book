@@ -85,9 +85,12 @@ With AutoResizingPdfText:
 
 | Color | Purpose | Default |
 |-------|---------|---------|
-| `primaryColor` | Dark brand color, text backgrounds | `#1a1a1a` |
+| `primaryColor` | Dark brand color, text backgrounds | `#2d2d2d` |
 | `accentColor` | Highlights, titles, decorative elements | `#ff6b35` |
 | `backgroundColor` | Page background, light text on dark | `#ffffff` |
+| `surfaceColor` | Subtle inset backgrounds, map fallbacks | `#f5f5f5` |
+| `borderColor` | Borders, grid lines, dividers (valid hex for SVG) | `#e0e0e0` |
+| `textOverAccent` | Text on accent-colored backgrounds | `#ffffff` |
 | `accentForWhiteBg` | Accessible accent on white (optional) | - |
 | `accentBackground` | Background for accent-colored text | - |
 
