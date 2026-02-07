@@ -1,14 +1,13 @@
 /**
- * RaceSectionEditorial - "Editorial" race variant (6 pages)
+ * RaceSectionEditorial - "Editorial" race variant (2-5 pages, adaptive)
  *
- * A rich, magazine-style multi-page treatment for marquee races.
- * Pages:
- *   1. Photo gallery / collage opening
- *   2. Wide panoramic route map (Mapbox satellite)
- *   3. Race name + description + photo + splits chart
- *   4. Full-page route map (different zoom/style)
- *   5. Best Efforts + Stats
- *   6. Community / Comments
+ * A rich, magazine-style multi-page treatment for races.
+ * Pages are conditionally rendered based on data availability:
+ *   1. Photo gallery / collage opening      (skip if no photos)
+ *   2. Wide panoramic route map (satellite)  (skip if no map data)
+ *   3. Race name + description + splits + optional inline comments (always)
+ *   4. Best Efforts + Stats                  (always)
+ *   5. Community / Comments                  (skip if inlined or no comments)
  */
 
 import { Page, View, Text, StyleSheet, Font, Svg, Polyline } from '@react-pdf/renderer'
@@ -22,7 +21,6 @@ import {
     formatElevation,
     processSplits,
     getMapboxSatelliteUrl,
-    getMapboxLightUrl,
 } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
@@ -395,7 +393,8 @@ const P3DescriptionSplits = ({
     activity,
     format,
     theme,
-}: RaceSectionEditorialProps) => {
+    inlineComments,
+}: RaceSectionEditorialProps & { inlineComments?: Array<{ athlete: { firstname: string; lastname: string }; text: string; created_at: string }> }) => {
     const heading = resolveTypography('heading', theme, format)
     const body = resolveTypography('body', theme, format)
     const caption = resolveTypography('caption', theme, format)
@@ -513,6 +512,21 @@ const P3DescriptionSplits = ({
                                 No description provided for this activity.
                             </Text>
                         )}
+                        {inlineComments && inlineComments.length > 0 && (
+                            <View style={{ marginTop: spacing.md, borderTopWidth: 0.5, borderTopColor: theme.primaryColor + '15', paddingTop: spacing.sm }}>
+                                <Text style={{ fontSize: caption.fontSize * 0.85, fontFamily: caption.fontFamily, color: theme.accentColor, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: spacing.xs }}>Comments</Text>
+                                {inlineComments.map((comment, idx) => (
+                                    <View key={idx} style={{ marginBottom: spacing.xs }}>
+                                        <Text style={{ fontSize: caption.fontSize, fontFamily: heading.fontFamily, color: theme.primaryColor }}>
+                                            {comment.athlete.firstname} {comment.athlete.lastname}
+                                        </Text>
+                                        <Text style={{ fontSize: body.fontSize * 0.9, fontFamily: body.fontFamily, color: theme.primaryColor + 'CC', lineHeight: 1.4 }}>
+                                            {comment.text.substring(0, 200)}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
                     </View>
                     {sidePhoto && (
                         <View style={styles.photoColumn}>
@@ -556,132 +570,7 @@ const P3DescriptionSplits = ({
 }
 
 // ============================================================================
-// PAGE 4: FULL-PAGE ROUTE MAP (light style, different from page 2)
-// ============================================================================
-
-const P4FullMap = ({
-    activity,
-    format,
-    theme,
-    mapboxToken,
-}: RaceSectionEditorialProps) => {
-    const caption = resolveTypography('caption', theme, format)
-    const spacing = resolveSpacing(theme, format)
-
-    const mapWidth = format.dimensions.width - (format.safeMargin * 2)
-    const mapHeight = format.dimensions.height - (format.safeMargin * 2) - (40 * format.scaleFactor)
-
-    const lightMapUrl = (mapboxToken && activity.map?.summary_polyline)
-        ? resolveImageForPdf(getMapboxLightUrl(
-            activity.map.summary_polyline,
-            mapboxToken,
-            Math.round(mapWidth * 2),
-            Math.round(mapHeight * 2),
-        )) || undefined
-        : undefined
-
-    const mapPoints = normalizePoints(activity.map?.summary_polyline || '', mapWidth, mapHeight)
-    const location = resolveActivityLocation(activity)
-    const surfaceColor = theme.surfaceColor ?? hexToRgba(theme.primaryColor, 0.04)
-    const borderColor = theme.borderColor ?? hexToRgba(theme.primaryColor, 0.12)
-
-    const styles = StyleSheet.create({
-        page: {
-            width: format.dimensions.width,
-            height: format.dimensions.height,
-            backgroundColor: theme.backgroundColor,
-            padding: 0,
-            position: 'relative',
-        },
-        contentContainer: {
-            position: 'absolute',
-            top: format.safeMargin,
-            left: format.safeMargin,
-            right: format.safeMargin,
-            bottom: format.safeMargin,
-            flexDirection: 'column',
-        },
-        mapLabel: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: spacing.xs,
-        },
-        labelText: {
-            fontSize: caption.fontSize * 0.85,
-            fontFamily: caption.fontFamily,
-            color: theme.primaryColor + '60',
-            textTransform: 'uppercase',
-            letterSpacing: 2,
-        },
-        locationText: {
-            fontSize: caption.fontSize * 0.85,
-            fontFamily: caption.fontFamily,
-            color: theme.primaryColor + '50',
-        },
-        mapContainer: {
-            flex: 1,
-            backgroundColor: surfaceColor,
-            borderRadius: 4 * format.scaleFactor,
-            overflow: 'hidden',
-            position: 'relative',
-        },
-    })
-
-    return (
-        <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-            <View style={styles.contentContainer}>
-                <View style={styles.mapLabel}>
-                    <Text style={styles.labelText}>Route Detail</Text>
-                    {location && <Text style={styles.locationText}>{location}</Text>}
-                </View>
-
-                <View style={styles.mapContainer}>
-                    {lightMapUrl ? (
-                        <PdfImage src={lightMapUrl} containerWidth={mapWidth} containerHeight={mapHeight} />
-                    ) : mapPoints ? (
-                        <>
-                            <Svg
-                                height={mapHeight}
-                                width={mapWidth}
-                                viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                style={{ position: 'absolute', top: 0, left: 0, backgroundColor: surfaceColor }}
-                            >
-                                {Array.from({ length: 8 }).map((_, i) => {
-                                    const y = (mapHeight / 8) * (i + 1)
-                                    return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke={borderColor} strokeWidth={0.5} />
-                                })}
-                                {Array.from({ length: 8 }).map((_, i) => {
-                                    const x = (mapWidth / 8) * (i + 1)
-                                    return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke={borderColor} strokeWidth={0.5} />
-                                })}
-                            </Svg>
-
-                            <Svg
-                                height={mapHeight}
-                                width={mapWidth}
-                                viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                style={{ position: 'absolute', top: 0, left: 0 }}
-                            >
-                                <Polyline
-                                    points={mapPoints}
-                                    stroke={theme.accentColor}
-                                    strokeWidth={3 * format.scaleFactor}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    fill="none"
-                                />
-                            </Svg>
-                        </>
-                    ) : null}
-                </View>
-            </View>
-        </Page>
-    )
-}
-
-// ============================================================================
-// PAGE 5: BEST EFFORTS + STATS
+// PAGE 4: BEST EFFORTS + STATS
 // ============================================================================
 
 const P5Stats = ({
@@ -1073,25 +962,33 @@ export const RaceSectionEditorialPages = ({
 }: RaceSectionEditorialProps) => {
     const props = { activity, format, theme, mapboxToken, highlightLabel }
 
+    // Determine what data is available
+    const photos = getPhotos(activity)
+    const hasPhotos = photos.length > 0
+    const hasMap = !!(mapboxToken && activity.map?.summary_polyline)
+    const comments = activity.comprehensiveData?.comments || activity.comments || []
+    const description = activity.description || ''
+
+    // Inline comments on P3 when few comments and short description
+    const shouldInlineComments = comments.length <= 3 && description.length < 300
+    const showCommentsPage = comments.length > 0 && !shouldInlineComments
+
     return (
         <>
-            {/* Page 1: Photo Gallery Opening */}
-            <P1PhotoGallery {...props} />
+            {/* Page 1: Photo Gallery — skip if no photos */}
+            {hasPhotos && <P1PhotoGallery {...props} />}
 
-            {/* Page 2: Panoramic Satellite Map */}
-            <P2PanoramicMap {...props} />
+            {/* Page 2: Panoramic Satellite Map — skip if no map data */}
+            {hasMap && <P2PanoramicMap {...props} />}
 
-            {/* Page 3: Description + Photo + Splits */}
-            <P3DescriptionSplits {...props} />
+            {/* Page 3: Description + Splits (+ inline comments when short) */}
+            <P3DescriptionSplits {...props} inlineComments={shouldInlineComments ? comments : undefined} />
 
-            {/* Page 4: Full-Page Route Map (light style) */}
-            <P4FullMap {...props} />
-
-            {/* Page 5: Stats + Best Efforts */}
+            {/* Page 4: Stats + Best Efforts — always show */}
             <P5Stats {...props} />
 
-            {/* Page 6: Community Comments */}
-            <P6Comments {...props} />
+            {/* Page 5: Community Comments — skip when inlined or no comments */}
+            {showCommentsPage && <P6Comments {...props} />}
         </>
     )
 }

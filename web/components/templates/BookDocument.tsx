@@ -200,7 +200,7 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
         // Update page count based on entry type
         // Most entries are 1 page, but race sections span multiple pages
         if (entry.type === 'RACE_PAGE') {
-            const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 6, 'magazine': 4 }
+            const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 4, 'magazine': 4 }
             currentPage += racePageCounts[entry.raceVariant || 'default'] || 4
         } else {
             currentPage += 1
@@ -464,7 +464,7 @@ export function generateBookEntries(
             raceVariant,
         })
         // Page counts: default ~4, editorial 6, magazine 4
-        const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 6, 'magazine': 4 }
+        const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 4, 'magazine': 4 }
         currentPage += racePageCounts[raceVariant] || 4
     })
 
