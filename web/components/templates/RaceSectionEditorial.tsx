@@ -11,7 +11,7 @@
  *   6. Community / Comments
  */
 
-import { Page, View, Text, StyleSheet, Font, Svg, Polyline, Image } from '@react-pdf/renderer'
+import { Page, View, Text, StyleSheet, Font, Svg, Polyline } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import {
@@ -638,11 +638,7 @@ const P4FullMap = ({
 
                 <View style={styles.mapContainer}>
                     {lightMapUrl ? (
-                        // eslint-disable-next-line jsx-a11y/alt-text
-                        <Image
-                            src={lightMapUrl}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                        />
+                        <PdfImage src={lightMapUrl} containerWidth={mapWidth} containerHeight={mapHeight} />
                     ) : mapPoints ? (
                         <>
                             <Svg

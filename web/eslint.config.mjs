@@ -37,6 +37,11 @@ const eslintConfig = defineConfig([
           message: "objectPosition doesn't work in react-pdf. Use absolute positioning instead. See CLAUDE.md for the correct pattern.",
         },
         hexColorRule,
+        // Ban raw <Image> from @react-pdf/renderer - use PdfImage for proper aspect-fill
+        {
+          selector: "JSXOpeningElement[name.name='Image']",
+          message: "Don't use raw <Image> from @react-pdf/renderer. Use <PdfImage> for proper aspect-fill rendering. See docs/StyleGuide.md.",
+        },
         // Ban hardcoded font families - use theme.fontPairing instead
         {
           selector: "Literal[value=/^(Helvetica|Helvetica-Bold|Helvetica-Oblique|Arial|Times|Times-Roman|Courier|Georgia|Verdana)$/]",

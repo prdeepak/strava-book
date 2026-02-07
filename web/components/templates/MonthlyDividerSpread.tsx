@@ -5,7 +5,7 @@
  * Right page: Calendar (strava-streaks style) + top comments
  */
 
-import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, MonthlyDividerVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
@@ -13,6 +13,7 @@ import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesTo
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 interface MonthlyDividerSpreadProps {
   activities?: StravaActivity[]
@@ -568,6 +569,9 @@ export const MonthlyDividerSpread = ({
 }: MonthlyDividerSpreadProps) => {
   const format = propFormat || FORMATS['10x10']
   const styles = createStyles(format, theme)
+  const spacing = resolveSpacing(theme, format)
+  const contentWidth = format.dimensions.width - 2 * format.safeMargin
+  const contentHeight = format.dimensions.height - 2 * format.safeMargin
 
   // Derive month/year from activities
   let month = propMonth
@@ -643,8 +647,7 @@ export const MonthlyDividerSpread = ({
         {heroPhotoUrl ? (
           <View style={styles.fullBleedHeroContainer}>
             {/* Single hero photo from featured activity */}
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-            <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+            <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
           </View>
         ) : topPhotos.length > 0 ? (
           <View style={styles.photoGrid}>
@@ -652,28 +655,24 @@ export const MonthlyDividerSpread = ({
             <View style={styles.photoRow}>
               {topPhotos[0] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[0].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[0].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
               {topPhotos[1] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[1].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[1].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
             </View>
             <View style={styles.photoRow}>
               {topPhotos[2] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[2].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[2].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
               {topPhotos[3] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[3].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[3].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
             </View>
@@ -794,6 +793,8 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
   const format = props.format || FORMATS['10x10']
   const theme = props.theme || DEFAULT_THEME
   const styles = createStyles(format, theme)
+  const contentWidth = format.dimensions.width - 2 * format.safeMargin
+  const contentHeight = format.dimensions.height - 2 * format.safeMargin
 
   let allActivities = props.activities || []
   if (props.activity) {
@@ -842,19 +843,18 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
       {heroPhotoUrl ? (
         <View style={styles.fullBleedHeroContainer}>
           {/* Single hero photo from featured activity */}
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-          <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+          <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
         </View>
       ) : topPhotos.length > 0 ? (
         <View style={styles.photoGrid}>
           {topPhotos[0] && (
-            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-            <Image src={topPhotos[0].url} style={styles.heroPhoto} />
+            <View style={styles.heroPhotoContainer}>
+              <PdfImage src={topPhotos[0].url} containerWidth={contentWidth} containerHeight={320 * format.scaleFactor} />
+            </View>
           )}
           {topPhotos.slice(1, 4).map((photo, idx) => (
             <View key={idx} style={styles.smallPhotoContainer}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-              <Image src={photo.url} style={styles.smallPhoto} />
+              <PdfImage src={photo.url} containerWidth={contentWidth / 3} containerHeight={195 * format.scaleFactor} />
             </View>
           ))}
         </View>

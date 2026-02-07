@@ -8,7 +8,7 @@
  * Page 4: "The Brief" stats page with distance/time/pace, splits chart, and community
  */
 
-import { Page, View, Text, StyleSheet, Font, Image, Svg, Polyline } from '@react-pdf/renderer'
+import { Page, View, Text, StyleSheet, Font, Svg, Polyline } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { formatDuration, formatPace, formatDistanceValue, getMapboxLightUrl } from '@/lib/activity-utils'
@@ -172,8 +172,7 @@ const RaceReportPage = ({ activity, format, theme, mapboxToken }: { activity: St
                 {hasPolyline && (
                     <View style={styles.mapSection}><View style={styles.mapContainer}>
                         {mapUrl ? (
-                            // eslint-disable-next-line jsx-a11y/alt-text
-                            <Image src={mapUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                            <PdfImage src={mapUrl} containerWidth={mapW} containerHeight={mapH} />
                         ) : mapPoints ? (
                             <Svg width={mapW} height={mapH} viewBox={`0 0 ${mapW} ${mapH}`} style={{ position: 'absolute', top: 0, left: 0 }}>
                                 <Polyline points={mapPoints} stroke={theme.accentColor} strokeWidth={2 * format.scaleFactor} strokeLinecap="round" strokeLinejoin="round" fill="none" />

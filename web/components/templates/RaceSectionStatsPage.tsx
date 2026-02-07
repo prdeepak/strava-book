@@ -1,8 +1,9 @@
-import { Page, Text, View, StyleSheet, Svg, Polyline, Image } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Svg, Polyline } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import mapboxPolyline from '@mapbox/polyline'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
+import { PdfImage } from '@/components/pdf/PdfImage'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
@@ -217,8 +218,7 @@ export const RaceSectionStatsPage = ({
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={satelliteUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                    <PdfImage src={satelliteUrl} containerWidth={mapWidth} containerHeight={mapHeight} />
                 ) : (
                     <>
                         {/* Blueprint Grid Background */}
