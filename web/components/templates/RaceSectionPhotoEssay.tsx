@@ -153,6 +153,7 @@ export const RaceSectionPhotoEssayPages = ({
 }: RaceSectionPhotoEssayProps) => {
     const styles = createStyles(format, theme)
     const spacing = resolveSpacing(theme, format)
+    const stat = resolveTypography('stat', theme, format)
 
     const location = resolveActivityLocation(activity)
     const distanceKm = formatDistanceValue(activity.distance)
@@ -189,40 +190,66 @@ export const RaceSectionPhotoEssayPages = ({
                     {location && <Text style={styles.locationText}>{location}</Text>}
                 </View>
 
-                {/* Photo spread - 2-up or 3-up */}
-                <View style={[styles.photoArea, { height: photoAreaHeight }]}>
-                    {heroPhotos.length > 0 && (
-                        <PdfImageCollection
-                            photos={heroPhotos}
-                            containerWidth={contentWidth}
-                            containerHeight={photoAreaHeight}
-                            gap={6 * format.scaleFactor}
-                            borderRadius={4 * format.scaleFactor}
-                        />
-                    )}
-                </View>
-
-                {/* Compact stats card */}
-                <View style={styles.statsCard}>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{distanceKm}</Text>
-                        <Text style={styles.statLabel}>km</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{timeFormatted}</Text>
-                        <Text style={styles.statLabel}>time</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{avgPace}</Text>
-                        <Text style={styles.statLabel}>pace</Text>
-                    </View>
-                    {activity.total_elevation_gain > 0 && (
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{elevationM}</Text>
-                            <Text style={styles.statLabel}>elev</Text>
+                {heroPhotos.length > 0 ? (
+                    <>
+                        {/* Photo spread - 2-up or 3-up */}
+                        <View style={[styles.photoArea, { height: photoAreaHeight }]}>
+                            <PdfImageCollection
+                                photos={heroPhotos}
+                                containerWidth={contentWidth}
+                                containerHeight={photoAreaHeight}
+                                gap={6 * format.scaleFactor}
+                                borderRadius={4 * format.scaleFactor}
+                            />
                         </View>
-                    )}
-                </View>
+
+                        {/* Compact stats card */}
+                        <View style={styles.statsCard}>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statValue}>{distanceKm}</Text>
+                                <Text style={styles.statLabel}>km</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statValue}>{timeFormatted}</Text>
+                                <Text style={styles.statLabel}>time</Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statValue}>{avgPace}</Text>
+                                <Text style={styles.statLabel}>pace</Text>
+                            </View>
+                            {activity.total_elevation_gain > 0 && (
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statValue}>{elevationM}</Text>
+                                    <Text style={styles.statLabel}>elev</Text>
+                                </View>
+                            )}
+                        </View>
+                    </>
+                ) : (
+                    /* No photos: large stats display as main content */
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', width: '100%' }}>
+                            <View style={[styles.statItem, { width: '45%', marginBottom: spacing.lg }]}>
+                                <Text style={[styles.statValue, { fontSize: stat.fontSize * 1.4 }]}>{distanceKm}</Text>
+                                <Text style={styles.statLabel}>kilometers</Text>
+                            </View>
+                            <View style={[styles.statItem, { width: '45%', marginBottom: spacing.lg }]}>
+                                <Text style={[styles.statValue, { fontSize: stat.fontSize * 1.4 }]}>{timeFormatted}</Text>
+                                <Text style={styles.statLabel}>time</Text>
+                            </View>
+                            <View style={[styles.statItem, { width: '45%', marginBottom: spacing.lg }]}>
+                                <Text style={[styles.statValue, { fontSize: stat.fontSize * 1.4 }]}>{avgPace}</Text>
+                                <Text style={styles.statLabel}>pace /km</Text>
+                            </View>
+                            {activity.total_elevation_gain > 0 && (
+                                <View style={[styles.statItem, { width: '45%', marginBottom: spacing.lg }]}>
+                                    <Text style={[styles.statValue, { fontSize: stat.fontSize * 1.4 }]}>{elevationM}</Text>
+                                    <Text style={styles.statLabel}>elevation</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
             </View>
         </Page>
     )
