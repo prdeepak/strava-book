@@ -39,7 +39,21 @@ const eslintConfig = defineConfig([
           selector: "Literal[value=/^(Helvetica|Helvetica-Bold|Helvetica-Oblique|Arial|Times|Times-Roman|Courier|Georgia|Verdana)$/]",
           message: "Avoid hardcoded font names. Use theme.fontPairing.heading or theme.fontPairing.body instead.",
         },
+        // Ban inline distance conversions - use formatDistance/formatDistanceValue from activity-utils
+        {
+          selector: "BinaryExpression[operator='/'] > MemberExpression[property.name='distance']",
+          message: "Don't divide distance inline. Use formatDistance() or formatDistanceValue() from @/lib/activity-utils.",
+        },
+        // Ban .toFixed() on distance-like divisions (/ 1000 or / 1609)
+        {
+          selector: "CallExpression[callee.property.name='toFixed'][callee.object.type='BinaryExpression'][callee.object.operator='/']",
+          message: "Don't format numbers inline with .toFixed(). Use shared formatters from @/lib/activity-utils.",
+        },
       ],
+      // Ban local shadow formatters that duplicate shared utilities
+      "no-shadow": ["warn", {
+        allow: ["styles"],
+      }],
     },
   },
 ]);

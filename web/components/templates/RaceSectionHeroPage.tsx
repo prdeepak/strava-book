@@ -1,7 +1,7 @@
 import { Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
-import { resolveActivityLocation } from '@/lib/activity-utils'
+import { resolveActivityLocation, formatDistanceValue, formatTime, formatPace, formatElevation } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { PdfImage } from '@/components/pdf/PdfImage'
@@ -176,26 +176,22 @@ export const RaceSectionHeroPage = ({
     // Use utility function for location resolution
     const location = resolveActivityLocation(activity)
 
-    // Format stats with safe fallbacks
-    const distance = activity.distance ? (activity.distance / 1000).toFixed(1) : '0.0'
-    const time = activity.moving_time
-        ? new Date(activity.moving_time * 1000).toISOString().substr(11, 8)
-        : '00:00:00'
-
-    // Calculate pace safely
-    const paceMinPerKm = activity.distance > 0 && activity.moving_time > 0
-        ? (activity.moving_time / 60) / (activity.distance / 1000)
-        : 0
-    const paceMin = Math.floor(paceMinPerKm)
-    const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
-    const pace = paceMinPerKm > 0 ? `${paceMin}:${paceSec.toString().padStart(2, '0')}` : 'N/A'
+    // Format stats using shared formatters
+    const distance = formatDistanceValue(activity.distance || 0)
+    const time = formatTime(activity.moving_time || 0)
+    const pace = formatPace(activity.moving_time, activity.distance)
 
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
             {/* Background Image Layer */}
             {bgImage && (
                 <View style={styles.backgroundImageContainer}>
-                    <PdfImage src={bgImage} opacity={0.65} />
+                    <PdfImage
+                        src={bgImage}
+                        opacity={0.65}
+                        containerWidth={format.dimensions.width}
+                        containerHeight={format.dimensions.height}
+                    />
                 </View>
             )}
 
@@ -238,8 +234,8 @@ export const RaceSectionHeroPage = ({
                     </View>
                     {activity.total_elevation_gain > 0 && (
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
-                            <Text style={styles.statLabel}>Meters Climb</Text>
+                            <Text style={styles.statValue}>{formatElevation(activity.total_elevation_gain)}</Text>
+                            <Text style={styles.statLabel}>Climbed</Text>
                         </View>
                     )}
                 </View>

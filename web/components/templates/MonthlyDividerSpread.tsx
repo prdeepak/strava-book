@@ -1424,7 +1424,7 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
             const barHeight = Math.max(8, (dist / maxWeekDistance) * barMaxHeight)
             return (
               <View key={idx} style={volumeStyles.barGroup}>
-                <Text style={volumeStyles.barValue}>{dist.toFixed(0)}km</Text>
+                <Text style={volumeStyles.barValue}>{dist.toFixed(1)}km</Text>
                 <View style={[volumeStyles.bar, { height: barHeight }]} />
                 <Text style={volumeStyles.barLabel}>Wk {idx + 1}</Text>
               </View>

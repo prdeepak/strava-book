@@ -127,8 +127,8 @@ export const RaceSectionCommentsPage = ({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
-    // Limit to fit on one page (roughly 8-10 comments)
-    const displayComments = sortedComments.slice(0, 10)
+    // Limit to fit on one page — 8 comments max to avoid overflow with kudos banner + "more" text
+    const displayComments = sortedComments.slice(0, 8)
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr)

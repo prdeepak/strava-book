@@ -15,7 +15,7 @@
 import { Page, View, Text, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { formatTime, formatPace, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
+import { formatTime, formatPace, formatDistanceValue, formatElevation, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
@@ -339,10 +339,7 @@ export const ActivityLog = ({
                   <View style={styles.statsRow}>
                     <View style={styles.statItem}>
                       <Text style={styles.statValue}>
-                        {units === 'metric'
-                          ? (activity.distance / 1000).toFixed(1)
-                          : (activity.distance / 1609.34).toFixed(1)
-                        }
+                        {formatDistanceValue(activity.distance, units)}
                       </Text>
                       <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
                     </View>
@@ -563,11 +560,9 @@ const ActivityLogDenseList = ({
           })
           const time = formatTime(activity.moving_time)
           const pace = formatPace(activity.moving_time, activity.distance, units)
-          const distance = units === 'metric'
-            ? (activity.distance / 1000).toFixed(1)
-            : (activity.distance / 1609.34).toFixed(1)
+          const distance = formatDistanceValue(activity.distance, units)
           const elev = activity.total_elevation_gain > 0
-            ? `${Math.round(activity.total_elevation_gain)}m`
+            ? formatElevation(activity.total_elevation_gain)
             : '-'
           const hasPR = (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
 

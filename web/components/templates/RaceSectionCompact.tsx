@@ -9,7 +9,7 @@
 import { Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
-import { resolveActivityLocation, formatDuration, formatPace, processSplits, processBestEfforts, getMapboxSatelliteUrl } from '@/lib/activity-utils'
+import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValue, formatElevation, processSplits, processBestEfforts, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
@@ -182,10 +182,10 @@ export const RaceSectionCompactPages = ({
     const styles = createStyles(format, theme)
 
     const location = resolveActivityLocation(activity)
-    const distanceKm = (activity.distance / 1000).toFixed(1)
+    const distanceKm = formatDistanceValue(activity.distance)
     const timeFormatted = formatDuration(activity.moving_time)
-    const avgPace = formatPace(activity.moving_time, activity.distance, 'metric')
-    const elevationM = Math.round(activity.total_elevation_gain)
+    const avgPace = formatPace(activity.moving_time, activity.distance)
+    const elevationM = formatElevation(activity.total_elevation_gain)
 
     const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
@@ -252,9 +252,9 @@ export const RaceSectionCompactPages = ({
                         <Text style={styles.statValue}>{avgPace}</Text>
                         <Text style={styles.statLabel}>pace</Text>
                     </View>
-                    {elevationM > 0 && (
+                    {activity.total_elevation_gain > 0 && (
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{elevationM}m</Text>
+                            <Text style={styles.statValue}>{elevationM}</Text>
                             <Text style={styles.statLabel}>elev</Text>
                         </View>
                     )}
