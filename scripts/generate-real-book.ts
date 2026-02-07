@@ -14,7 +14,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 // Register fonts first
 import '../web/lib/pdf-fonts'
 
-import { BookDocument, computeYearSummary, getCategoryForType } from '../web/components/templates/BookDocument'
+import { BookDocument, computeYearSummary, getCategoryForType, applyVariantSelection, insertBlankPagesForPrint } from '../web/components/templates/BookDocument'
 import { FORMATS, DEFAULT_THEME } from '../web/lib/book-types'
 import { StravaActivity } from '../web/lib/strava'
 import { BookEntry } from '../web/lib/curator'
@@ -131,6 +131,12 @@ async function main() {
   }, {} as Record<string, number>)
   console.log('  Entry types:', typeCounts)
 
+  // 3b. Enrich entries with variant selections and correct page numbers
+  // (same pipeline BookDocument uses internally at render time)
+  const enrichedEntries = applyVariantSelection(entries, filtered)
+  const processedEntries = insertBlankPagesForPrint(enrichedEntries)
+  console.log(`  After variant selection + blank page insertion: ${processedEntries.length} entries`)
+
   // 4. Render individual page PDFs
   console.log('\n[4/5] Rendering page PDFs...')
   const yearSummary = computeYearSummary(filtered, year)
@@ -216,16 +222,17 @@ async function main() {
   console.log(`  PDF: ${pdfPath}`)
   console.log(`  Pages: ${pagesDir}/ (${renderedPages.length} pages)`)
 
-  // Save manifest for reviewer
+  // Save manifest for reviewer (uses processedEntries for accurate page numbers)
   const manifest = {
     label,
     timestamp,
-    totalPages: entries.length,
-    entries: entries.map(e => ({
+    totalPages: processedEntries.length,
+    entries: processedEntries.map(e => ({
       pageNumber: e.pageNumber,
       type: e.type,
       title: e.title,
       activityId: e.activityId,
+      ...(e.raceVariant ? { raceVariant: e.raceVariant } : {}),
     })),
     typeCounts,
   }

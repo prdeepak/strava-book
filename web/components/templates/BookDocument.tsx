@@ -296,7 +296,7 @@ function selectActivityLogVariant(activityCount: number): ActivityLogVariant {
  * This ensures variants are applied regardless of which generateBookEntries
  * function produced the entries (BookDocument.tsx or book-entry-generator.ts).
  */
-function applyVariantSelection(
+export function applyVariantSelection(
     entries: BookEntry[],
     activities: StravaActivity[],
 ): BookEntry[] {
