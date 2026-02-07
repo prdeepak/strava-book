@@ -340,9 +340,11 @@ function buildMagazineManifest(
   pages: PageManifest[],
   data: ReturnType<typeof analyzeActivityData>
 ) {
-  // Magazine always renders 4 pages
+  let idx = 0
+
+  // Hero page (always)
   pages.push({
-    pageIndex: 0,
+    pageIndex: idx++,
     pageType: 'hero',
     hasPhoto: data.hasPhotos,
     hasDescription: false,
@@ -354,34 +356,41 @@ function buildMagazineManifest(
     estimatedFillRatio: data.hasPhotos || data.hasMap ? 0.8 : 0.3,
   })
 
-  pages.push({
-    pageIndex: 1,
-    pageType: 'description',
-    hasPhoto: false,
-    hasDescription: data.hasDescription,
-    hasStats: false,
-    hasComments: false,
-    hasMap: data.hasMap,
-    hasSplits: false,
-    hasBestEfforts: false,
-    estimatedFillRatio: data.hasDescription ? 0.6 : 0.15,
-  })
+  // Description page (only if description exists)
+  if (data.hasDescription) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'description',
+      hasPhoto: false,
+      hasDescription: true,
+      hasStats: false,
+      hasComments: false,
+      hasMap: data.hasMap,
+      hasSplits: false,
+      hasBestEfforts: false,
+      estimatedFillRatio: 0.6,
+    })
+  }
 
-  pages.push({
-    pageIndex: 2,
-    pageType: 'photos',
-    hasPhoto: data.hasPhotos,
-    hasDescription: false,
-    hasStats: false,
-    hasComments: false,
-    hasMap: false,
-    hasSplits: false,
-    hasBestEfforts: false,
-    estimatedFillRatio: data.hasPhotos ? Math.min(0.9, data.photoCount * 0.15) : 0.1,
-  })
+  // Photo collage page (only if photos exist)
+  if (data.hasPhotos) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'photos',
+      hasPhoto: true,
+      hasDescription: false,
+      hasStats: false,
+      hasComments: false,
+      hasMap: false,
+      hasSplits: false,
+      hasBestEfforts: false,
+      estimatedFillRatio: Math.min(0.9, data.photoCount * 0.15),
+    })
+  }
 
+  // Stats page (always)
   pages.push({
-    pageIndex: 3,
+    pageIndex: idx++,
     pageType: 'stats',
     hasPhoto: false,
     hasDescription: false,

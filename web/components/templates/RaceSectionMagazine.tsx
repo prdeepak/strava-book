@@ -327,13 +327,14 @@ const TheBriefPage = ({ activity, format, theme }: { activity: StravaActivity; f
 }
 
 export const RaceSectionMagazinePages = ({ activity, format = FORMATS['10x10'], theme = DEFAULT_THEME, mapboxToken }: RaceSectionMagazineProps) => {
+    const hasDescription = !!activity.description
     const photos = getPhotos(activity)
     const hasPhotos = photos.length > 0
 
     return (
         <>
             <HeroPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />
-            <RaceReportPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />
+            {hasDescription && <RaceReportPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />}
             {hasPhotos && <PhotoCollagePage activity={activity} format={format} theme={theme} />}
             <TheBriefPage activity={activity} format={format} theme={theme} />
         </>
