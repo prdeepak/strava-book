@@ -476,9 +476,9 @@ dev-image:
 	@echo "Building shared devcontainer image strava-book-dev:latest..."
 	@docker build -t strava-book-dev:latest -f .devcontainer/Dockerfile .
 
-# Stop devcontainer
+# Stop and remove devcontainer
 dev-stop:
-	@docker stop $$(docker ps -q --filter "label=devcontainer.local_folder=$$(pwd)") 2>/dev/null || true
+	@docker rm -f $$(docker ps -aq --filter "label=devcontainer.local_folder=$$(pwd)") 2>/dev/null || true
 
 # Rebuild devcontainer from scratch (rebuilds shared image + container)
 dev-rebuild:
