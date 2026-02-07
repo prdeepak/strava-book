@@ -16,6 +16,7 @@ import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typogra
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 import { RaceDataViz } from '@/components/pdf/RaceDataViz'
 import mapboxPolyline from '@mapbox/polyline'
 
@@ -124,7 +125,17 @@ const HeroPage = ({ activity, format, theme, mapboxToken }: { activity: StravaAc
             <View style={styles.overlay} />
             <View style={styles.content}>
                 <Text style={styles.label}>RACE NAME</Text>
-                <Text style={styles.raceName}>{activity.name}</Text>
+                <AutoResizingPdfText
+                    text={activity.name}
+                    width={format.dimensions.width - (format.safeMargin * 2)}
+                    height={displaySmall.fontSize * 2.5}
+                    font={displaySmall.fontFamily}
+                    min_fontsize={displaySmall.minFontSize}
+                    max_fontsize={displaySmall.fontSize}
+                    h_align="left"
+                    v_align="top"
+                    textColor={theme.backgroundColor}
+                />
                 <Text style={styles.dateText}>DATE: {dateStr}</Text>
             </View>
         </Page>
