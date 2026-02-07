@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- PdfImage is the wrapper that provides aspect-fill over raw Image */
 /**
  * PdfImage - Primitive for images in react-pdf with "cover" behavior
  *

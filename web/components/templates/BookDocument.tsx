@@ -11,7 +11,7 @@ import { YearStatsPage } from './YearStats'
 import { MonthlyDividerSpreadPages } from './MonthlyDividerSpread'
 import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
-import { BookFormat, BookTheme, YearSummary, MonthlyStats, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { BookFormat, BookTheme, YearSummary, MonthlyStats, RaceSectionVariant, MonthlyDividerVariant, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Helvetica',
         textAlign: 'center',
+        // eslint-disable-next-line no-restricted-syntax -- static placeholder style, no theme context
         color: '#666',
     }
 })
@@ -197,15 +198,137 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
         })
 
         // Update page count based on entry type
-        // Most entries are 1 page, but some (like race spreads) are multiple pages
+        // Most entries are 1 page, but race sections span multiple pages
         if (entry.type === 'RACE_PAGE') {
-            currentPage += 2 // Race pages use 2-page spreads
+            const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 4, 'magazine': 4 }
+            currentPage += racePageCounts[entry.raceVariant || 'default'] || 4
         } else {
             currentPage += 1
         }
     }
 
     return result
+}
+
+// ============================================================================
+// VARIANT SELECTION LOGIC
+// ============================================================================
+
+/**
+ * Select race section variant for each race via round-robin.
+ *
+ * Rotates through 3 multi-page templates that each handle missing data
+ * gracefully (no photos → use map as hero, no comments → skip section, etc.).
+ */
+function selectRaceVariants(
+    races: StravaActivity[],
+): Map<number, RaceSectionVariant> {
+    const variantMap = new Map<number, RaceSectionVariant>()
+    const pool: RaceSectionVariant[] = ['default', 'editorial', 'magazine']
+
+    for (let i = 0; i < races.length; i++) {
+        variantMap.set(races[i].id, pool[i % pool.length])
+    }
+
+    return variantMap
+}
+
+/**
+ * Select monthly divider variant based on month data.
+ *
+ * Selection rules:
+ * - Month has featured photo -> 'photo-hero'
+ * - Month has 15+ activities -> 'training-volume'
+ * - Month has notable comments -> 'quote-calendar'
+ * - Rotate to avoid adjacent identical styles
+ */
+function selectMonthlyDividerVariant(
+    activities: StravaActivity[],
+    previousVariant: MonthlyDividerVariant | null,
+): MonthlyDividerVariant {
+    // Check for featured photo
+    const hasPhotos = activities.some(a => {
+        const photoCount = a.comprehensiveData?.photos?.length || a.photos?.count || a.total_photo_count || 0
+        return photoCount > 0
+    })
+
+    // Check for comments
+    const hasComments = activities.some(a =>
+        (a.comprehensiveData?.comments?.length || 0) > 0
+    )
+
+    let variant: MonthlyDividerVariant
+
+    if (hasPhotos) {
+        variant = 'photo-hero'
+    } else if (activities.length >= 15) {
+        variant = 'training-volume'
+    } else if (hasComments) {
+        variant = 'quote-calendar'
+    } else {
+        variant = 'default'
+    }
+
+    // Avoid adjacent identical variants
+    if (variant === previousVariant) {
+        const alternatives: MonthlyDividerVariant[] = ['default', 'training-volume', 'quote-calendar', 'photo-hero']
+        const alt = alternatives.find(v => v !== variant)
+        if (alt) variant = alt
+    }
+
+    return variant
+}
+
+/**
+ * Select activity log variant based on activity count.
+ * 10+ activities -> dense-list, otherwise grid
+ */
+function selectActivityLogVariant(activityCount: number): ActivityLogVariant {
+    return activityCount >= 10 ? 'dense-list' : 'grid'
+}
+
+// ============================================================================
+// VARIANT ENRICHMENT (applied at render time to entries from any source)
+// ============================================================================
+
+/**
+ * Enrich entries with variant selections if not already set.
+ * This ensures variants are applied regardless of which generateBookEntries
+ * function produced the entries (BookDocument.tsx or book-entry-generator.ts).
+ */
+export function applyVariantSelection(
+    entries: BookEntry[],
+    activities: StravaActivity[],
+): BookEntry[] {
+    // Find races for variant selection
+    const raceEntries = entries.filter(e => e.type === 'RACE_PAGE' && e.activityId)
+    const raceActivities = raceEntries
+        .map(e => activities.find(a => a.id === e.activityId))
+        .filter((a): a is StravaActivity => !!a)
+    const raceVariantMap = selectRaceVariants(raceActivities)
+
+    // Track previous divider variant for alternation
+    let previousDividerVariant: MonthlyDividerVariant | null = null
+
+    return entries.map(entry => {
+        if (entry.type === 'RACE_PAGE' && entry.activityId && !entry.raceVariant) {
+            return { ...entry, raceVariant: raceVariantMap.get(entry.activityId) || 'default' }
+        }
+        if (entry.type === 'MONTHLY_DIVIDER' && !entry.monthlyDividerVariant) {
+            const monthActivities = activities.filter(a => {
+                const d = new Date(a.start_date_local || a.start_date)
+                return d.getMonth() === entry.month && d.getFullYear() === entry.year
+            })
+            const variant = selectMonthlyDividerVariant(monthActivities, previousDividerVariant)
+            previousDividerVariant = variant
+            return { ...entry, monthlyDividerVariant: variant }
+        }
+        if (entry.type === 'ACTIVITY_LOG' && !entry.activityLogVariant) {
+            const count = entry.activityIds?.length || 6
+            return { ...entry, activityLogVariant: selectActivityLogVariant(count) }
+        }
+        return entry
+    })
 }
 
 // ============================================================================
@@ -329,20 +452,27 @@ export function generateBookEntries(
 
     // 6. ALL RACE PAGES (grouped together, no monthly dividers)
     const allRaces = activities.filter(a => a.workout_type === 1)
+    const raceVariantMap = selectRaceVariants(allRaces)
+
     allRaces.forEach(race => {
+        const raceVariant = raceVariantMap.get(race.id) || 'default'
         entries.push({
             type: 'RACE_PAGE',
             activityId: race.id,
             title: race.name,
             pageNumber: currentPage,
+            raceVariant,
         })
-        // RaceSection uses 2 pages (spread) for compact variant
-        currentPage += 2
+        // Page counts: default ~4, editorial 6, magazine 4
+        const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 4, 'magazine': 4 }
+        currentPage += racePageCounts[raceVariant] || 4
     })
 
     // 7. ACTIVITY LOG with Monthly Dividers
     // For each year-month with non-race activities: Monthly Divider → that month's activities
     // Sorted chronologically (Dec 2025 before Jan 2026)
+    let previousDividerVariant: MonthlyDividerVariant | null = null
+
     for (const yearMonthKey of sortedYearMonths) {
         const [yearStr, monthStr] = yearMonthKey.split('-')
         const entryYear = parseInt(yearStr, 10)
@@ -356,6 +486,13 @@ export function generateBookEntries(
             continue
         }
 
+        // Select monthly divider variant
+        const dividerVariant = selectMonthlyDividerVariant(monthActivities, previousDividerVariant)
+        previousDividerVariant = dividerVariant
+
+        // Select activity log variant
+        const logVariant = selectActivityLogVariant(monthNonRaces.length)
+
         // 7a. MONTHLY DIVIDER
         // When fewer than 3 activities, merge them into the divider (no separate log page)
         const mergeIntoMonthlyDivider = monthNonRaces.length < 3
@@ -366,17 +503,19 @@ export function generateBookEntries(
             title: MONTH_NAMES[month],
             highlightLabel: `${monthNonRaces.length} ${monthNonRaces.length === 1 ? 'activity' : 'activities'}`,
             pageNumber: currentPage++,
+            monthlyDividerVariant: dividerVariant,
             // Pass inline activity IDs for small months
             activityIds: mergeIntoMonthlyDivider ? monthNonRaces.map(a => a.id) : undefined,
         })
 
         // 7b. ACTIVITY LOG PAGES for this month (skip if merged into divider)
         if (!mergeIntoMonthlyDivider) {
-            const totalLogPages = Math.ceil(monthNonRaces.length / activitiesPerPage)
+            const effectivePerPage = logVariant === 'dense-list' ? 15 : activitiesPerPage
+            const totalLogPages = Math.ceil(monthNonRaces.length / effectivePerPage)
 
             for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
-                const startIdx = pageNum * activitiesPerPage
-                const pageActivities = monthNonRaces.slice(startIdx, startIdx + activitiesPerPage)
+                const startIdx = pageNum * effectivePerPage
+                const pageActivities = monthNonRaces.slice(startIdx, startIdx + effectivePerPage)
 
                 entries.push({
                     type: 'ACTIVITY_LOG',
@@ -385,6 +524,7 @@ export function generateBookEntries(
                     title: totalLogPages > 1
                         ? `${MONTH_NAMES[month]} ${entryYear} (${pageNum + 1}/${totalLogPages})`
                         : `${MONTH_NAMES[month]} ${entryYear}`,
+                    activityLogVariant: logVariant,
                 })
             }
         }
@@ -463,8 +603,11 @@ export const BookDocument = ({
     // Uses the comprehensive computeYearSummary function for proper monthly stats
     const computedYearSummary: YearSummary = yearSummary || computeYearSummary(activities, year)
 
+    // Apply variant selection to entries that don't already have variants set
+    const enrichedEntries = applyVariantSelection(entries, activities)
+
     // Insert blank pages for print-ready output if requested
-    const processedEntries = printReady ? insertBlankPagesForPrint(entries) : entries
+    const processedEntries = printReady ? insertBlankPagesForPrint(enrichedEntries) : enrichedEntries
 
     // Build TOC entries from draft entries
     // Exclude: COVER, TABLE_OF_CONTENTS, ACTIVITY_LOG (only show dividers, not individual log pages)
@@ -541,6 +684,7 @@ export const BookDocument = ({
                             theme={theme}
                             mapboxToken={mapboxToken}
                             highlightLabel={entry.highlightLabel}
+                            variant={entry.raceVariant || 'default'}
                         />
                     )
                 }
@@ -576,6 +720,7 @@ export const BookDocument = ({
                             format={format}
                             theme={theme}
                             inlineActivities={inlineActivities}
+                            variant={entry.monthlyDividerVariant || 'default'}
                         />
                     )
                 }
@@ -629,10 +774,11 @@ export const BookDocument = ({
                             key={index}
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page
-                            activitiesPerPage={perPage}
+                            activitiesPerPage={entry.activityLogVariant === 'dense-list' ? 15 : perPage}
                             format={format}
                             theme={theme}
                             mapboxToken={mapboxToken}
+                            variant={entry.activityLogVariant || 'grid'}
                         />
                     )
                 }

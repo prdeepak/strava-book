@@ -5,12 +5,15 @@
  * Right page: Calendar (strava-streaks style) + top comments
  */
 
-import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
-import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
+import { BookFormat, BookTheme, MonthlyDividerVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesToDayActivities } from '@/lib/calendar-views'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
+import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
+import { PdfImage } from '@/components/pdf/PdfImage'
 
 interface MonthlyDividerSpreadProps {
   activities?: StravaActivity[]
@@ -20,6 +23,7 @@ interface MonthlyDividerSpreadProps {
   format?: BookFormat
   theme?: BookTheme
   units?: 'metric' | 'imperial'
+  variant?: MonthlyDividerVariant
   // For test harness compatibility
   activity?: StravaActivity
   /** Activities to display inline on the right page (when < 3 activities, merged from activity log) */
@@ -565,6 +569,9 @@ export const MonthlyDividerSpread = ({
 }: MonthlyDividerSpreadProps) => {
   const format = propFormat || FORMATS['10x10']
   const styles = createStyles(format, theme)
+  const spacing = resolveSpacing(theme, format)
+  const contentWidth = format.dimensions.width - 2 * format.safeMargin
+  const contentHeight = format.dimensions.height - 2 * format.safeMargin
 
   // Derive month/year from activities
   let month = propMonth
@@ -640,8 +647,7 @@ export const MonthlyDividerSpread = ({
         {heroPhotoUrl ? (
           <View style={styles.fullBleedHeroContainer}>
             {/* Single hero photo from featured activity */}
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-            <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+            <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
           </View>
         ) : topPhotos.length > 0 ? (
           <View style={styles.photoGrid}>
@@ -649,28 +655,24 @@ export const MonthlyDividerSpread = ({
             <View style={styles.photoRow}>
               {topPhotos[0] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[0].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[0].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
               {topPhotos[1] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[1].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[1].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
             </View>
             <View style={styles.photoRow}>
               {topPhotos[2] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[2].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[2].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
               {topPhotos[3] && (
                 <View style={styles.photoCell}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-                  <Image src={topPhotos[3].url} style={styles.photo} />
+                  <PdfImage src={topPhotos[3].url} containerWidth={(contentWidth - spacing.xs - 2) / 2} containerHeight={245 * format.scaleFactor} />
                 </View>
               )}
             </View>
@@ -791,6 +793,8 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
   const format = props.format || FORMATS['10x10']
   const theme = props.theme || DEFAULT_THEME
   const styles = createStyles(format, theme)
+  const contentWidth = format.dimensions.width - 2 * format.safeMargin
+  const contentHeight = format.dimensions.height - 2 * format.safeMargin
 
   let allActivities = props.activities || []
   if (props.activity) {
@@ -839,19 +843,18 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
       {heroPhotoUrl ? (
         <View style={styles.fullBleedHeroContainer}>
           {/* Single hero photo from featured activity */}
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-          <Image src={heroPhotoUrl} style={styles.fullBleedHeroPhoto} />
+          <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
         </View>
       ) : topPhotos.length > 0 ? (
         <View style={styles.photoGrid}>
           {topPhotos[0] && (
-            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop
-            <Image src={topPhotos[0].url} style={styles.heroPhoto} />
+            <View style={styles.heroPhotoContainer}>
+              <PdfImage src={topPhotos[0].url} containerWidth={contentWidth} containerHeight={320 * format.scaleFactor} />
+            </View>
           )}
           {topPhotos.slice(1, 4).map((photo, idx) => (
             <View key={idx} style={styles.smallPhotoContainer}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image doesn't support alt prop */}
-              <Image src={photo.url} style={styles.smallPhoto} />
+              <PdfImage src={photo.url} containerWidth={contentWidth / 3} containerHeight={195 * format.scaleFactor} />
             </View>
           ))}
         </View>
@@ -1049,11 +1052,690 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
   )
 }
 
-// Pages-only version for use in BookDocument (no Document wrapper)
-// Returns a Fragment with both left and right pages
-export const MonthlyDividerSpreadPages = (props: MonthlyDividerSpreadProps) => (
+// ============================================================================
+// VARIANT: "Photo Hero" - Full-bleed featured photo with month overlay
+// ============================================================================
+
+const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
+  const format = props.format || FORMATS['10x10']
+  const theme = props.theme || DEFAULT_THEME
+  const units = props.units || 'metric'
+
+  const displayLarge = resolveTypography('displayLarge', theme, format)
+  const displaySmall = resolveTypography('displaySmall', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const stat = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
+
+  let allActivities = props.activities || []
+  if (props.activity) allActivities = [props.activity]
+
+  const month = props.month ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getMonth()
+    : new Date().getMonth())
+  const year = props.year ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getFullYear()
+    : new Date().getFullYear())
+
+  const monthName = getMonthName(month)
+
+  // Find featured photo
+  let featuredActivity = props.highlightActivity
+  if (!featuredActivity || !activityHasPhotos(featuredActivity)) {
+    const activitiesWithPhotos = allActivities
+      .filter(activityHasPhotos)
+      .map(a => ({ activity: a, score: scoreActivity(a) }))
+      .sort((a, b) => b.score - a.score)
+    if (activitiesWithPhotos.length > 0) {
+      featuredActivity = activitiesWithPhotos[0].activity
+    }
+  }
+  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+
+  const stats = {
+    activityCount: allActivities.length,
+    totalDistance: allActivities.reduce((sum, a) => sum + (a.distance || 0), 0),
+    totalTime: allActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+    activeDays: new Set(allActivities.map(a => (a.start_date_local || a.start_date).split('T')[0])).size,
+  }
+
+  const calendarData = activitiesToCalendarData(allActivities)
+  const { isPredominant } = getPredominantSportType(allActivities)
+
+  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+  const titleHeight = 120 * format.scaleFactor
+
+  const photoHeroStyles = StyleSheet.create({
+    page: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      padding: 0,
+      position: 'relative',
+    },
+    contentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+    },
+    statsOverlay: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: spacing.sm,
+      backgroundColor: theme.primaryColor,
+      opacity: 0.85,
+      borderRadius: 4 * format.scaleFactor,
+      marginTop: spacing.sm,
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: stat.fontSize * 0.8,
+      fontFamily: stat.fontFamily,
+      color: theme.accentColor,
+      marginBottom: 2,
+    },
+    statLabel: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.backgroundColor + '90',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    rightPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
+    rightHeader: {
+      marginBottom: spacing.md,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      paddingBottom: spacing.sm,
+    },
+    monthTitle: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.primaryColor,
+      letterSpacing: displaySmall.letterSpacing ?? -1,
+      marginBottom: spacing.xs * 0.5,
+    },
+    yearSubtitle: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 2,
+    },
+    calendarSection: {
+      flex: 1,
+    },
+    calendarLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm * 0.75,
+    },
+  })
+
+  return (
+    <>
+      {/* Left: Full-bleed hero photo with month name overlay */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={photoHeroStyles.page}>
+        <FullBleedBackground
+          image={heroPhotoUrl || undefined}
+          fallbackColor={theme.primaryColor}
+          role="background"
+          overlayOpacity={0.35}
+          width={format.dimensions.width}
+          height={format.dimensions.height}
+        />
+        <View style={photoHeroStyles.contentContainer}>
+          <AutoResizingPdfText
+            text={monthName}
+            width={contentWidth}
+            height={titleHeight}
+            font={displayLarge.fontFamily}
+            min_fontsize={displayLarge.minFontSize}
+            max_fontsize={displayLarge.fontSize * 1.2}
+            h_align="left"
+            v_align="bottom"
+            textColor={theme.backgroundColor}
+          />
+          <View style={photoHeroStyles.statsOverlay}>
+            <View style={photoHeroStyles.statItem}>
+              <Text style={photoHeroStyles.statValue}>{stats.activityCount}</Text>
+              <Text style={photoHeroStyles.statLabel}>Activities</Text>
+            </View>
+            <View style={photoHeroStyles.statItem}>
+              <Text style={photoHeroStyles.statValue}>{formatDistance(stats.totalDistance, units)}</Text>
+              <Text style={photoHeroStyles.statLabel}>Distance</Text>
+            </View>
+            <View style={photoHeroStyles.statItem}>
+              <Text style={photoHeroStyles.statValue}>{formatTime(stats.totalTime)}</Text>
+              <Text style={photoHeroStyles.statLabel}>Time</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+
+      {/* Right: Calendar */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={photoHeroStyles.rightPage}>
+        <View style={photoHeroStyles.rightHeader}>
+          <Text style={photoHeroStyles.monthTitle}>{monthName}</Text>
+          <Text style={photoHeroStyles.yearSubtitle}>{year}</Text>
+        </View>
+        <View style={photoHeroStyles.calendarSection}>
+          <Text style={photoHeroStyles.calendarLabel}>Activity Calendar</Text>
+          {isPredominant ? (
+            <BubbleCalendarMonth
+              year={year}
+              month={month}
+              activities={calendarData}
+              format={format}
+              theme={theme}
+              showMonthLabel={false}
+              showWeekdayLabels={true}
+              cellSize={26 * format.scaleFactor}
+            />
+          ) : (
+            <IconCalendarMonth
+              year={year}
+              month={month}
+              activities={calendarData}
+              format={format}
+              theme={theme}
+              showMonthLabel={false}
+              showWeekdayLabels={true}
+              cellSize={26 * format.scaleFactor}
+            />
+          )}
+        </View>
+      </Page>
+    </>
+  )
+}
+
+// ============================================================================
+// VARIANT: "Training Volume" - Bar chart / infographic style
+// ============================================================================
+
+const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => {
+  const format = props.format || FORMATS['10x10']
+  const theme = props.theme || DEFAULT_THEME
+  const units = props.units || 'metric'
+
+  const displaySmall = resolveTypography('displaySmall', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const stat = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+
+  let allActivities = props.activities || []
+  if (props.activity) allActivities = [props.activity]
+
+  const month = props.month ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getMonth()
+    : new Date().getMonth())
+  const year = props.year ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getFullYear()
+    : new Date().getFullYear())
+
+  const monthName = getMonthName(month)
+
+  // Group activities by week for the bar chart
+  const weeklyDistances: number[] = [0, 0, 0, 0, 0]
+  allActivities.forEach(a => {
+    const date = new Date(a.start_date_local || a.start_date)
+    const dayOfMonth = date.getDate()
+    const weekIndex = Math.min(Math.floor((dayOfMonth - 1) / 7), 4)
+    weeklyDistances[weekIndex] += (a.distance || 0) / 1000
+  })
+  const maxWeekDistance = Math.max(...weeklyDistances, 1)
+
+  const stats = {
+    activityCount: allActivities.length,
+    totalDistance: allActivities.reduce((sum, a) => sum + (a.distance || 0), 0),
+    totalTime: allActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+    totalElevation: allActivities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0),
+    activeDays: new Set(allActivities.map(a => (a.start_date_local || a.start_date).split('T')[0])).size,
+  }
+
+  const barMaxHeight = 250 * format.scaleFactor
+  const barWidth = 80 * format.scaleFactor
+  const barGap = 16 * format.scaleFactor
+
+  const volumeStyles = StyleSheet.create({
+    leftPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
+    header: {
+      marginBottom: spacing.lg,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      paddingBottom: spacing.sm,
+    },
+    monthTitle: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.primaryColor,
+      letterSpacing: displaySmall.letterSpacing ?? -1,
+      marginBottom: spacing.xs * 0.25,
+    },
+    yearSubtitle: {
+      fontSize: subheading.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 2,
+    },
+    chartArea: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      gap: barGap,
+      paddingBottom: spacing.md,
+    },
+    barGroup: {
+      alignItems: 'center',
+    },
+    bar: {
+      width: barWidth,
+      backgroundColor: theme.accentColor,
+      borderRadius: 2 * format.scaleFactor,
+    },
+    barLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '80',
+      marginTop: spacing.xs * 0.5,
+      textTransform: 'uppercase',
+    },
+    barValue: {
+      fontSize: caption.fontSize * 0.9,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      marginBottom: spacing.xs * 0.25,
+    },
+    rightPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
+    rightHeader: {
+      marginBottom: spacing.lg,
+    },
+    sectionLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      marginBottom: spacing.xs,
+    },
+    bigStatsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    bigStat: {
+      width: '45%',
+      marginBottom: spacing.sm,
+    },
+    bigStatValue: {
+      fontSize: stat.fontSize * 1.2,
+      fontFamily: stat.fontFamily,
+      color: theme.accentColor,
+    },
+    bigStatLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '70',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginTop: 2,
+    },
+  })
+
+  return (
+    <>
+      {/* Left: Weekly distance bar chart */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={volumeStyles.leftPage}>
+        <View style={volumeStyles.header}>
+          <Text style={volumeStyles.monthTitle}>{monthName}</Text>
+          <Text style={volumeStyles.yearSubtitle}>{year}</Text>
+        </View>
+        <View style={volumeStyles.chartArea}>
+          {weeklyDistances.map((dist, idx) => {
+            const barHeight = Math.max(8, (dist / maxWeekDistance) * barMaxHeight)
+            return (
+              <View key={idx} style={volumeStyles.barGroup}>
+                <Text style={volumeStyles.barValue}>{dist.toFixed(1)}km</Text>
+                <View style={[volumeStyles.bar, { height: barHeight }]} />
+                <Text style={volumeStyles.barLabel}>Wk {idx + 1}</Text>
+              </View>
+            )
+          })}
+        </View>
+      </Page>
+
+      {/* Right: Big summary stats */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={volumeStyles.rightPage}>
+        <View style={volumeStyles.rightHeader}>
+          <Text style={volumeStyles.sectionLabel}>Training Summary</Text>
+          <Text style={volumeStyles.monthTitle}>{monthName} {year}</Text>
+        </View>
+        <View style={volumeStyles.bigStatsGrid}>
+          <View style={volumeStyles.bigStat}>
+            <Text style={volumeStyles.bigStatValue}>{stats.activityCount}</Text>
+            <Text style={volumeStyles.bigStatLabel}>Activities</Text>
+          </View>
+          <View style={volumeStyles.bigStat}>
+            <Text style={volumeStyles.bigStatValue}>{stats.activeDays}</Text>
+            <Text style={volumeStyles.bigStatLabel}>Active Days</Text>
+          </View>
+          <View style={volumeStyles.bigStat}>
+            <Text style={volumeStyles.bigStatValue}>{formatDistance(stats.totalDistance, units)}</Text>
+            <Text style={volumeStyles.bigStatLabel}>Total Distance</Text>
+          </View>
+          <View style={volumeStyles.bigStat}>
+            <Text style={volumeStyles.bigStatValue}>{formatTime(stats.totalTime)}</Text>
+            <Text style={volumeStyles.bigStatLabel}>Total Time</Text>
+          </View>
+          <View style={volumeStyles.bigStat}>
+            <Text style={volumeStyles.bigStatValue}>{Math.round(stats.totalElevation)}m</Text>
+            <Text style={volumeStyles.bigStatLabel}>Elevation Gain</Text>
+          </View>
+        </View>
+      </Page>
+    </>
+  )
+}
+
+// ============================================================================
+// VARIANT: "Quote + Calendar" - Enlarged calendar with featured comment
+// ============================================================================
+
+const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
+  const format = props.format || FORMATS['10x10']
+  const theme = props.theme || DEFAULT_THEME
+  const units = props.units || 'metric'
+
+  const displaySmall = resolveTypography('displaySmall', theme, format)
+  const subheading = resolveTypography('subheading', theme, format)
+  const body = resolveTypography('body', theme, format)
+  const caption = resolveTypography('caption', theme, format)
+  const stat = resolveTypography('stat', theme, format)
+  const spacing = resolveSpacing(theme, format)
+  const effects = resolveEffects(theme)
+
+  let allActivities = props.activities || []
+  if (props.activity) allActivities = [props.activity]
+
+  const month = props.month ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getMonth()
+    : new Date().getMonth())
+  const year = props.year ?? (allActivities[0]
+    ? new Date(allActivities[0].start_date_local || allActivities[0].start_date).getFullYear()
+    : new Date().getFullYear())
+
+  const monthName = getMonthName(month)
+  const calendarData = activitiesToCalendarData(allActivities)
+  const { isPredominant } = getPredominantSportType(allActivities)
+  const topComments = getTopComments(allActivities, 3)
+
+  const stats = {
+    activityCount: allActivities.length,
+    totalDistance: allActivities.reduce((sum, a) => sum + (a.distance || 0), 0),
+    totalTime: allActivities.reduce((sum, a) => sum + (a.moving_time || 0), 0),
+    activeDays: new Set(allActivities.map(a => (a.start_date_local || a.start_date).split('T')[0])).size,
+  }
+
+  const quoteStyles = StyleSheet.create({
+    leftPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.backgroundColor,
+      padding: format.safeMargin,
+    },
+    header: {
+      marginBottom: spacing.md,
+      borderBottomWidth: 2,
+      borderBottomColor: theme.primaryColor,
+      paddingBottom: spacing.sm,
+    },
+    monthTitle: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.primaryColor,
+      letterSpacing: displaySmall.letterSpacing ?? -1,
+      marginBottom: spacing.xs * 0.25,
+    },
+    yearSubtitle: {
+      fontSize: subheading.fontSize,
+      fontFamily: body.fontFamily,
+      color: theme.accentColor,
+      letterSpacing: 2,
+    },
+    calendarSection: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    calendarLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.primaryColor,
+      marginTop: spacing.md,
+    },
+    statItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    statValue: {
+      fontSize: stat.fontSize,
+      fontFamily: stat.fontFamily,
+      color: theme.accentColor,
+      marginBottom: spacing.xs * 0.5,
+    },
+    statLabel: {
+      fontSize: caption.fontSize * 0.8,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor,
+      opacity: effects.backgroundImageOpacity + 0.1,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    rightPage: {
+      width: format.dimensions.width,
+      height: format.dimensions.height,
+      backgroundColor: theme.primaryColor,
+      padding: format.safeMargin,
+    },
+    quoteHeader: {
+      marginBottom: spacing.lg,
+    },
+    quoteSectionLabel: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      marginBottom: spacing.xs,
+    },
+    quoteArea: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    quoteItem: {
+      marginBottom: spacing.lg,
+      paddingLeft: spacing.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.accentColor,
+    },
+    quoteText: {
+      fontSize: body.fontSize * 1.1,
+      fontFamily: body.fontFamily,
+      color: theme.backgroundColor,
+      fontStyle: 'italic',
+      lineHeight: 1.5,
+      marginBottom: spacing.xs,
+    },
+    quoteAuthor: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+    },
+    quoteActivity: {
+      fontSize: caption.fontSize * 0.9,
+      fontFamily: caption.fontFamily,
+      color: theme.backgroundColor + '70',
+      marginTop: 2,
+    },
+    noQuotes: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    noQuotesText: {
+      fontSize: displaySmall.fontSize,
+      fontFamily: displaySmall.fontFamily,
+      color: theme.backgroundColor,
+      opacity: effects.textOverlayOpacity,
+    },
+  })
+
+  return (
+    <>
+      {/* Left: Enlarged calendar + stats */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={quoteStyles.leftPage}>
+        <View style={quoteStyles.header}>
+          <Text style={quoteStyles.monthTitle}>{monthName}</Text>
+          <Text style={quoteStyles.yearSubtitle}>{year}</Text>
+        </View>
+        <View style={quoteStyles.calendarSection}>
+          <Text style={quoteStyles.calendarLabel}>Activity Calendar</Text>
+          {isPredominant ? (
+            <BubbleCalendarMonth
+              year={year}
+              month={month}
+              activities={calendarData}
+              format={format}
+              theme={theme}
+              showMonthLabel={false}
+              showWeekdayLabels={true}
+              cellSize={28 * format.scaleFactor}
+            />
+          ) : (
+            <IconCalendarMonth
+              year={year}
+              month={month}
+              activities={calendarData}
+              format={format}
+              theme={theme}
+              showMonthLabel={false}
+              showWeekdayLabels={true}
+              cellSize={28 * format.scaleFactor}
+            />
+          )}
+          <View style={quoteStyles.statsRow}>
+            <View style={quoteStyles.statItem}>
+              <Text style={quoteStyles.statValue}>{stats.activityCount}</Text>
+              <Text style={quoteStyles.statLabel}>Activities</Text>
+            </View>
+            <View style={quoteStyles.statItem}>
+              <Text style={quoteStyles.statValue}>{stats.activeDays}</Text>
+              <Text style={quoteStyles.statLabel}>Active Days</Text>
+            </View>
+            <View style={quoteStyles.statItem}>
+              <Text style={quoteStyles.statValue}>{formatDistance(stats.totalDistance, units)}</Text>
+              <Text style={quoteStyles.statLabel}>Distance</Text>
+            </View>
+            <View style={quoteStyles.statItem}>
+              <Text style={quoteStyles.statValue}>{formatTime(stats.totalTime)}</Text>
+              <Text style={quoteStyles.statLabel}>Time</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+
+      {/* Right: Featured quotes/comments on dark background */}
+      <Page size={[format.dimensions.width, format.dimensions.height]} style={quoteStyles.rightPage}>
+        <View style={quoteStyles.quoteHeader}>
+          <Text style={quoteStyles.quoteSectionLabel}>From the Community</Text>
+        </View>
+        {topComments.length > 0 ? (
+          <View style={quoteStyles.quoteArea}>
+            {topComments.map((comment, idx) => (
+              <View key={idx} style={quoteStyles.quoteItem}>
+                <Text style={quoteStyles.quoteText}>
+                  &ldquo;{comment.text.substring(0, 200)}{comment.text.length > 200 ? '...' : ''}&rdquo;
+                </Text>
+                <Text style={quoteStyles.quoteAuthor}>— {comment.authorName}</Text>
+                <Text style={quoteStyles.quoteActivity}>on {comment.activityName}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={quoteStyles.noQuotes}>
+            <Text style={quoteStyles.noQuotesText}>{monthName}</Text>
+          </View>
+        )}
+      </Page>
+    </>
+  )
+}
+
+// ============================================================================
+// PAGES-ONLY VERSIONS (no Document wrapper)
+// ============================================================================
+
+// Default pages (original layout)
+const MonthlyDividerDefaultPages = (props: MonthlyDividerSpreadProps) => (
   <>
     <MonthlyDividerLeftPage {...props} />
     <MonthlyDividerRightPage {...props} />
   </>
 )
+
+// Pages-only version for use in BookDocument (no Document wrapper)
+// Routes to the appropriate variant
+export const MonthlyDividerSpreadPages = (props: MonthlyDividerSpreadProps) => {
+  const variant = props.variant || 'default'
+
+  switch (variant) {
+    case 'photo-hero':
+      return <MonthlyDividerPhotoHeroPages {...props} />
+    case 'training-volume':
+      return <MonthlyDividerTrainingVolumePages {...props} />
+    case 'quote-calendar':
+      return <MonthlyDividerQuoteCalendarPages {...props} />
+    case 'default':
+    default:
+      return <MonthlyDividerDefaultPages {...props} />
+  }
+}

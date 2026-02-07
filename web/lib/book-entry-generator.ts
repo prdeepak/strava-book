@@ -178,7 +178,7 @@ export function generateBookEntries(
       title: race.name,
       pageNumber: currentPage,
     })
-    currentPage += 2 // Race spreads use 2 pages
+    currentPage += 4 // Race sections average ~4 pages (default 4, editorial 6, magazine 4)
   }
 
   // 7. MONTHLY SECTIONS

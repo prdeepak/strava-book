@@ -1,4 +1,5 @@
 import { StravaActivity } from "./strava"
+import type { RaceSectionVariant, MonthlyDividerVariant, ActivityLogVariant } from "./book-types"
 
 export type BookPageType =
     | 'COVER'
@@ -42,6 +43,10 @@ export interface BookEntry {
     heroImage?: string      // For COVER (background image URL)
     heroImageWidth?: number // Source width in pixels
     heroImageHeight?: number // Source height in pixels
+    // Template variant selections
+    raceVariant?: RaceSectionVariant       // For RACE_PAGE
+    monthlyDividerVariant?: MonthlyDividerVariant  // For MONTHLY_DIVIDER
+    activityLogVariant?: ActivityLogVariant // For ACTIVITY_LOG
 }
 
 /**

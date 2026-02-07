@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- Legacy 2-page race template; superseded by RaceSection variants */
 /**
  * Race_2p - Enhanced Two-Page Race Template
  *

@@ -1,34 +1,42 @@
 /**
  * Generate a book using real cached Strava data
  *
- * Usage: npx tsx scripts/generate-real-book.ts [--label=NAME]
- *
- * Loads activities from .cache/strava/, generates a full book PDF,
- * and saves page PNGs to outputs/ for comparison.
+ * Usage (from web/ directory): npx tsx scripts/generate-real-book.ts [--label=NAME]
  */
 
 import { promises as fs } from 'fs'
 import path from 'path'
+import dotenv from 'dotenv'
 import { renderToBuffer } from '@react-pdf/renderer'
 
+// Load .env.local so NEXT_PUBLIC_MAPBOX_TOKEN is available
+dotenv.config({ path: path.join(process.cwd(), '.env.local') })
+
 // Register fonts first
-import '../web/lib/pdf-fonts'
+import '@/lib/pdf-fonts'
 
-import { BookDocument, computeYearSummary, getCategoryForType, applyVariantSelection, insertBlankPagesForPrint } from '../web/components/templates/BookDocument'
-import { FORMATS, DEFAULT_THEME } from '../web/lib/book-types'
-import { StravaActivity } from '../web/lib/strava'
-import { BookEntry } from '../web/lib/curator'
-import { generateBookEntries, findCoverPhotosFromActivities } from '../web/lib/book-entry-generator'
-import { renderAllEntriesAsPdfs, PageRenderContext } from '../web/lib/pdf-page-renderer'
-import { TOCEntry } from '../web/components/templates/TableOfContents'
-import { CachedActivity } from '../web/lib/cache/strava-cache'
+import { BookDocument, computeYearSummary, getCategoryForType } from '@/components/templates/BookDocument'
+import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
+import { StravaActivity } from '@/lib/strava'
+import { generateBookEntries, findCoverPhotosFromActivities } from '@/lib/book-entry-generator'
+import { renderAllEntriesAsPdfs, PageRenderContext } from '@/lib/pdf-page-renderer'
+import { TOCEntry } from '@/components/templates/TableOfContents'
 
-const CACHE_BASE = path.join(process.cwd(), 'web', '.cache', 'strava')
+const CACHE_BASE = path.join(process.cwd(), '.cache', 'strava')
 const ACTIVITIES_DIR = path.join(CACHE_BASE, 'activities')
 const LISTS_DIR = path.join(CACHE_BASE, 'lists')
 
+interface CachedActivityFile {
+  activity?: StravaActivity
+  photos?: Array<{ urls?: Record<string, string>; unique_id?: string; caption?: string }>
+  comments?: Array<{ text?: string; firstname?: string; lastname?: string }>
+  laps?: unknown[]
+  activityFetchedAt?: string
+  photosFetchedAt?: string
+  commentsFetchedAt?: string
+}
+
 async function loadCachedActivities(): Promise<StravaActivity[]> {
-  // Load the activity list
   const listFiles = await fs.readdir(LISTS_DIR)
   if (listFiles.length === 0) throw new Error('No cached activity lists found')
 
@@ -36,9 +44,8 @@ async function loadCachedActivities(): Promise<StravaActivity[]> {
   const summaryActivities: StravaActivity[] = listData.activities
   console.log(`Loaded ${summaryActivities.length} activities from list cache`)
 
-  // Load detailed activity data where available
   const detailFiles = await fs.readdir(ACTIVITIES_DIR)
-  const detailMap = new Map<string, CachedActivity>()
+  const detailMap = new Map<string, CachedActivityFile>()
 
   for (const file of detailFiles) {
     if (!file.endsWith('.json')) continue
@@ -52,7 +59,6 @@ async function loadCachedActivities(): Promise<StravaActivity[]> {
   }
   console.log(`Loaded ${detailMap.size} detailed activity caches`)
 
-  // Merge: use detailed data where available, fall back to summary
   const merged = summaryActivities.map(summary => {
     const detail = detailMap.get(String(summary.id))
     if (detail?.activity) {
@@ -64,7 +70,7 @@ async function loadCachedActivities(): Promise<StravaActivity[]> {
           comments: detail.comments || [],
           streams: undefined,
         },
-      }
+      } as StravaActivity
     }
     return summary
   })
@@ -83,12 +89,9 @@ async function main() {
 
   const startTime = Date.now()
 
-  // 1. Load real data
   console.log('\n[1/5] Loading cached Strava data...')
   const allActivities = await loadCachedActivities()
 
-  // Filter to the Comrades training period (similar to what was used before)
-  // Use all activities from 2024-07 to 2025-06 (the Comrades back-to-back period)
   const startDate = '2024-07-01'
   const endDate = '2025-06-15'
   const filtered = allActivities.filter(a => {
@@ -97,16 +100,13 @@ async function main() {
   })
   console.log(`  Filtered to ${filtered.length} activities in ${startDate} to ${endDate}`)
 
-  // Separate races
   const races = filtered.filter(a => a.workout_type === 1)
   const nonRaces = filtered.filter(a => a.workout_type !== 1)
   console.log(`  Races: ${races.length}, Other: ${nonRaces.length}`)
 
-  // 2. Find photos
   console.log('\n[2/5] Finding cover photos...')
   const photos = findCoverPhotosFromActivities(filtered)
 
-  // 3. Generate book entries
   console.log('\n[3/5] Generating book entries...')
   const year = 2025
   const entries = generateBookEntries(
@@ -122,22 +122,14 @@ async function main() {
       backCoverPhoto: photos.backCoverPhoto,
     }
   )
-  console.log(`  Generated ${entries.length} book entries (${entries.length} pages)`)
+  console.log(`  Generated ${entries.length} book entries`)
 
-  // Log entry types for debugging
   const typeCounts = entries.reduce((acc, e) => {
     acc[e.type] = (acc[e.type] || 0) + 1
     return acc
   }, {} as Record<string, number>)
   console.log('  Entry types:', typeCounts)
 
-  // 3b. Enrich entries with variant selections and correct page numbers
-  // (same pipeline BookDocument uses internally at render time)
-  const enrichedEntries = applyVariantSelection(entries, filtered)
-  const processedEntries = insertBlankPagesForPrint(enrichedEntries)
-  console.log(`  After variant selection + blank page insertion: ${processedEntries.length} entries`)
-
-  // 4. Render individual page PDFs
   console.log('\n[4/5] Rendering page PDFs...')
   const yearSummary = computeYearSummary(filtered, year)
   const tocEntries: TOCEntry[] = entries
@@ -169,7 +161,7 @@ async function main() {
     tocEntries,
   }
 
-  const outputsDir = path.join(process.cwd(), 'web', 'outputs')
+  const outputsDir = path.join(process.cwd(), 'outputs')
   await fs.mkdir(outputsDir, { recursive: true })
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
@@ -184,18 +176,14 @@ async function main() {
     },
   })
 
-  // Save page PDFs
   for (const page of renderedPages) {
-    if (!page.pdfBuffer) {
-      console.warn(`  Skipping page ${page.pageNumber} (${page.type}) — no pdfBuffer`)
-      continue
+    const pageNum = String(page.entryIndex).padStart(3, '0')
+    const filename = `page-${pageNum}-${page.entryType}.pdf`
+    if (page.buffer) {
+      await fs.writeFile(path.join(pagesDir, filename), page.buffer)
     }
-    const pageNum = String(page.pageNumber).padStart(3, '0')
-    const filename = `page-${pageNum}-${page.type}.pdf`
-    await fs.writeFile(path.join(pagesDir, filename), page.pdfBuffer)
   }
 
-  // 5. Also render full book PDF
   console.log('\n[5/5] Rendering full book PDF...')
   const bookElement = BookDocument({
     entries,
@@ -209,7 +197,6 @@ async function main() {
     endDate,
     yearSummary,
     mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
-    tocEntries,
     printReady: true,
   })
 
@@ -222,17 +209,16 @@ async function main() {
   console.log(`  PDF: ${pdfPath}`)
   console.log(`  Pages: ${pagesDir}/ (${renderedPages.length} pages)`)
 
-  // Save manifest for reviewer (uses processedEntries for accurate page numbers)
+  // Save manifest for reviewer
   const manifest = {
     label,
     timestamp,
-    totalPages: processedEntries.length,
-    entries: processedEntries.map(e => ({
+    totalPages: entries.length,
+    entries: entries.map(e => ({
       pageNumber: e.pageNumber,
       type: e.type,
       title: e.title,
       activityId: e.activityId,
-      ...(e.raceVariant ? { raceVariant: e.raceVariant } : {}),
     })),
     typeCounts,
   }

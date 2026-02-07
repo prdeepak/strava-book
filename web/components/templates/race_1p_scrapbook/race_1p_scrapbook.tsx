@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
+/* eslint-disable no-restricted-syntax -- Legacy scrapbook variant; not actively maintained */
 import React from 'react';
 import {
   Page,

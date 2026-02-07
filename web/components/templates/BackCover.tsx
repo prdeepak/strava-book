@@ -1,6 +1,6 @@
 import { Page, Text, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, YearSummary, FORMATS } from '@/lib/book-types'
-import { formatPeriodRange } from '@/lib/activity-utils'
+import { formatPeriodRange, formatDistance, formatTotalHours, formatElevation } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
@@ -144,28 +144,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
   })
 }
 
-const formatDistance = (meters: number): string => {
-  const km = meters / 1000
-  if (km >= 1000) {
-    return `${(km / 1000).toFixed(1)}K km`
-  }
-  return `${km.toFixed(0)} km`
-}
-
-const formatTime = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600)
-  if (hours >= 1000) {
-    return `${(hours / 1000).toFixed(1)}K hrs`
-  }
-  return `${hours.toFixed(0)} hrs`
-}
-
-const formatElevation = (meters: number): string => {
-  if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(1)}K m`
-  }
-  return `${meters.toFixed(0)} m`
-}
+// Use shared formatters from activity-utils:
+// formatDistance, formatTotalHours, formatElevation
 
 // Generate mock year summary from activity if not provided
 const generateMockYearSummary = (activity?: Partial<StravaActivity>): YearSummary => {
@@ -267,12 +247,12 @@ export const BackCoverPage = ({
 
           <View style={styles.statsGrid}>
             <View style={styles.statRow}>
-              <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance)}</Text>
+              <Text style={styles.statValue}>{formatDistance(yearSummary.totalDistance, 'metric')}</Text>
               <Text style={styles.statLabel}>traveled</Text>
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statValue}>{formatTime(yearSummary.totalTime)}</Text>
+              <Text style={styles.statValue}>{formatTotalHours(yearSummary.totalTime)}</Text>
               <Text style={styles.statLabel}>in motion</Text>
             </View>
 

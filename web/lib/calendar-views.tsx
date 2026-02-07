@@ -65,7 +65,8 @@ export function getSportCategory(sportType: string): SportType {
   return 'Other'
 }
 
-// Sport icon colors (Strava-inspired)
+// Sport icon colors (Strava-inspired) — data visualization palette, not theme colors
+/* eslint-disable no-restricted-syntax */
 export const SPORT_COLORS: Record<SportType, string> = {
   Run: '#FC4C02',           // Strava orange
   TrailRun: '#FC4C02',
@@ -90,6 +91,7 @@ export const SPORT_COLORS: Record<SportType, string> = {
   Snowboard: '#6C757D',
   Other: '#6C757D',
 }
+/* eslint-enable no-restricted-syntax */
 
 interface SportIconProps {
   sport: SportType | string
@@ -103,6 +105,7 @@ interface SportIconProps {
  */
 export const SportIcon = ({ sport, size, color }: SportIconProps) => {
   const category = getSportCategory(sport)
+  // eslint-disable-next-line no-restricted-syntax -- fallback to sport palette default
   const iconColor = color || SPORT_COLORS[category] || '#6C757D'
   const strokeWidth = Math.max(1.5, size / 10)
 
@@ -372,7 +375,7 @@ export const IconCalendarMonth = ({
                   cx={centerX}
                   cy={centerY}
                   r={cellSize / 2 - 1}
-                  fill="#ffffff"
+                  fill={theme.backgroundColor}
                   stroke={sportColor}
                   strokeWidth={1.5}
                 />
@@ -721,7 +724,7 @@ export const BubbleCalendarMonth = ({
                   <Text style={{
                     fontSize: Math.max(5, Math.min(6, bubbleSize / 3)),
                     fontFamily: theme.fontPairing.body,
-                    color: '#ffffff',
+                    color: theme.backgroundColor,
                     fontWeight: 'bold',
                   }}>
                     {distanceKm >= 10 ? Math.round(distanceKm) : distanceKm.toFixed(1)}

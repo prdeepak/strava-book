@@ -223,6 +223,7 @@ const getColorIntensity = (value: number, maxValue: number): number => {
 }
 
 // Helper to get color based on intensity with better contrast
+/* eslint-disable no-restricted-syntax -- empty-cell tints derived from background tone */
 const getColor = (intensity: number, accentColor: string, backgroundColor: string): string => {
   const isLightBg = backgroundColor === '#ffffff' || backgroundColor === '#fff'
 
@@ -241,6 +242,7 @@ const getColor = (intensity: number, accentColor: string, backgroundColor: strin
 
   return shades[intensity]
 }
+/* eslint-enable no-restricted-syntax */
 
 // Helper to generate mock year data from a single activity (for testing)
 const generateMockYearData = (activity: StravaActivity) => {

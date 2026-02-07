@@ -82,13 +82,49 @@ export function formatPace(
  */
 export function formatDistance(
     distance: number,  // in meters
-    units: 'metric' | 'imperial'
+    units: 'metric' | 'imperial' = 'metric'
 ): string {
     if (units === 'metric') {
-        return `${(distance / 1000).toFixed(2)} km`
+        return `${(distance / 1000).toFixed(1)} km`
     } else {
-        return `${(distance / 1609.34).toFixed(2)} mi`
+        return `${(distance / 1609.34).toFixed(1)} mi`
     }
+}
+
+/**
+ * Format distance as a number string (no unit suffix).
+ * Use when you need the value separately from the unit label.
+ */
+export function formatDistanceValue(
+    distance: number,
+    units: 'metric' | 'imperial' = 'metric'
+): string {
+    if (units === 'metric') {
+        return (distance / 1000).toFixed(1)
+    } else {
+        return (distance / 1609.34).toFixed(1)
+    }
+}
+
+/**
+ * Format total hours for summary stats (e.g., "142 hrs" or "1.4K hrs")
+ */
+export function formatTotalHours(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    if (hours >= 1000) {
+        return `${(hours / 1000).toFixed(1)}K hrs`
+    }
+    return `${hours} hrs`
+}
+
+/**
+ * Format elevation (e.g., "8,432 m" or "1.2K m")
+ */
+export function formatElevation(meters: number): string {
+    if (meters >= 10000) {
+        return `${(meters / 1000).toFixed(1)}K m`
+    }
+    return `${Math.round(meters).toLocaleString()} m`
 }
 
 // ============================================================================

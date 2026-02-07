@@ -123,9 +123,11 @@ export function getHeatmapColor(
   accentColor: string,
   backgroundColor: string
 ): string {
+  // eslint-disable-next-line no-restricted-syntax -- comparing against known background values
   const isLightBg = backgroundColor.toLowerCase() === '#ffffff' || backgroundColor.toLowerCase() === '#fff'
 
   if (intensity === 0) {
+    // eslint-disable-next-line no-restricted-syntax -- empty-cell tints derived from background tone
     return isLightBg ? '#f0f0f0' : '#2a2a2a'
   }
 

@@ -47,7 +47,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     kudosCount: {
         fontSize: Math.max(20, 28 * format.scaleFactor),
         fontFamily: theme.fontPairing.heading,
-        color: '#ffffff',
+        color: theme.textOverAccent ?? theme.backgroundColor,
     },
     kudosLabel: {
         fontSize: Math.max(10, 12 * format.scaleFactor),
@@ -67,7 +67,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 16 * format.scaleFactor,
         paddingBottom: 16 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: theme.borderColor ?? (theme.primaryColor + '20'),
     },
     commentHeader: {
         flexDirection: 'row',
@@ -83,12 +83,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     commentDate: {
         fontSize: Math.max(8, 9 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
-        color: '#999',
+        color: theme.primaryColor + '99',
     },
     commentText: {
         fontSize: Math.max(10, 12 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
-        color: '#444',
+        color: theme.primaryColor + 'CC',
         lineHeight: 1.5,
     },
     commentReaction: {
@@ -100,7 +100,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     noComments: {
         fontSize: Math.max(12, 14 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
-        color: '#999',
+        color: theme.primaryColor + '99',
         textAlign: 'center',
         marginTop: 40 * format.scaleFactor,
     },
@@ -127,8 +127,8 @@ export const RaceSectionCommentsPage = ({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
-    // Limit to fit on one page (roughly 8-10 comments)
-    const displayComments = sortedComments.slice(0, 10)
+    // Limit to fit on one page — 8 comments max to avoid overflow with kudos banner + "more" text
+    const displayComments = sortedComments.slice(0, 8)
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr)
@@ -200,7 +200,7 @@ export const RaceSectionCommentsPage = ({
                                 </View>
                             ))}
                             {sortedComments.length > displayComments.length && (
-                                <Text style={[styles.noComments, { color: '#666', textAlign: 'left' }]}>
+                                <Text style={[styles.noComments, { color: theme.primaryColor + '99', textAlign: 'left' as const }]}>
                                     +{sortedComments.length - displayComments.length} more comments
                                 </Text>
                             )}

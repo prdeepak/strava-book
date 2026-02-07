@@ -26,18 +26,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         justifyContent: 'space-between',
         marginBottom: 3 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: theme.borderColor ?? (theme.primaryColor + '20'),
         paddingBottom: 2 * format.scaleFactor,
     },
     dataLabel: {
         fontFamily: theme.fontPairing.body,
-        color: '#666',
+        color: theme.primaryColor + '99',
         fontSize: Math.max(7, 9 * format.scaleFactor),
         flex: 1,
     },
     dataValue: {
         fontFamily: theme.fontPairing.heading,
-        color: '#000',
+        color: theme.primaryColor,
         fontSize: Math.max(7, 9 * format.scaleFactor),
         textAlign: 'right',
     },
@@ -97,20 +97,20 @@ export const BestEffortsTable = ({
                     // Color-code top-3 PRs
                     const prRank = effort.pr_rank || 0
                     let backgroundColor = 'transparent'
-                    let textColor = '#555'
+                    let textColor = theme.primaryColor + '99'
                     let fontFamily = 'Helvetica'
 
                     if (prRank === 1) {
                         backgroundColor = '#FFD700' // Gold
-                        textColor = '#000'
+                        textColor = theme.primaryColor
                         fontFamily = 'Helvetica-Bold'
                     } else if (prRank === 2) {
                         backgroundColor = '#C0C0C0' // Silver
-                        textColor = '#000'
+                        textColor = theme.primaryColor
                         fontFamily = 'Helvetica-Bold'
                     } else if (prRank === 3) {
                         backgroundColor = '#CD7F32' // Bronze
-                        textColor = '#000'
+                        textColor = theme.primaryColor
                         fontFamily = 'Helvetica-Bold'
                     } else if (prRank > 0 && prRank <= 5) {
                         fontFamily = 'Helvetica-Bold' // Top 5 but not podium
@@ -118,10 +118,10 @@ export const BestEffortsTable = ({
 
                     return (
                         <View key={i} style={[styles.dataRow, { backgroundColor, paddingVertical: prRank <= 3 ? 1 : 0 }]}>
-                            <Text style={[styles.dataLabel, { fontFamily, color: prRank <= 3 ? textColor : '#666' }]}>
+                            <Text style={[styles.dataLabel, { fontFamily, color: prRank <= 3 ? textColor : theme.primaryColor + '99' }]}>
                                 {effort.name}
                             </Text>
-                            <Text style={[styles.dataValue, { fontFamily, color: prRank <= 3 ? textColor : '#000' }]}>
+                            <Text style={[styles.dataValue, { fontFamily, color: prRank <= 3 ? textColor : theme.primaryColor }]}>
                                 {paceMin}:{paceSec}
                             </Text>
                         </View>

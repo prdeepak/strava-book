@@ -1,8 +1,9 @@
-import { Page, Text, View, StyleSheet, Svg, Polyline, Image } from '@react-pdf/renderer'
+import { Page, Text, View, StyleSheet, Svg, Polyline } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import mapboxPolyline from '@mapbox/polyline'
 import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
+import { PdfImage } from '@/components/pdf/PdfImage'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
@@ -21,7 +22,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         },
         mapContainer: {
             height: mapHeight,
-            backgroundColor: '#f5f5f5',
+            backgroundColor: theme.surfaceColor ?? (theme.primaryColor + '08'),
             marginBottom: 12 * format.scaleFactor,
             border: `1px solid ${theme.primaryColor}`,
             borderWidth: 0.5,
@@ -53,7 +54,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             alignItems: 'center',
             marginBottom: 4 * format.scaleFactor,
             borderBottomWidth: 0.5,
-            borderBottomColor: '#e0e0e0',
+            borderBottomColor: theme.borderColor ?? (theme.primaryColor + '20'),
             paddingBottom: 3 * format.scaleFactor,
             paddingHorizontal: 4 * format.scaleFactor,
             marginRight: '2%'
@@ -61,20 +62,20 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         splitLabel: {
             fontSize: Math.max(8, 10 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
-            color: '#333',
+            color: theme.primaryColor,
             width: '25%',
         },
         splitPace: {
             fontSize: Math.max(8, 10 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            color: '#555',
+            color: theme.primaryColor + 'CC',
             width: '45%',
             textAlign: 'center',
         },
         splitElev: {
             fontSize: Math.max(8, 9 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            color: '#777',
+            color: theme.primaryColor + '99',
             width: '30%',
             textAlign: 'right',
         },
@@ -91,7 +92,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             fontSize: Math.max(7, 8 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             textTransform: 'uppercase',
-            color: '#999',
+            color: theme.primaryColor + '99',
             letterSpacing: 0.5,
         }
     })
@@ -217,22 +218,21 @@ export const RaceSectionStatsPage = ({
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
             <View style={styles.mapContainer}>
                 {satelliteUrl ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={satelliteUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                    <PdfImage src={satelliteUrl} containerWidth={mapWidth} containerHeight={mapHeight} />
                 ) : (
                     <>
                         {/* Blueprint Grid Background */}
-                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0, backgroundColor: '#f5f5f5' }}>
+                        <Svg height={mapHeight} width={mapWidth} viewBox={`0 0 ${mapWidth} ${mapHeight}`} style={{ position: 'absolute', top: 0, left: 0, backgroundColor: theme.surfaceColor ?? (theme.primaryColor + '08') }}>
                             {/* Horizontal Grid Lines */}
                             {Array.from({ length: 5 }).map((_, i) => {
                                 const y = (mapHeight / 5) * (i + 1)
-                                return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                                return <Polyline key={`h${i}`} points={`0,${y} ${mapWidth},${y}`} stroke={theme.borderColor ?? (theme.primaryColor + '20')} strokeWidth={0.5} />
                             })}
 
                             {/* Vertical Grid Lines */}
                             {Array.from({ length: 5 }).map((_, i) => {
                                 const x = (mapWidth / 5) * (i + 1)
-                                return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke="#e0e0e0" strokeWidth={0.5} />
+                                return <Polyline key={`v${i}`} points={`${x},0 ${x},${mapHeight}`} stroke={theme.borderColor ?? (theme.primaryColor + '20')} strokeWidth={0.5} />
                             })}
                         </Svg>
 
@@ -253,7 +253,7 @@ export const RaceSectionStatsPage = ({
                             bottom: 8,
                             right: 8,
                             fontSize: Math.max(6, 8 * format.scaleFactor),
-                            color: '#aaa',
+                            color: theme.primaryColor + '99',
                             fontFamily: theme.fontPairing.body
                         }}>
                             VECTOR MAP
