@@ -162,6 +162,39 @@ const RECTO_PAGE_TYPES: BookEntry['type'][] = [
 ]
 
 /**
+ * Get the number of rendered PDF pages for a BookEntry.
+ *
+ * Used by insertBlankPagesForPrint to track page positions for proper
+ * print spread alignment. Must mirror actual rendering page counts.
+ */
+function getEntryRenderedPageCount(entry: BookEntry, tocEntryCount: number): number {
+    switch (entry.type) {
+        case 'MONTHLY_DIVIDER':
+            return 2  // All variants render 2-page spreads
+        case 'TABLE_OF_CONTENTS': {
+            if (tocEntryCount <= 12) return 1
+            const remaining = tocEntryCount - 12
+            return 1 + Math.ceil(remaining / 16)
+        }
+        case 'RACE_PAGE': {
+            // Minimum page counts per variant — accurate for bare-minimum data.
+            // With rich data (photos, comments, description), variants can produce
+            // more pages, but insertBlankPagesForPrint is called before rendering
+            // and doesn't have activity data. These estimates are sufficient for
+            // proper recto/verso alignment in most cases.
+            const variant = entry.raceVariant || 'default'
+            const pageCounts: Record<string, number> = {
+                'default': 2, 'editorial': 2, 'magazine': 3,
+                'map-hero': 1, 'photo-essay': 1, 'stats-forward': 1, 'compact': 1,
+            }
+            return pageCounts[variant] || 2
+        }
+        default:
+            return 1
+    }
+}
+
+/**
  * Insert blank pages where needed to ensure proper print spreads.
  *
  * In professional print books:
@@ -173,6 +206,15 @@ const RECTO_PAGE_TYPES: BookEntry['type'][] = [
  * @returns New array with blank pages inserted where needed
  */
 export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
+    // Count TOC entries for accurate TOC page count
+    const tocEntryCount = entries.filter(e =>
+        e.type !== 'COVER' &&
+        e.type !== 'TABLE_OF_CONTENTS' &&
+        e.type !== 'ACTIVITY_LOG' &&
+        e.type !== 'BLANK_PAGE' &&
+        e.type !== 'BACK_COVER'
+    ).length
+
     const result: BookEntry[] = []
     let currentPage = 1
 
@@ -197,14 +239,8 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
             pageNumber: currentPage,
         })
 
-        // Update page count based on entry type
-        // Most entries are 1 page, but race sections span multiple pages
-        if (entry.type === 'RACE_PAGE') {
-            const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 4, 'magazine': 4 }
-            currentPage += racePageCounts[entry.raceVariant || 'default'] || 4
-        } else {
-            currentPage += 1
-        }
+        // Advance by the actual number of rendered pages for this entry
+        currentPage += getEntryRenderedPageCount(entry, tocEntryCount)
     }
 
     return result
