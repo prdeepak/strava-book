@@ -36,6 +36,8 @@ export interface BookReview {
   overallScore: number
   suggestions: ReviewSuggestion[]
   summary: string
+  provider?: string
+  model?: string
 }
 
 // ============================================================================

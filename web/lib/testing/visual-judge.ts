@@ -2,11 +2,11 @@
  * Visual Judge - LLM-as-judge for PDF template evaluation
  *
  * Evaluates PDF page screenshots against print quality criteria.
- * Supports AWS Bedrock (Sonnet), Gemini, and Anthropic API with automatic fallback.
+ * Supports AWS Bedrock (Sonnet) and Gemini with automatic fallback via llm-provider.
  */
 
 import * as fs from 'fs'
-import { callClaudeWithImages, isBedrockConfigured } from '@/lib/claude-client'
+import { callLlmWithImages, stripJsonFences } from '@/lib/llm-provider'
 
 // ============================================================================
 // Types
@@ -23,6 +23,8 @@ export interface VisualJudgment {
     summary: string
     suggestions: string[]
     rawResponse?: string  // For debugging
+    provider?: string
+    model?: string
 }
 
 export interface CriterionScore {
@@ -43,7 +45,6 @@ export interface JudgeContext {
 }
 
 export interface JudgeOptions {
-    provider?: 'bedrock' | 'gemini' | 'anthropic' | 'auto'
     verbose?: boolean
 }
 
@@ -108,134 +109,6 @@ function buildPrompt(context: JudgeContext): string {
 }
 
 // ============================================================================
-// Provider Implementations
-// ============================================================================
-
-async function judgeWithBedrock(
-    imageBase64: string,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const result = await callClaudeWithImages(
-        [{ base64: imageBase64, format: 'png' }],
-        prompt,
-        { maxTokens: 2000, temperature: 0.1 }
-    )
-
-    if (verbose) {
-        console.log('[Visual Judge] Bedrock response received')
-    }
-
-    return result
-}
-
-async function judgeWithGemini(
-    imageBase64: string,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY not set')
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-
-    const payload = {
-        contents: [{
-            parts: [
-                {
-                    inline_data: {
-                        mime_type: "image/png",
-                        data: imageBase64
-                    }
-                },
-                {
-                    text: prompt
-                }
-            ]
-        }],
-        generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2000
-        }
-    }
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Gemini API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
-
-    if (verbose) {
-        console.log('[Visual Judge] Gemini response received')
-    }
-
-    return data.candidates[0].content.parts[0].text
-}
-
-async function judgeWithAnthropic(
-    imageBase64: string,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-        throw new Error('ANTHROPIC_API_KEY not set')
-    }
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 2000,
-            messages: [{
-                role: 'user',
-                content: [
-                    {
-                        type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: 'image/png',
-                            data: imageBase64
-                        }
-                    },
-                    {
-                        type: 'text',
-                        text: prompt
-                    }
-                ]
-            }]
-        })
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Anthropic API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
-
-    if (verbose) {
-        console.log('[Visual Judge] Anthropic response received')
-    }
-
-    return data.content[0].text
-}
-
-// ============================================================================
 // Main Judge Function
 // ============================================================================
 
@@ -244,7 +117,7 @@ export async function judgePageVisual(
     context: JudgeContext,
     options: JudgeOptions = {}
 ): Promise<VisualJudgment> {
-    const { provider = 'auto', verbose = false } = options
+    const { verbose = false } = options
 
     // Read image and convert to base64
     const imageBuffer = fs.readFileSync(imagePath)
@@ -257,74 +130,20 @@ export async function judgePageVisual(
         console.log(`[Visual Judge] Template: ${context.templateName}, Page: ${context.pageType}`)
     }
 
-    let responseText: string = ''
-    let usedProvider: string = ''
-
-    // Try providers in order: Bedrock → Gemini → Anthropic
-    // Skip providers that aren't configured
-    const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
-    if (provider === 'auto') {
-        // Only include Bedrock if API key is configured
-        if (isBedrockConfigured()) {
-            availableProviders.push('bedrock')
-        }
-        if (process.env.GEMINI_API_KEY) {
-            availableProviders.push('gemini')
-        }
-        if (process.env.ANTHROPIC_API_KEY) {
-            availableProviders.push('anthropic')
-        }
-        if (availableProviders.length === 0) {
-            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS_BEARER_TOKEN_BEDROCK.')
-        }
-    } else {
-        availableProviders.push(provider)
-    }
-
-    const providers = availableProviders
-
-    for (const p of providers) {
-        try {
-            if (p === 'bedrock') {
-                responseText = await judgeWithBedrock(imageBase64, prompt, verbose)
-            } else if (p === 'gemini') {
-                responseText = await judgeWithGemini(imageBase64, prompt, verbose)
-            } else {
-                responseText = await judgeWithAnthropic(imageBase64, prompt, verbose)
-            }
-            usedProvider = p
-            break
-        } catch (error) {
-            if (verbose) {
-                console.log(`[Visual Judge] ${p} failed, trying next...`)
-            }
-            if (p === providers[providers.length - 1]) {
-                throw new Error(`All providers failed. Last error: ${error}`)
-            }
-        }
-    }
-
-    if (verbose) {
-        console.log(`[Visual Judge] Used provider: ${usedProvider!}`)
-    }
-
-    // Parse JSON response
+    let result
     try {
-        // Clean up response - remove markdown code blocks if present
-        let cleanJson = responseText!.trim()
-        if (cleanJson.startsWith('```json')) {
-            cleanJson = cleanJson.slice(7)
-        }
-        if (cleanJson.startsWith('```')) {
-            cleanJson = cleanJson.slice(3)
-        }
-        if (cleanJson.endsWith('```')) {
-            cleanJson = cleanJson.slice(0, -3)
-        }
-        cleanJson = cleanJson.trim()
+        result = await callLlmWithImages(
+            [{ base64: imageBase64, format: 'png' }],
+            prompt,
+            { maxTokens: 2000, temperature: 0.1, logPrefix: '[Visual Judge]', verbose }
+        )
+    } catch (error) {
+        throw new Error(`All providers failed. Last error: ${error}`)
+    }
 
+    try {
+        const cleanJson = stripJsonFences(result.text)
         const parsed = JSON.parse(cleanJson)
-
         return {
             pass: parsed.pass,
             overallScore: parsed.overallScore,
@@ -335,7 +154,9 @@ export async function judgePageVisual(
             },
             summary: parsed.summary,
             suggestions: parsed.suggestions || [],
-            rawResponse: verbose ? responseText : undefined
+            rawResponse: verbose ? result.text : undefined,
+            provider: result.provider,
+            model: result.model
         }
     } catch (parseError) {
         // Return a failure judgment if we can't parse
@@ -349,7 +170,7 @@ export async function judgePageVisual(
             },
             summary: `Failed to parse judge response: ${parseError}`,
             suggestions: ['Check LLM output format'],
-            rawResponse: responseText
+            rawResponse: result.text
         }
     }
 }
@@ -414,6 +235,8 @@ export interface BookJudgment {
     pass: boolean
     summary: string
     rawResponse?: string
+    provider?: string
+    model?: string
 }
 
 export interface BookContext {
@@ -492,7 +315,7 @@ export async function judgeBook(
     context: BookContext,
     options: JudgeOptions = {}
 ): Promise<BookJudgment> {
-    const { provider = 'auto', verbose = false } = options
+    const { verbose = false } = options
 
     if (imagePaths.length === 0) {
         return {
@@ -525,63 +348,22 @@ export async function judgeBook(
 
     const prompt = buildBookPrompt(context)
 
-    let responseText: string = ''
-    let usedProvider: string = ''
+    const imagesForLlm = imageData.map(img => ({ base64: img.base64, format: 'png' as const }))
 
-    // Build available providers list
-    const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
-    if (provider === 'auto') {
-        if (isBedrockConfigured()) {
-            availableProviders.push('bedrock')
-        }
-        if (process.env.GEMINI_API_KEY) {
-            availableProviders.push('gemini')
-        }
-        if (process.env.ANTHROPIC_API_KEY) {
-            availableProviders.push('anthropic')
-        }
-        if (availableProviders.length === 0) {
-            throw new Error('No LLM providers configured. Set GEMINI_API_KEY, ANTHROPIC_API_KEY, or AWS_BEARER_TOKEN_BEDROCK.')
-        }
-    } else {
-        availableProviders.push(provider)
-    }
-
-    for (const p of availableProviders) {
-        try {
-            responseText = await judgeBookWithProvider(p, imageData, prompt, verbose)
-            usedProvider = p
-            break
-        } catch (error) {
-            if (verbose) {
-                console.log(`[Visual Judge] ${p} failed for book judgment, trying next...`)
-            }
-            if (p === availableProviders[availableProviders.length - 1]) {
-                throw new Error(`All providers failed. Last error: ${error}`)
-            }
-        }
-    }
-
-    if (verbose) {
-        console.log(`[Visual Judge] Used provider: ${usedProvider}`)
-    }
-
-    // Parse JSON response
+    let result
     try {
-        let cleanJson = responseText.trim()
-        if (cleanJson.startsWith('```json')) {
-            cleanJson = cleanJson.slice(7)
-        }
-        if (cleanJson.startsWith('```')) {
-            cleanJson = cleanJson.slice(3)
-        }
-        if (cleanJson.endsWith('```')) {
-            cleanJson = cleanJson.slice(0, -3)
-        }
-        cleanJson = cleanJson.trim()
+        result = await callLlmWithImages(
+            imagesForLlm,
+            prompt,
+            { maxTokens: 2000, temperature: 0.1, logPrefix: '[Visual Judge]', verbose }
+        )
+    } catch (error) {
+        throw new Error(`All providers failed. Last error: ${error}`)
+    }
 
+    try {
+        const cleanJson = stripJsonFences(result.text)
         const parsed = JSON.parse(cleanJson)
-
         return {
             coherence: parsed.coherence,
             flow: parsed.flow,
@@ -590,7 +372,9 @@ export async function judgeBook(
             pass: parsed.pass,
             summary: parsed.summary,
             suggestions: parsed.suggestions || [],
-            rawResponse: verbose ? responseText : undefined
+            rawResponse: verbose ? result.text : undefined,
+            provider: result.provider,
+            model: result.model
         }
     } catch (parseError) {
         return {
@@ -601,7 +385,7 @@ export async function judgeBook(
             pass: false,
             summary: `Failed to parse judge response: ${parseError}`,
             suggestions: ['Check LLM output format'],
-            rawResponse: responseText
+            rawResponse: result.text
         }
     }
 }
@@ -643,150 +427,6 @@ function selectRepresentativePages(
     return selected
 }
 
-/**
- * Call LLM provider with multiple images for book evaluation
- */
-async function judgeBookWithProvider(
-    provider: 'bedrock' | 'gemini' | 'anthropic',
-    imageData: Array<{ base64: string; pageNum: number }>,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    if (provider === 'bedrock') {
-        return await judgeBookWithBedrock(imageData, prompt, verbose)
-    } else if (provider === 'gemini') {
-        return await judgeBookWithGemini(imageData, prompt, verbose)
-    } else {
-        return await judgeBookWithAnthropic(imageData, prompt, verbose)
-    }
-}
-
-async function judgeBookWithBedrock(
-    imageData: Array<{ base64: string; pageNum: number }>,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const images = imageData.map(img => ({ base64: img.base64, format: 'png' as const }))
-    const result = await callClaudeWithImages(
-        images,
-        prompt,
-        { maxTokens: 2000, temperature: 0.1 }
-    )
-
-    if (verbose) {
-        console.log('[Visual Judge] Bedrock book response received')
-    }
-
-    return result
-}
-
-async function judgeBookWithGemini(
-    imageData: Array<{ base64: string; pageNum: number }>,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY not set')
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-
-    // Build parts array with all images and the prompt
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parts: any[] = imageData.map(img => ({
-        inline_data: {
-            mime_type: "image/png",
-            data: img.base64
-        }
-    }))
-    parts.push({ text: prompt })
-
-    const payload = {
-        contents: [{
-            parts
-        }],
-        generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2000
-        }
-    }
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Gemini API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
-
-    if (verbose) {
-        console.log('[Visual Judge] Gemini book response received')
-    }
-
-    return data.candidates[0].content.parts[0].text
-}
-
-async function judgeBookWithAnthropic(
-    imageData: Array<{ base64: string; pageNum: number }>,
-    prompt: string,
-    verbose: boolean
-): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-        throw new Error('ANTHROPIC_API_KEY not set')
-    }
-
-    // Build content array with all images and the prompt
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content: any[] = imageData.map(img => ({
-        type: 'image',
-        source: {
-            type: 'base64',
-            media_type: 'image/png',
-            data: img.base64
-        }
-    }))
-    content.push({
-        type: 'text',
-        text: prompt
-    })
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 2000,
-            messages: [{
-                role: 'user',
-                content
-            }]
-        })
-    })
-
-    if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Anthropic API error: ${response.status} ${error}`)
-    }
-
-    const data = await response.json()
-
-    if (verbose) {
-        console.log('[Visual Judge] Anthropic book response received')
-    }
-
-    return data.content[0].text
-}
 
 // ============================================================================
 // CLI Interface (for testing)

@@ -3,14 +3,14 @@
  *
  * Evaluates the entire book — not just individual pages — and provides
  * actionable improvement suggestions. Uses the LLM provider chain
- * (Bedrock → Gemini → Anthropic) from visual-judge.ts.
+ * (Bedrock → Gemini) via llm-provider.
  *
  * Input:  Book manifest + contact sheet images
  * Output: Scored review with prioritized suggestions
  */
 
 import * as fs from 'fs'
-import { callClaudeWithImages, isBedrockConfigured } from '@/lib/claude-client'
+import { callLlmWithImages, stripJsonFences } from '@/lib/llm-provider'
 import { BookManifest } from './book-manifest'
 import {
   buildReviewPrompt,
@@ -26,118 +26,7 @@ import {
 export type { BookReview, ReviewScore, ReviewSuggestion }
 
 export interface ReviewOptions {
-  provider?: 'bedrock' | 'gemini' | 'anthropic' | 'auto'
   verbose?: boolean
-}
-
-// ============================================================================
-// Provider Implementations
-// ============================================================================
-
-async function reviewWithBedrock(
-  imagesBase64: string[],
-  prompt: string,
-  verbose: boolean
-): Promise<string> {
-  const images = imagesBase64.map(b64 => ({ base64: b64, format: 'png' as const }))
-  const result = await callClaudeWithImages(images, prompt, {
-    maxTokens: 4000,
-    temperature: 0.1,
-  })
-  if (verbose) {
-    console.log('[Book Reviewer] Bedrock response received')
-  }
-  return result
-}
-
-async function reviewWithGemini(
-  imagesBase64: string[],
-  prompt: string,
-  verbose: boolean
-): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not set')
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parts: any[] = imagesBase64.map(b64 => ({
-    inline_data: {
-      mime_type: 'image/png',
-      data: b64,
-    },
-  }))
-  parts.push({ text: prompt })
-
-  const payload = {
-    contents: [{ parts }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 4000,
-    },
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Gemini API error: ${response.status} ${error}`)
-  }
-
-  const data = await response.json()
-  if (verbose) {
-    console.log('[Book Reviewer] Gemini response received')
-  }
-  return data.candidates[0].content.parts[0].text
-}
-
-async function reviewWithAnthropic(
-  imagesBase64: string[],
-  prompt: string,
-  verbose: boolean
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const content: any[] = imagesBase64.map(b64 => ({
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: 'image/png',
-      data: b64,
-    },
-  }))
-  content.push({ type: 'text', text: prompt })
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content }],
-    }),
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Anthropic API error: ${response.status} ${error}`)
-  }
-
-  const data = await response.json()
-  if (verbose) {
-    console.log('[Book Reviewer] Anthropic response received')
-  }
-  return data.content[0].text
 }
 
 // ============================================================================
@@ -145,20 +34,7 @@ async function reviewWithAnthropic(
 // ============================================================================
 
 function parseReviewResponse(responseText: string): BookReview {
-  let cleanJson = responseText.trim()
-
-  // Strip markdown code fences if present
-  if (cleanJson.startsWith('```json')) {
-    cleanJson = cleanJson.slice(7)
-  }
-  if (cleanJson.startsWith('```')) {
-    cleanJson = cleanJson.slice(3)
-  }
-  if (cleanJson.endsWith('```')) {
-    cleanJson = cleanJson.slice(0, -3)
-  }
-  cleanJson = cleanJson.trim()
-
+  const cleanJson = stripJsonFences(responseText)
   const parsed = JSON.parse(cleanJson)
 
   // Validate and clamp scores to 1-10 range
@@ -442,42 +318,24 @@ export function reviewBookHeuristic(manifest: BookManifest): BookReview {
  *
  * @param manifest - Book manifest describing all pages
  * @param contactSheetPaths - Paths to contact sheet PNG files
- * @param options - Review options (provider, verbose)
+ * @param options - Review options (verbose)
  */
 export async function reviewBook(
   manifest: BookManifest,
   contactSheetPaths: string[],
   options: ReviewOptions = {}
 ): Promise<BookReview> {
-  const { provider = 'auto', verbose = false } = options
+  const { verbose = false } = options
 
   if (verbose) {
     console.log(`[Book Reviewer] Reviewing book: ${manifest.totalPages} pages, ${manifest.raceCount} races`)
     console.log(`[Book Reviewer] Contact sheets: ${contactSheetPaths.length}`)
   }
 
-  // If no contact sheets or no provider, fall back to heuristic review
+  // If no contact sheets, fall back to heuristic review
   if (contactSheetPaths.length === 0) {
     if (verbose) {
       console.log('[Book Reviewer] No contact sheets provided, using heuristic review')
-    }
-    return reviewBookHeuristic(manifest)
-  }
-
-  // Build available providers list
-  const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
-  if (provider === 'auto') {
-    if (isBedrockConfigured()) availableProviders.push('bedrock')
-    if (process.env.GEMINI_API_KEY) availableProviders.push('gemini')
-    if (process.env.ANTHROPIC_API_KEY) availableProviders.push('anthropic')
-  } else {
-    availableProviders.push(provider)
-  }
-
-  // Fall back to heuristic if no LLM is configured
-  if (availableProviders.length === 0) {
-    if (verbose) {
-      console.log('[Book Reviewer] No LLM providers configured, using heuristic review')
     }
     return reviewBookHeuristic(manifest)
   }
@@ -491,42 +349,23 @@ export async function reviewBook(
 
   const prompt = buildReviewPrompt(manifest)
 
-  // Try providers in order
-  let responseText = ''
-  for (const p of availableProviders) {
-    try {
-      if (p === 'bedrock') {
-        responseText = await reviewWithBedrock(imagesBase64, prompt, verbose)
-      } else if (p === 'gemini') {
-        responseText = await reviewWithGemini(imagesBase64, prompt, verbose)
-      } else {
-        responseText = await reviewWithAnthropic(imagesBase64, prompt, verbose)
-      }
-      if (verbose) {
-        console.log(`[Book Reviewer] Used provider: ${p}`)
-      }
-      break
-    } catch (error) {
-      if (verbose) {
-        console.log(`[Book Reviewer] ${p} failed, trying next...`, error)
-      }
-      if (p === availableProviders[availableProviders.length - 1]) {
-        // All providers failed — fall back to heuristic
-        if (verbose) {
-          console.log('[Book Reviewer] All LLM providers failed, using heuristic review')
-        }
-        return reviewBookHeuristic(manifest)
-      }
-    }
+  let result
+  try {
+    result = await callLlmWithImages(
+      imagesBase64.map(b64 => ({ base64: b64, format: 'png' as const })),
+      prompt,
+      { maxTokens: 4000, temperature: 0.1, logPrefix: '[Book Reviewer]', verbose }
+    )
+  } catch {
+    if (verbose) console.log('[Book Reviewer] All LLM providers failed, using heuristic review')
+    return reviewBookHeuristic(manifest)
   }
 
-  // Parse LLM response
   try {
-    return parseReviewResponse(responseText)
+    return { ...parseReviewResponse(result.text), provider: result.provider, model: result.model }
   } catch {
     if (verbose) {
       console.log('[Book Reviewer] Failed to parse LLM response, falling back to heuristic')
-      console.log('[Book Reviewer] Raw response:', responseText.slice(0, 500))
     }
     return reviewBookHeuristic(manifest)
   }
