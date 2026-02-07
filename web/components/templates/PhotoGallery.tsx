@@ -38,7 +38,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         page: {
             width: format.dimensions.width,
             height: format.dimensions.height,
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.backgroundColor,
             padding: format.safeMargin,
         },
         header: {
@@ -61,7 +61,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         subtitle: {
             fontSize: Math.max(10, 12 * scale),
             fontFamily: theme.fontPairing.body,
-            color: '#666666',
+            color: theme.primaryColor + '99',
         },
         galleryContainer: {
             flex: 1,
@@ -71,14 +71,14 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             marginTop: 12 * scale,
             paddingTop: 8 * scale,
             borderTopWidth: 1,
-            borderTopColor: '#e0e0e0',
+            borderTopColor: theme.borderColor ?? (theme.primaryColor + '20'),
             flexDirection: 'row',
             justifyContent: 'space-between',
         },
         footerText: {
             fontSize: Math.max(8, 9 * scale),
             fontFamily: theme.fontPairing.body,
-            color: '#999999',
+            color: theme.primaryColor + '99',
         },
         emptyState: {
             flex: 1,
@@ -88,7 +88,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
         emptyText: {
             fontSize: Math.max(14, 16 * scale),
             fontFamily: theme.fontPairing.body,
-            color: '#cccccc',
+            color: theme.primaryColor + '40',
         },
     })
 }

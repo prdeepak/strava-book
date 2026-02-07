@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-attach dev-stop dev-rebuild real-book
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-claude dev-image dev-attach dev-stop dev-rebuild real-book
 
 # =============================================================================
 # Environment Detection
@@ -69,9 +69,11 @@ help:
 	@echo ""
 	@echo "Devcontainer commands:"
 	@echo "  make dev           - Start devcontainer and attach interactive shell"
+	@echo "  make dev-claude    - Start devcontainer and launch Claude Code inside it"
 	@echo "  make dev-attach    - Attach to running devcontainer"
+	@echo "  make dev-image     - Build/rebuild shared devcontainer base image"
 	@echo "  make dev-stop      - Stop devcontainer"
-	@echo "  make dev-rebuild   - Rebuild devcontainer from scratch"
+	@echo "  make dev-rebuild   - Rebuild devcontainer + shared image from scratch"
 	@echo "  make restart       - Restart dev server (alias for web-restart)"
 ifeq ($(IS_DEVCONTAINER),yes)
 	@echo ""
@@ -457,14 +459,28 @@ dev:
 	@echo ""
 	@devcontainer exec --workspace-folder . /bin/bash
 
+# Start devcontainer (if needed) and launch Claude Code inside it
+dev-claude:
+	@command -v devcontainer >/dev/null 2>&1 || { echo "Install devcontainer CLI: npm install -g @devcontainers/cli"; exit 1; }
+	@echo "Ensuring devcontainer is running..."
+	@devcontainer up --workspace-folder .
+	@echo "Launching Claude Code inside devcontainer..."
+	@devcontainer exec --workspace-folder . claude
+
 # Attach to running devcontainer
 dev-attach:
 	@devcontainer exec --workspace-folder . /bin/bash
 
-# Stop devcontainer
-dev-stop:
-	@docker stop $$(docker ps -q --filter "label=devcontainer.local_folder=$$(pwd)") 2>/dev/null || true
+# Build/rebuild the shared devcontainer base image (used by all workspaces)
+dev-image:
+	@echo "Building shared devcontainer image strava-book-dev:latest..."
+	@docker build -t strava-book-dev:latest -f .devcontainer/Dockerfile .
 
-# Rebuild devcontainer from scratch
+# Stop and remove devcontainer
+dev-stop:
+	@docker rm -f $$(docker ps -aq --filter "label=devcontainer.local_folder=$$(pwd)") 2>/dev/null || true
+
+# Rebuild devcontainer from scratch (rebuilds shared image + container)
 dev-rebuild:
+	@$(MAKE) dev-image
 	@devcontainer up --workspace-folder . --remove-existing-container

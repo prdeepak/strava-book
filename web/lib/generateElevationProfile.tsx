@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- TODO: refactor to accept ChartColors from theme */
 /**
  * Generate an elevation profile visualization as React components for PDF embedding
  * This creates a standalone elevation chart that can be rendered in react-pdf templates

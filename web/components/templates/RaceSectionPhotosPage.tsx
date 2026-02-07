@@ -38,7 +38,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         right: format.safeMargin,
         fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: theme.fontPairing.body,
-        color: '#999999',
+        color: theme.primaryColor + '99',
     },
 })
 

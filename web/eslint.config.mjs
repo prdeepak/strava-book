@@ -2,6 +2,13 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+// Shared rule: ban hardcoded hex colors in react-pdf files — use theme colors instead
+// Exceptions: medal colors (gold #FFD700, silver #C0C0C0, bronze #CD7F32)
+const hexColorRule = {
+  selector: "Literal[value=/^#(?![Ff][Ff][Dd]700$|[Cc]0[Cc]0[Cc]0$|[Cc][Dd]7[Ff]32$)[0-9A-Fa-f]{3,8}$/]",
+  message: "Avoid hardcoded hex colors in PDF files. Use theme colors (primaryColor, accentColor, backgroundColor, surfaceColor, borderColor, textOverAccent) or eslint-disable with a reason. See docs/StyleGuide.md.",
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -13,7 +20,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
-  // Custom rules for react-pdf compatibility
+  // Rules for react-pdf template and primitive files
+  // These files render to print PDFs and must use the theme color system
   {
     files: ["components/templates/**/*.tsx", "components/pdf/**/*.tsx"],
     rules: {
@@ -28,12 +36,7 @@ const eslintConfig = defineConfig([
           selector: "Property[key.name='objectPosition']",
           message: "objectPosition doesn't work in react-pdf. Use absolute positioning instead. See CLAUDE.md for the correct pattern.",
         },
-        // Ban hardcoded hex colors - use theme colors instead
-        // Exceptions: medal colors (gold #FFD700, silver #C0C0C0, bronze #CD7F32)
-        {
-          selector: "Literal[value=/^#(?![Ff][Ff][Dd]700$|[Cc]0[Cc]0[Cc]0$|[Cc][Dd]7[Ff]32$)[0-9A-Fa-f]{3,8}$/]",
-          message: "Avoid hardcoded hex colors. Use theme.primaryColor, theme.accentColor, or theme.backgroundColor instead. Medal colors (gold/silver/bronze) are exempt.",
-        },
+        hexColorRule,
         // Ban hardcoded font families - use theme.fontPairing instead
         {
           selector: "Literal[value=/^(Helvetica|Helvetica-Bold|Helvetica-Oblique|Arial|Times|Times-Roman|Courier|Georgia|Verdana)$/]",
@@ -54,6 +57,20 @@ const eslintConfig = defineConfig([
       "no-shadow": ["warn", {
         allow: ["styles"],
       }],
+    },
+  },
+  // Hex color ban for PDF-adjacent lib files that generate SVG/charts for print
+  {
+    files: [
+      "lib/generateElevationProfile.tsx",
+      "lib/heatmap-utils.ts",
+      "lib/calendar-views.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        hexColorRule,
+      ],
     },
   },
 ]);

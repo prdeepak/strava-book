@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Helvetica',
         textAlign: 'center',
+        // eslint-disable-next-line no-restricted-syntax -- static placeholder style, no theme context
         color: '#666',
     }
 })

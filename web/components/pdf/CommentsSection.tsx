@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- Legacy unused primitive; not imported anywhere */
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 

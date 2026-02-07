@@ -24,7 +24,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     page: {
         width: format.dimensions.width,
         height: format.dimensions.height,
-        backgroundColor: '#1a1a1a', // Dark background for dramatic race pages
+        backgroundColor: theme.primaryColor, // Dark background for dramatic race pages
     },
     // Full-page wrapper to ensure page dimensions are respected
     pageWrapper: {
@@ -71,7 +71,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     raceTitle: {
         fontSize: Math.max(20, 26 * format.scaleFactor),
         fontFamily: theme.fontPairing.heading,
-        color: '#ffffff',
+        color: theme.backgroundColor,
         fontWeight: 'bold',
         lineHeight: 1.1,
         marginBottom: 6 * format.scaleFactor,
@@ -79,7 +79,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     raceLocation: {
         fontSize: Math.max(8, 10 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#999999',
+        color: theme.backgroundColor + '99',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
@@ -91,7 +91,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 16 * format.scaleFactor,
         paddingBottom: 12 * format.scaleFactor,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333',
+        borderBottomColor: theme.backgroundColor + '33',
     },
     heroStat: {
         alignItems: 'center',
@@ -105,7 +105,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     heroStatLabel: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#888888',
+        color: theme.backgroundColor + '88',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
         marginTop: 4 * format.scaleFactor,
@@ -168,7 +168,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     // Polyline hero container
     polylineHeroContainer: {
         width: '100%',
-        backgroundColor: '#0a0a0a',
+        backgroundColor: theme.primaryColor,
         padding: format.safeMargin,
         marginBottom: 8 * format.scaleFactor,
     },
@@ -192,7 +192,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 6 * format.scaleFactor,
         letterSpacing: 1,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333',
+        borderBottomColor: theme.backgroundColor + '33',
         paddingBottom: 3 * format.scaleFactor,
     },
 
@@ -205,17 +205,17 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         justifyContent: 'space-between',
         paddingVertical: 2 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#2a2a2a',
+        borderBottomColor: theme.backgroundColor + '20',
     },
     splitLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#999999',
+        color: theme.backgroundColor + '99',
     },
     splitValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica', // Sans-serif for stats
-        color: '#ffffff',
+        color: theme.backgroundColor,
     },
 
     // Best efforts (more compact)
@@ -225,18 +225,18 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         alignItems: 'center',
         paddingVertical: 2 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#2a2a2a',
+        borderBottomColor: theme.backgroundColor + '20',
     },
     effortLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#999999',
+        color: theme.backgroundColor + '99',
         flex: 1,
     },
     effortValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
-        color: '#ffffff',
+        color: theme.backgroundColor,
     },
     prBadge: {
         backgroundColor: theme.accentColor,
@@ -248,7 +248,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     prBadgeText: {
         fontSize: Math.max(5, 6 * format.scaleFactor),
         fontFamily: 'Helvetica-Bold',
-        color: '#000000',
+        color: theme.textOverAccent ?? theme.backgroundColor,
     },
 
     // Comments (more compact)
@@ -259,7 +259,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
         marginBottom: 6 * format.scaleFactor,
         paddingBottom: 4 * format.scaleFactor,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#2a2a2a',
+        borderBottomColor: theme.backgroundColor + '20',
     },
     commentAuthor: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
@@ -270,7 +270,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     commentText: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#cccccc',
+        color: theme.backgroundColor + 'CC',
         lineHeight: 1.3,
     },
     kudosCount: {
@@ -284,7 +284,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     mapSection: {
         width: '100%',
         height: 100 * format.scaleFactor,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: theme.primaryColor,
         borderRadius: 4,
         overflow: 'hidden',
         marginBottom: 12 * format.scaleFactor,
@@ -294,7 +294,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     description: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
         fontFamily: 'Helvetica',
-        color: '#cccccc',
+        color: theme.backgroundColor + 'CC',
         fontStyle: 'italic',
         lineHeight: 1.3,
         marginBottom: 12 * format.scaleFactor,

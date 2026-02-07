@@ -8,20 +8,23 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { SportLegend, DayActivity, SportType, getSportCategory } from '@/lib/calendar-views'
 import { getDaysInMonth, getFirstDayOfMonth, MONTH_NAMES_FULL } from '@/lib/heatmap-utils'
 
-// Simplified color palette for better brand cohesion (2-color scheme)
-const BUBBLE_COLORS: Record<string, string> = {
-  Run: '#FC4C02',           // Strava orange for cardio
-  Ride: '#FC4C02',
-  Swim: '#FC4C02',
-  Hike: '#FC4C02',
-  WeightTraining: '#333333', // Dark gray for strength
-  Yoga: '#333333',
-  Other: '#666666',
+// Sport category to theme color mapping (2-color scheme)
+const BUBBLE_CATEGORY_STYLE: Record<string, 'accent' | 'primary' | 'muted'> = {
+  Run: 'accent',            // Accent for cardio
+  Ride: 'accent',
+  Swim: 'accent',
+  Hike: 'accent',
+  WeightTraining: 'primary', // Primary for strength
+  Yoga: 'primary',
+  Other: 'muted',
 }
 
-function getBubbleColor(sportType: string, accentColor: string): string {
+function getBubbleColor(sportType: string, theme: BookTheme): string {
   const category = getSportCategory(sportType)
-  return BUBBLE_COLORS[category] || accentColor
+  const style = BUBBLE_CATEGORY_STYLE[category] || 'accent'
+  if (style === 'accent') return theme.accentColor
+  if (style === 'primary') return theme.primaryColor
+  return theme.primaryColor + '99'
 }
 
 interface CalendarBubbleViewProps {
@@ -202,7 +205,7 @@ export const CalendarBubbleView = ({
             return (
               <View key={monthIndex} style={{
                 marginBottom: idx < 2 ? 10 * format.scaleFactor : 0,
-                backgroundColor: '#fafafa',
+                backgroundColor: theme.surfaceColor ?? theme.primaryColor + '08',
                 borderRadius: 8,
                 padding: 10 * format.scaleFactor,
               }}>
@@ -268,7 +271,7 @@ export const CalendarBubbleView = ({
                       // Calculate bubble size based on distance
                       const distanceRatio = Math.sqrt(dayActivity.distance / maxDistance)
                       const bubbleSize = minBubbleSize + (maxBubbleSize - minBubbleSize) * Math.min(distanceRatio, 1)
-                      const sportColor = getBubbleColor(dayActivity.sportType, theme.accentColor)
+                      const sportColor = getBubbleColor(dayActivity.sportType, theme)
                       const distanceKm = dayActivity.distance / 1000
 
                       return (
@@ -285,7 +288,7 @@ export const CalendarBubbleView = ({
                               <Text style={{
                                 fontSize: Math.max(10, Math.min(12, bubbleSize / 3.5)),
                                 fontFamily: theme.fontPairing.body,
-                                color: '#ffffff',
+                                color: theme.textOverAccent ?? theme.backgroundColor,
                                 fontWeight: 'bold',
                               }}>
                                 {distanceKm >= 10 ? Math.round(distanceKm) : distanceKm.toFixed(1)}

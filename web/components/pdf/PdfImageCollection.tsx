@@ -236,6 +236,7 @@ export const PdfImageCollection = ({
     slot: {
       position: 'absolute',
       overflow: 'hidden',
+      // eslint-disable-next-line no-restricted-syntax -- placeholder bg for empty image slots
       backgroundColor: '#e5e5e5',
     },
   })

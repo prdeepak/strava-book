@@ -1,9 +1,13 @@
 {
   "name": "Strava Book Dev",
+
+  "initializeCommand": "docker image inspect strava-book-dev:latest >/dev/null 2>&1 || docker build -t strava-book-dev:latest -f .devcontainer/Dockerfile .",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": ".."
+    "context": "..",
+    "cacheFrom": ["strava-book-dev:latest"]
   },
+
   "workspaceFolder": "/app",
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind",
 
@@ -13,6 +17,7 @@
 
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind",
     "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind,readonly",
     "source=strava-book-node-modules,target=/app/web/node_modules,type=volume"
   ],
