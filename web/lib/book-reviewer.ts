@@ -385,8 +385,8 @@ export function reviewBookHeuristic(manifest: BookManifest): BookReview {
           type: 'swap_variant',
           page: firstRace.pageNumber,
           from: 'default',
-          to: 'map-hero',
-          reason: `Consider using a map-hero variant for "${firstRace.title}" to add visual impact`,
+          to: 'editorial',
+          reason: `Consider using an editorial variant for "${firstRace.title}" for a magazine-style treatment`,
           priority: 'low',
         })
       }

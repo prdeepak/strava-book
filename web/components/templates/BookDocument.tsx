@@ -198,9 +198,10 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
         })
 
         // Update page count based on entry type
-        // Most entries are 1 page, but some (like race spreads) are multiple pages
+        // Most entries are 1 page, but race sections span multiple pages
         if (entry.type === 'RACE_PAGE') {
-            currentPage += 2 // Race pages use 2-page spreads
+            const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 6, 'magazine': 4 }
+            currentPage += racePageCounts[entry.raceVariant || 'default'] || 4
         } else {
             currentPage += 1
         }
@@ -214,74 +215,19 @@ export function insertBlankPagesForPrint(entries: BookEntry[]): BookEntry[] {
 // ============================================================================
 
 /**
- * Get the photo count for a race activity
- */
-function getRacePhotoCount(activity: StravaActivity): number {
-    const comprehensiveCount = activity.comprehensiveData?.photos?.length || 0
-    if (comprehensiveCount > 0) return comprehensiveCount
-    return activity.photos?.count || activity.total_photo_count || 0
-}
-
-/**
- * Check if an activity has personal records
- */
-function hasPersonalRecords(activity: StravaActivity): boolean {
-    return (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
-}
-
-/**
- * Select the appropriate race section variant for each race.
+ * Select race section variant for each race via round-robin.
  *
- * Selection rules (evaluated in order):
- * 1. A-Race (longest distance): variant = 'default' (full 4-6 page treatment)
- * 2. Races with 4+ photos: variant = 'photo-essay'
- * 3. Races with no photos: variant = 'map-hero'
- * 4. Races with PRs or exceptional stats: variant = 'stats-forward'
- * 5. Remaining races: rotate variants based on position (never two identical adjacent)
+ * Rotates through 3 multi-page templates that each handle missing data
+ * gracefully (no photos → use map as hero, no comments → skip section, etc.).
  */
 function selectRaceVariants(
     races: StravaActivity[],
-    aRace: StravaActivity | undefined,
 ): Map<number, RaceSectionVariant> {
     const variantMap = new Map<number, RaceSectionVariant>()
-    const rotationVariants: RaceSectionVariant[] = ['compact', 'map-hero', 'stats-forward', 'compact']
-    let rotationIdx = 0
-    let lastVariant: RaceSectionVariant | null = null
+    const pool: RaceSectionVariant[] = ['default', 'editorial', 'magazine']
 
-    for (const race of races) {
-        let variant: RaceSectionVariant
-
-        // Rule 1: A-Race gets the full treatment
-        if (aRace && race.id === aRace.id) {
-            variant = 'default'
-        }
-        // Rule 2: 4+ photos -> photo-essay
-        else if (getRacePhotoCount(race) >= 4) {
-            variant = 'photo-essay'
-        }
-        // Rule 3: No photos -> map-hero
-        else if (getRacePhotoCount(race) === 0) {
-            variant = 'map-hero'
-        }
-        // Rule 4: Has PRs -> stats-forward
-        else if (hasPersonalRecords(race)) {
-            variant = 'stats-forward'
-        }
-        // Rule 5: Rotate remaining
-        else {
-            variant = rotationVariants[rotationIdx % rotationVariants.length]
-            rotationIdx++
-        }
-
-        // Ensure no two adjacent races use the same variant
-        if (variant === lastVariant && variant !== 'default') {
-            const alternatives: RaceSectionVariant[] = ['compact', 'map-hero', 'stats-forward', 'photo-essay']
-            const alt = alternatives.find(v => v !== variant)
-            if (alt) variant = alt
-        }
-
-        variantMap.set(race.id, variant)
-        lastVariant = variant
+    for (let i = 0; i < races.length; i++) {
+        variantMap.set(races[i].id, pool[i % pool.length])
     }
 
     return variantMap
@@ -359,17 +305,14 @@ function applyVariantSelection(
     const raceActivities = raceEntries
         .map(e => activities.find(a => a.id === e.activityId))
         .filter((a): a is StravaActivity => !!a)
-    const aRace = raceActivities.length > 0
-        ? raceActivities.reduce((longest, a) => a.distance > longest.distance ? a : longest)
-        : undefined
-    const raceVariantMap = selectRaceVariants(raceActivities, aRace)
+    const raceVariantMap = selectRaceVariants(raceActivities)
 
     // Track previous divider variant for alternation
     let previousDividerVariant: MonthlyDividerVariant | null = null
 
     return entries.map(entry => {
         if (entry.type === 'RACE_PAGE' && entry.activityId && !entry.raceVariant) {
-            return { ...entry, raceVariant: raceVariantMap.get(entry.activityId) || 'compact' }
+            return { ...entry, raceVariant: raceVariantMap.get(entry.activityId) || 'default' }
         }
         if (entry.type === 'MONTHLY_DIVIDER' && !entry.monthlyDividerVariant) {
             const monthActivities = activities.filter(a => {
@@ -509,10 +452,10 @@ export function generateBookEntries(
 
     // 6. ALL RACE PAGES (grouped together, no monthly dividers)
     const allRaces = activities.filter(a => a.workout_type === 1)
-    const raceVariantMap = selectRaceVariants(allRaces, aRace)
+    const raceVariantMap = selectRaceVariants(allRaces)
 
     allRaces.forEach(race => {
-        const raceVariant = raceVariantMap.get(race.id) || 'compact'
+        const raceVariant = raceVariantMap.get(race.id) || 'default'
         entries.push({
             type: 'RACE_PAGE',
             activityId: race.id,
@@ -520,8 +463,9 @@ export function generateBookEntries(
             pageNumber: currentPage,
             raceVariant,
         })
-        // Default variant uses more pages; others use 1-2
-        currentPage += raceVariant === 'default' ? 4 : 2
+        // Page counts: default ~4, editorial 6, magazine 4
+        const racePageCounts: Record<string, number> = { 'default': 4, 'editorial': 6, 'magazine': 4 }
+        currentPage += racePageCounts[raceVariant] || 4
     })
 
     // 7. ACTIVITY LOG with Monthly Dividers
