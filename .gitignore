@@ -24,3 +24,7 @@ web/test-output/
 outputs/
 .claude/ralph-loop.local.md
 .workspace.json
+
+# Workspace artifacts (generated per-workspace, not committed)
+docker-compose.workspace.yml
+TASK.md
