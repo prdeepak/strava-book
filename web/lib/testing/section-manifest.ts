@@ -225,7 +225,7 @@ function buildEditorialManifest(activity: StravaActivity, mapboxToken?: string):
  *
  * Pages:
  *   1. Hero (always)
- *   2. Race Report (always)
+ *   2. Race Report (if activity.description)
  *   3. Photo Collage (if photos > 0)
  *   4. The Brief (always)
  */
@@ -235,12 +235,15 @@ function buildMagazineManifest(activity: StravaActivity): SectionManifestPage[] 
 
   const photoCount = countResolvablePhotos(activity)
   const hasPhotos = photoCount > 0
+  const hasDescription = !!activity.description
 
   // Hero — always
   pages.push(makePage(idx++, 'hero', { hasPhoto: true, hasMap: true }))
 
-  // Race Report — always
-  pages.push(makePage(idx++, 'description', { hasDescription: true, hasMap: true }))
+  // Race Report — conditional on description
+  if (hasDescription) {
+    pages.push(makePage(idx++, 'description', { hasDescription: true, hasMap: true }))
+  }
 
   // Photo Collage — conditional
   if (hasPhotos) {
