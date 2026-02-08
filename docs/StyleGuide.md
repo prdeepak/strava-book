@@ -674,3 +674,43 @@ Files in `components/templates/**/*.tsx` and `components/pdf/**/*.tsx` have extr
 - **Templates:** `web/components/templates/`
 - **Default theme:** `DEFAULT_THEME` in `book-types.ts`
 - **ESLint config:** `web/eslint.config.mjs`
+
+## Adding a New Race Section Variant
+
+### Registration Points (all 4 required)
+1. `web/lib/book-types.ts` — add to `RaceSectionVariant` union type
+2. `web/components/templates/RaceSection.tsx` — add import + switch case in `renderPages()`
+3. `web/lib/testing/section-manifest.ts` — add manifest builder function + switch case
+4. `web/components/templates/BookDocument.tsx` — add to `pageCounts` record AND round-robin pool
+
+### Props Interface
+Every race section variant accepts exactly 5 props:
+- `activity: StravaActivity`
+- `format: BookFormat`
+- `theme: BookTheme`
+- `mapboxToken: string`
+- `highlightLabel?: string`
+
+### Manifest Accuracy Requirement
+The section manifest builder MUST exactly predict the page count for every
+data profile. After any change to conditional rendering logic, re-validate:
+```
+npx tsx web/lib/testing/design-iteration.ts --variant NAME --all-profiles --validate-manifest
+```
+
+### Degradation Rules
+- Skip pages with missing primary content (don't render empty)
+- Merge short adjacent pages when each is <50% utilized
+- Evaluate content length, not just existence (20 chars ≠ full page)
+- Target: `max(1, pages_with_sufficient_content)`
+- Update manifest builder whenever conditional rendering changes
+
+### Style Guide Compliance Checklist
+- [ ] `padding: 0` on Page, content in absolutely-positioned contentContainer with safeMargin
+- [ ] All colors from `theme.*` tokens (no hex literals)
+- [ ] All fonts from `resolveTypography()` (no hardcoded font names)
+- [ ] All spacing from `resolveSpacing()` (no hardcoded multipliers)
+- [ ] Photos via `extractPhotos()` + `PdfImage`/`PdfImageCollection`
+- [ ] Display-sized text wrapped in `AutoResizingPdfText`
+- [ ] Effects via `resolveEffects()`
+- [ ] `make web-check` passes with 0 errors
