@@ -111,7 +111,7 @@ async function renderVariantToImages(
         theme: DEFAULT_THEME,
         variant,
         mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
-      }) as any
+      }) as Parameters<typeof renderToBuffer>[0]
     )
 
     const pdfPath = path.join(renderDir, `${variant}-${profileName}.pdf`)
@@ -343,55 +343,54 @@ function generateMarkdownReport(
 // CLI Interface
 // ============================================================================
 
-if (require.main === module) {
+if (process.argv[1]?.includes('variant-test-runner')) {
   // Load .env.local for API keys when running as CLI
-  const dotenv = require('dotenv')
-  dotenv.config({ path: path.join(__dirname, '../../.env.local') })
+  void (async () => {
+    const dotenv = await import('dotenv')
+    dotenv.config({ path: path.join(__dirname, '../../.env.local') })
 
-  const args = process.argv.slice(2)
-  const verbose = args.includes('--verbose') || args.includes('-v')
-  const llmJudge = args.includes('--llm-judge')
+    const args = process.argv.slice(2)
+    const verbose = args.includes('--verbose') || args.includes('-v')
+    const llmJudge = args.includes('--llm-judge')
 
-  // Parse --variants default,editorial,magazine
-  const variantsIdx = args.indexOf('--variants')
-  const variants = variantsIdx >= 0
-    ? args[variantsIdx + 1].split(',') as RaceSectionVariant[]
-    : undefined
+    // Parse --variants default,editorial,magazine
+    const variantsIdx = args.indexOf('--variants')
+    const variants = variantsIdx >= 0
+      ? args[variantsIdx + 1].split(',') as RaceSectionVariant[]
+      : undefined
 
-  // Parse --profiles full-data,bare-minimum
-  const profilesIdx = args.indexOf('--profiles')
-  const profiles = profilesIdx >= 0
-    ? args[profilesIdx + 1].split(',')
-    : undefined
+    // Parse --profiles full-data,bare-minimum
+    const profilesIdx = args.indexOf('--profiles')
+    const profiles = profilesIdx >= 0
+      ? args[profilesIdx + 1].split(',')
+      : undefined
 
-  const config: VariantTestConfig = {
-    verbose,
-    llmJudge,
-    variants,
-    profiles,
-    outputDir: path.join(process.cwd(), 'test-output', 'variant-tests'),
-  }
+    const config: VariantTestConfig = {
+      verbose,
+      llmJudge,
+      variants,
+      profiles,
+      outputDir: path.join(process.cwd(), 'test-output', 'variant-tests'),
+    }
 
-  runVariantTests(config)
-    .then(report => {
-      console.log('\n' + report.markdown)
-      console.log(`\n=== Summary ===`)
-      console.log(`Total: ${report.summary.total}`)
-      console.log(`Passed: ${report.summary.passed}`)
-      console.log(`Failed: ${report.summary.failed}`)
-      console.log(`Average: ${report.summary.averageScore}/100`)
+    const report = await runVariantTests(config)
+    console.log('\n' + report.markdown)
+    console.log(`\n=== Summary ===`)
+    console.log(`Total: ${report.summary.total}`)
+    console.log(`Passed: ${report.summary.passed}`)
+    console.log(`Failed: ${report.summary.failed}`)
+    console.log(`Average: ${report.summary.averageScore}/100`)
 
-      if (report.summary.failed > 0) {
-        console.log(`\nWorst cases:`)
-        for (const w of report.summary.worstCases) {
-          console.log(`  ${w.variant} x ${w.profile}: ${w.score}/100`)
-        }
+    if (report.summary.failed > 0) {
+      console.log(`\nWorst cases:`)
+      for (const w of report.summary.worstCases) {
+        console.log(`  ${w.variant} x ${w.profile}: ${w.score}/100`)
       }
+    }
 
-      process.exit(report.summary.failed > 0 ? 1 : 0)
-    })
-    .catch(error => {
-      console.error('Error:', error)
-      process.exit(1)
-    })
+    process.exit(report.summary.failed > 0 ? 1 : 0)
+  })().catch(error => {
+    console.error('Error:', error)
+    process.exit(1)
+  })
 }

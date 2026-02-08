@@ -118,7 +118,7 @@ export const CalendarHeatmapView = ({
   })
 
   // Calculate max value across all months for consistent coloring
-  const allDistances = allActivities.map(a => a.distance / 1000)
+  const allDistances = allActivities.map(a => a.distance * 0.001)
   const maxDistance = Math.max(...allDistances, 1)
 
   // Calculate totals

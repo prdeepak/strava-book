@@ -10,6 +10,7 @@
 
 import { View, Text, StyleSheet } from '@react-pdf/renderer'
 import { PdfImage } from './PdfImage'
+import { DEFAULT_THEME } from '@/lib/book-types'
 
 export interface CollectionPhoto {
   /** Image URL */
@@ -211,7 +212,7 @@ export const PdfImageCollection = ({
   containerHeight,
   gap = 4,
   borderRadius = 0,
-  placeholderColor = '#f5f5f5'
+  placeholderColor = DEFAULT_THEME.surfaceColor ?? DEFAULT_THEME.backgroundColor
 }: PdfImageCollectionProps) => {
   if (photos.length === 0) {
     return null

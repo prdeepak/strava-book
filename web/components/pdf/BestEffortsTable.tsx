@@ -90,7 +90,8 @@ export const BestEffortsTable = ({
             <Text style={styles.sectionTitle}>Best Efforts</Text>
             <View style={styles.dataGrid}>
                 {bestEfforts.map((effort, i) => {
-                    const paceSeconds = effort.elapsed_time / (effort.distance / 1000)
+                    const distanceKm = effort.distance * 0.001
+                    const paceSeconds = effort.elapsed_time / distanceKm
                     const paceMin = Math.floor(paceSeconds / 60)
                     const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
 
@@ -98,22 +99,22 @@ export const BestEffortsTable = ({
                     const prRank = effort.pr_rank || 0
                     let backgroundColor = 'transparent'
                     let textColor = theme.primaryColor + '99'
-                    let fontFamily = 'Helvetica'
+                    let fontFamily = theme.fontPairing.body
 
                     if (prRank === 1) {
                         backgroundColor = '#FFD700' // Gold
                         textColor = theme.primaryColor
-                        fontFamily = 'Helvetica-Bold'
+                        fontFamily = theme.fontPairing.heading
                     } else if (prRank === 2) {
                         backgroundColor = '#C0C0C0' // Silver
                         textColor = theme.primaryColor
-                        fontFamily = 'Helvetica-Bold'
+                        fontFamily = theme.fontPairing.heading
                     } else if (prRank === 3) {
                         backgroundColor = '#CD7F32' // Bronze
                         textColor = theme.primaryColor
-                        fontFamily = 'Helvetica-Bold'
+                        fontFamily = theme.fontPairing.heading
                     } else if (prRank > 0 && prRank <= 5) {
-                        fontFamily = 'Helvetica-Bold' // Top 5 but not podium
+                        fontFamily = theme.fontPairing.heading
                     }
 
                     return (

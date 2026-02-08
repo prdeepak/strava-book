@@ -193,7 +193,7 @@ const aggregateActivitiesByDate = (
     let value = 0
     switch (colorBy) {
       case 'distance':
-        value = activity.distance / 1000 // Convert to km
+        value = activity.distance * 0.001 // Convert to km
         break
       case 'time':
         value = activity.moving_time / 3600 // Convert to hours
@@ -313,7 +313,7 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
 
     // Convert activityDates to dateMap
     Object.entries(fixture.activityDates).forEach(([date, data]) => {
-      const value = colorBy === 'distance' ? data.distance / 1000 :
+      const value = colorBy === 'distance' ? data.distance * 0.001 :
                     colorBy === 'time' ? data.time / 3600 :
                     colorBy === 'elevation' ? data.elevation :
                     data.count
@@ -321,20 +321,20 @@ export const YearCalendarPage = (props: YearCalendarProps) => {
     })
 
     // Use summary stats from fixture
-    totalDistance = (fixture.summary?.totalDistance || 0) / 1000
+    totalDistance = (fixture.summary?.totalDistance || 0) * 0.001
   } else if (props.activity) {
     // Standard activity - generate mock year data
     const mockData = generateMockYearData(props.activity)
     year = mockData.year
     activities = mockData.activities
     dateMap = aggregateActivitiesByDate(activities, colorBy)
-    totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
+    totalDistance = activities.reduce((sum, a) => sum + a.distance * 0.001, 0)
   } else {
     // Direct props mode
     year = props.year || new Date().getFullYear()
     activities = props.activities || []
     dateMap = aggregateActivitiesByDate(activities, colorBy)
-    totalDistance = activities.reduce((sum, a) => sum + a.distance / 1000, 0)
+    totalDistance = activities.reduce((sum, a) => sum + a.distance * 0.001, 0)
     // Note: totalTime and totalElevation removed - stats now only on YearStats page
   }
 

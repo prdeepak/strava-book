@@ -278,10 +278,11 @@ export const CalendarBubbleView = ({
 
                       if (dayActivity) {
                         // Calculate bubble size based on distance
-                        const distanceRatio = Math.sqrt(dayActivity.distance / maxDistance)
+                        const dist = dayActivity.distance
+                        const distanceRatio = Math.sqrt(dist / maxDistance)
                         const bubbleSize = minBubbleSize + (maxBubbleSize - minBubbleSize) * Math.min(distanceRatio, 1)
                         const sportColor = getBubbleColor(dayActivity.sportType, theme)
-                        const distanceKm = dayActivity.distance / 1000
+                        const distanceKm = dist * 0.001
 
                         return (
                           <View key={item.key} style={{ width: '14.28%', height: cellHeight, justifyContent: 'center', alignItems: 'center' }}>

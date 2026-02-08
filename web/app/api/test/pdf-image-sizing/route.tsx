@@ -53,24 +53,26 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  try {
-    const pdfBuffer = await renderToBuffer(
-      <Document>
-        <Page size={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} style={styles.page}>
-          <View style={styles.containerWrapper}>
-            <View style={styles.container}>
-              <PdfImage
-                src={absoluteImagePath}
-                containerWidth={containerWidth}
-                containerHeight={containerHeight}
-                sourceWidth={sourceWidth}
-                sourceHeight={sourceHeight}
-              />
-            </View>
+  const document = (
+    <Document>
+      <Page size={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} style={styles.page}>
+        <View style={styles.containerWrapper}>
+          <View style={styles.container}>
+            <PdfImage
+              src={absoluteImagePath}
+              containerWidth={containerWidth}
+              containerHeight={containerHeight}
+              sourceWidth={sourceWidth}
+              sourceHeight={sourceHeight}
+            />
           </View>
-        </Page>
-      </Document>
-    )
+        </View>
+      </Page>
+    </Document>
+  )
+
+  try {
+    const pdfBuffer = await renderToBuffer(document)
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
