@@ -226,11 +226,15 @@ cmd_task() {
     cp "$resolved_task" "$WORKSPACE_PATH/TASK.md"
     echo -e "${GREEN}Copied task file → TASK.md${NC}"
 
-    # Launch Claude autonomously in background
+    # Launch Claude autonomously in background with streaming log
     local log_file="/tmp/${WORKSPACE_ID}-claude.log"
+    local raw_log="/tmp/${WORKSPACE_ID}-claude-raw.jsonl"
+    local parser="$MAIN_REPO/scripts/agent-log-parser.sh"
     cd "$WORKSPACE_PATH"
-    nohup claude --dangerously-skip-permissions -p \
-        "You are an autonomous agent in workspace $WORKSPACE_ID. Read TASK.md for your full instructions. Implement everything described there, run all validation steps, and create the PR." \
+    nohup bash -c "claude --dangerously-skip-permissions -p \
+        'You are an autonomous agent in workspace $WORKSPACE_ID. Read TASK.md for your full instructions. Implement everything described there, run all validation steps, and create the PR.' \
+        --output-format stream-json \
+        2>/dev/null | tee '$raw_log' | '$parser'" \
         > "$log_file" 2>&1 &
     local pid=$!
 
@@ -244,6 +248,7 @@ cmd_task() {
     echo "  Directory:  $WORKSPACE_PATH"
     echo "  PID:        $pid"
     echo "  Log:        $log_file"
+    echo "  Raw JSON:   $raw_log"
     echo ""
     echo -e "${BLUE}Monitor with:${NC}"
     echo "  tail -f $log_file"
