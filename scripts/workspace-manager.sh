@@ -195,6 +195,61 @@ cmd_claude() {
     fi
 }
 
+# Create workspace, copy task file, and launch autonomous Claude agent in background
+cmd_task() {
+    local name="${1:-untitled}"
+    local task_file="$2"
+
+    if [[ -z "$task_file" ]]; then
+        echo -e "${RED}Error: task file required${NC}"
+        echo "Usage: workspace-manager.sh task <name> <task-file>"
+        echo ""
+        echo "The task file is copied into the workspace as TASK.md."
+        echo "Claude is launched in the background with --dangerously-skip-permissions."
+        exit 1
+    fi
+
+    # Resolve task file path
+    local resolved_task=""
+    if [[ -f "$task_file" ]]; then
+        resolved_task="$task_file"
+    elif [[ -f "$MAIN_REPO/$task_file" ]]; then
+        resolved_task="$MAIN_REPO/$task_file"
+    else
+        echo -e "${RED}Error: task file not found: $task_file${NC}"
+        exit 1
+    fi
+
+    _create_workspace "$name" "false"
+
+    # Copy task file into workspace as TASK.md
+    cp "$resolved_task" "$WORKSPACE_PATH/TASK.md"
+    echo -e "${GREEN}Copied task file → TASK.md${NC}"
+
+    # Launch Claude autonomously in background
+    local log_file="/tmp/${WORKSPACE_ID}-claude.log"
+    cd "$WORKSPACE_PATH"
+    nohup claude --dangerously-skip-permissions -p \
+        "You are an autonomous agent in workspace $WORKSPACE_ID. Read TASK.md for your full instructions. Implement everything described there, run all validation steps, and create the PR." \
+        > "$log_file" 2>&1 &
+    local pid=$!
+
+    echo ""
+    echo -e "${GREEN}=========================================="
+    echo -e "Autonomous agent launched!"
+    echo -e "==========================================${NC}"
+    echo ""
+    echo "  Workspace:  $WORKSPACE_ID"
+    echo "  Branch:     ${WORKSPACE_ID}-${name}"
+    echo "  Directory:  $WORKSPACE_PATH"
+    echo "  PID:        $pid"
+    echo "  Log:        $log_file"
+    echo ""
+    echo -e "${BLUE}Monitor with:${NC}"
+    echo "  tail -f $log_file"
+    echo ""
+}
+
 # List all workspaces
 cmd_list() {
     if [[ ! -f "$REGISTRY_FILE" ]]; then
@@ -503,6 +558,7 @@ cmd_help() {
     echo "Commands:"
     echo "  new [name]              Create a new isolated workspace"
     echo "  claude <name> [prompt]  Create workspace and launch Claude with prompt"
+    echo "  task <name> <file>      Create workspace, copy task file, launch Claude in background"
     echo "  list                    List all workspaces with status"
     echo "  start <id>              Start a workspace container"
     echo "  stop <id>               Stop a workspace container"
@@ -514,7 +570,7 @@ cmd_help() {
     echo "Examples:"
     echo "  workspace-manager.sh new feature-auth"
     echo "  workspace-manager.sh claude fix-bug \"Fix the login button styling\""
-    echo "  workspace-manager.sh claude task scripts/tasks/my-task.md"
+    echo "  workspace-manager.sh task design-process scripts/tasks/template-design-protocol.md"
     echo "  workspace-manager.sh list"
     echo "  workspace-manager.sh destroy ws-abc123"
 }
@@ -530,6 +586,7 @@ main() {
     case "$command" in
         new)     cmd_new "$@" ;;
         claude)  cmd_claude "$@" ;;
+        task)    cmd_task "$@" ;;
         list)    cmd_list "$@" ;;
         start)   cmd_start "$@" ;;
         stop)    cmd_stop "$@" ;;
