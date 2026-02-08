@@ -8,99 +8,37 @@ This document describes how autonomous agents should iterate on PDF templates an
 2. NELVER edit files in `bin/strava-book` directly for feature work.
 3. ALWAYS create a PR for review.
 
-## Git Workflow for Parallel Agents
+## Launching Agents
 
-Multiple agents can work on different templates simultaneously using separate branches.
+Use `make workspace-task` to launch autonomous agents. Each agent gets an isolated workspace (git worktree + devcontainer) with its own branch.
 
-### Starting a Session
-
-```bash
-# Always start from latest main
-git checkout main && git pull origin main
-
-# Create a branch for your template work
-git checkout -b agent/<template-name>
-
-# Examples:
-git checkout -b agent/cover-redesign
-git checkout -b agent/yearstats-redesign
-git checkout -b agent/race-1p-redesign
-```
-
-### During Development
-
-Commit frequently as you iterate:
+### Quick Start
 
 ```bash
-# After each significant change or iteration
-git add .
-git commit -m "Iteration N: <what changed>"
+# From ~/bin/strava-book/main
+make workspace-task name=cover-redesign task=scripts/tasks/my-task.md
 
-# Example commit messages:
-git commit -m "Iteration 1: Initial layout with hero photo"
-git commit -m "Iteration 2: Improved typography hierarchy per feedback"
-git commit -m "Iteration 3: Fixed layout balance, score now 75"
+# Monitor progress
+tail -f /tmp/ws-<id>-claude.log
+
+# List active workspaces
+make workspace-list
 ```
 
-### Completing Work
+### Task Files
 
-When done (or session ends), push and create a PR:
+Write instructions in a markdown file (e.g., `scripts/tasks/my-task.md`). The file is copied into the workspace as `TASK.md` and Claude executes it autonomously.
+
+### After Completion
 
 ```bash
-# Push your branch
-git push -u origin agent/<template-name>
-
-# Create pull request
-gh pr create --title "Agent: Redesign <Template>" --body "$(cat <<'EOF'
-## Summary
-- Redesigned <Template> template
-- Final visual judge score: XX/100
-- Tested with fixtures: fixture1, fixture2, fixture3
-
-## Changes
-- <Key change 1>
-- <Key change 2>
-
-## Test Results
-- Print Readability: XX
-- Layout Balance: XX
-- Brand Cohesion: XX
-EOF
-)"
+make workspace-merge pr=N     # Merge the PR
+make workspace-destroy id=X   # Clean up
 ```
 
-### Branch Naming Convention
+### Parallel Agents
 
-Use the prefix `agent/` followed by the template name:
-- `agent/cover-redesign`
-- `agent/yearstats-redesign`
-- `agent/yearcalendar-redesign`
-- `agent/race-1p-redesign`
-- `agent/race-2p-redesign`
-- `agent/activitylog-redesign`
-- `agent/monthlydivider-redesign`
-- `agent/backcover-redesign`
-
-### Why Branches + PRs (Not Direct Sync)
-
-1. **Isolation**: Each template's progress is independent
-2. **Review gate**: Human reviews before merging to main
-3. **Safe rollback**: If work is bad, main stays clean
-4. **Parallel work**: Multiple agents work without conflicts (templates are separate files)
-
-### Handling Conflicts
-
-Templates are in separate files, so conflicts are rare. If you do encounter a conflict:
-
-```bash
-# Update your branch with latest main
-git fetch origin main
-git rebase origin/main
-
-# If conflicts occur, resolve them and continue
-git add .
-git rebase --continue
-```
+Multiple agents can run simultaneously — each workspace is isolated with its own branch. Templates are in separate files so conflicts are rare.
 
 ---
 

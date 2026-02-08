@@ -44,16 +44,26 @@ Development happens in isolated workspaces, each running in its own devcontainer
 
 ```bash
 # From ~/bin/strava-book/main
-make workspace-claude name=X prompt="Y"  # Create workspace + launch Claude
-make workspace-list                      # Show all workspaces
+make workspace-task name=X task=FILE  # Create workspace + run autonomous agent
+make workspace-list                   # Show all workspaces
 ```
 
-### Working in a Workspace
+The task file (a markdown file with instructions) is copied into the workspace as `TASK.md`. Claude is launched in the background with `--dangerously-skip-permissions` and logs to `/tmp/<workspace-id>-claude.log`.
 
-Each workspace should be opened in VS Code/Cursor and reopened in its devcontainer:
-1. Open the workspace folder (e.g., `~/bin/strava-book/workspaces/ws-abc123`)
-2. VS Code will detect `.devcontainer/` and offer to reopen in container
-3. Accept to get the isolated development environment
+```bash
+# Example: launch an agent with a task file
+make workspace-task name=fix-covers task=scripts/tasks/fix-covers.md
+
+# Monitor progress
+tail -f /tmp/ws-abc123-claude.log
+```
+
+### Interactive Workspaces
+
+For manual/interactive work, open a workspace in VS Code/Cursor and reopen in its devcontainer:
+1. `make workspace-new name=X` to create without launching an agent
+2. Open the workspace folder (e.g., `~/bin/strava-book/workspaces/ws-abc123`)
+3. VS Code will detect `.devcontainer/` and offer to reopen in container
 
 ### After PR is Merged
 

@@ -231,9 +231,8 @@ cmd_task() {
     local raw_log="/tmp/${WORKSPACE_ID}-claude-raw.jsonl"
     local parser="$MAIN_REPO/scripts/agent-log-parser.sh"
     cd "$WORKSPACE_PATH"
-    nohup bash -c "claude --dangerously-skip-permissions -p \
-        'You are an autonomous agent in workspace $WORKSPACE_ID. Read TASK.md for your full instructions. Implement everything described there, run all validation steps, and create the PR.' \
-        --output-format stream-json \
+    nohup bash -c "claude --dangerously-skip-permissions -p 'Execute TASK.md' \
+        --verbose --output-format stream-json \
         2>/dev/null | tee '$raw_log' | '$parser'" \
         > "$log_file" 2>&1 &
     local pid=$!
