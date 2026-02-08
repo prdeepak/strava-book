@@ -7,6 +7,7 @@ import { Page, View, Text, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { SportIcon, SportLegend, DayActivity, SportType, SPORT_COLORS, getSportCategory } from '@/lib/calendar-views'
 import { getDaysInMonth, getFirstDayOfMonth, MONTH_NAMES_FULL } from '@/lib/heatmap-utils'
+import { resolveSpacing } from '@/lib/typography'
 
 interface CalendarIconViewProps {
   activity?: {
@@ -26,6 +27,7 @@ export const CalendarIconView = ({
 }: CalendarIconViewProps) => {
   const year = activity?.year || 2024
   const allActivities = activity?.activities || []
+  const spacing = resolveSpacing(theme, format)
 
   // Group activities by month
   const activitiesByMonth = new Map<number, DayActivity[]>()
@@ -58,180 +60,190 @@ export const CalendarIconView = ({
         style={{
           width: format.dimensions.width,
           height: format.dimensions.height,
-          padding: format.safeMargin,
+          padding: 0,
+          position: 'relative' as const,
           backgroundColor: theme.backgroundColor,
         }}
       >
-        {/* Header */}
         <View style={{
-          marginBottom: 16 * format.scaleFactor,
-          borderBottomWidth: 3,
-          borderBottomColor: theme.accentColor,
-          paddingBottom: 12 * format.scaleFactor,
+          position: 'absolute' as const,
+          top: format.safeMargin,
+          left: format.safeMargin,
+          right: format.safeMargin,
+          bottom: format.safeMargin,
+          flexDirection: 'column' as const,
         }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Text style={{
-              fontSize: Math.max(48, 64 * format.scaleFactor),
-              fontFamily: theme.fontPairing.heading,
-              color: theme.accentColor,
-              fontWeight: 'bold',
-              letterSpacing: -2,
-            }}>
-              Q1 {year}
-            </Text>
-            <View style={{ alignItems: 'flex-end' }}>
+          {/* Header */}
+          <View style={{
+            marginBottom: spacing.sm,
+            borderBottomWidth: 3,
+            borderBottomColor: theme.accentColor,
+            paddingBottom: spacing.sm * 0.75,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <Text style={{
-                fontSize: Math.max(24, 32 * format.scaleFactor),
+                fontSize: Math.max(48, 64 * format.scaleFactor),
                 fontFamily: theme.fontPairing.heading,
-                color: theme.primaryColor,
+                color: theme.accentColor,
                 fontWeight: 'bold',
+                letterSpacing: -2,
               }}>
-                {q1Activities}
+                Q1 {year}
               </Text>
-              <Text style={{
-                fontSize: Math.max(10, 12 * format.scaleFactor),
-                fontFamily: theme.fontPairing.body,
-                color: theme.primaryColor,
-                opacity: 0.6,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-              }}>
-                Activities
-              </Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{
+                  fontSize: Math.max(24, 32 * format.scaleFactor),
+                  fontFamily: theme.fontPairing.heading,
+                  color: theme.primaryColor,
+                  fontWeight: 'bold',
+                }}>
+                  {q1Activities}
+                </Text>
+                <Text style={{
+                  fontSize: Math.max(10, 12 * format.scaleFactor),
+                  fontFamily: theme.fontPairing.body,
+                  color: theme.primaryColor,
+                  opacity: 0.6,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                }}>
+                  Activities
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Months */}
-        <View style={{ flex: 1 }}>
-          {monthsToShow.map((monthIndex, idx) => {
-            const monthActivities = activitiesByMonth.get(monthIndex) || []
-            const daysInMonth = getDaysInMonth(year, monthIndex)
-            const firstDay = getFirstDayOfMonth(year, monthIndex)
-            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1
+          {/* Months */}
+          <View style={{ flex: 1 }}>
+            {monthsToShow.map((monthIndex, idx) => {
+              const monthActivities = activitiesByMonth.get(monthIndex) || []
+              const daysInMonth = getDaysInMonth(year, monthIndex)
+              const firstDay = getFirstDayOfMonth(year, monthIndex)
+              const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1
 
-            const activityByDate = new Map<string, DayActivity>()
-            monthActivities.forEach(a => activityByDate.set(a.date, a))
+              const activityByDate = new Map<string, DayActivity>()
+              monthActivities.forEach(a => activityByDate.set(a.date, a))
 
-            const paddingDays = Array.from({ length: adjustedFirstDay }, (_, i) => ({ key: `pad-${i}`, empty: true as const }))
-            const days = Array.from({ length: daysInMonth }, (_, i) => {
-              const day = i + 1
-              const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              return { key: dateStr, day, activity: activityByDate.get(dateStr) }
-            })
-            const allDays = [...paddingDays, ...days]
+              const paddingDays = Array.from({ length: adjustedFirstDay }, (_, i) => ({ key: `pad-${i}`, empty: true as const }))
+              const days = Array.from({ length: daysInMonth }, (_, i) => {
+                const day = i + 1
+                const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                return { key: dateStr, day, activity: activityByDate.get(dateStr) }
+              })
+              const allDays = [...paddingDays, ...days]
 
-            return (
-              <View key={monthIndex} style={{
-                marginBottom: idx < 2 ? 12 * format.scaleFactor : 0,
-                backgroundColor: theme.surfaceColor ?? theme.primaryColor + '08',
-                borderRadius: 8,
-                padding: 10 * format.scaleFactor,
-              }}>
-                {/* Month Header */}
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8 * format.scaleFactor,
-                  paddingBottom: 6 * format.scaleFactor,
-                  borderBottomWidth: 2,
-                  borderBottomColor: theme.accentColor,
+              return (
+                <View key={monthIndex} style={{
+                  marginBottom: idx < 2 ? spacing.sm * 0.75 : 0,
+                  backgroundColor: theme.surfaceColor ?? theme.primaryColor + '08',
+                  borderRadius: 8,
+                  padding: spacing.xs + 2,
                 }}>
-                  <Text style={{
-                    fontSize: Math.max(16, 20 * format.scaleFactor),
-                    fontFamily: theme.fontPairing.heading,
-                    color: theme.primaryColor,
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    letterSpacing: 2,
+                  {/* Month Header */}
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: spacing.xs,
+                    paddingBottom: spacing.xs * 0.75,
+                    borderBottomWidth: 2,
+                    borderBottomColor: theme.accentColor,
                   }}>
-                    {MONTH_NAMES_FULL[monthIndex]}
-                  </Text>
-                  <Text style={{
-                    fontSize: Math.max(12, 14 * format.scaleFactor),
-                    fontFamily: theme.fontPairing.body,
-                    color: theme.accentColor,
-                    fontWeight: 'bold',
-                  }}>
-                    {monthActivities.length} activities
-                  </Text>
-                </View>
+                    <Text style={{
+                      fontSize: Math.max(16, 20 * format.scaleFactor),
+                      fontFamily: theme.fontPairing.heading,
+                      color: theme.primaryColor,
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: 2,
+                    }}>
+                      {MONTH_NAMES_FULL[monthIndex]}
+                    </Text>
+                    <Text style={{
+                      fontSize: Math.max(12, 14 * format.scaleFactor),
+                      fontFamily: theme.fontPairing.body,
+                      color: theme.accentColor,
+                      fontWeight: 'bold',
+                    }}>
+                      {monthActivities.length} activities
+                    </Text>
+                  </View>
 
-                {/* Weekday Headers */}
-                <View style={{ flexDirection: 'row', marginBottom: 4 * format.scaleFactor }}>
-                  {WEEKDAY_LABELS.map((label, i) => (
-                    <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-                      <Text style={{
-                        fontSize: Math.max(9, 10 * format.scaleFactor),
-                        fontFamily: theme.fontPairing.body,
-                        color: theme.primaryColor,
-                        opacity: 0.5,
-                        textTransform: 'uppercase',
-                      }}>
-                        {label}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Days Grid */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                  {allDays.map((item) => {
-                    if ('empty' in item) {
-                      return (
-                        <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }} />
-                      )
-                    }
-
-                    const { day, activity: dayActivity } = item
-
-                    if (dayActivity) {
-                      const sportColor = SPORT_COLORS[getSportCategory(dayActivity.sportType)] || theme.accentColor
-                      return (
-                        <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }}>
-                          <View style={{
-                            width: cellSize,
-                            height: cellSize,
-                            borderRadius: cellSize / 2,
-                            backgroundColor: sportColor,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}>
-                            <SportIcon sport={dayActivity.sportType} size={iconSize} color={theme.textOverAccent ?? theme.backgroundColor} />
-                          </View>
-                        </View>
-                      )
-                    }
-
-                    // Rest day
-                    return (
-                      <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }}>
+                  {/* Weekday Headers */}
+                  <View style={{ flexDirection: 'row', marginBottom: spacing.xs * 0.5 }}>
+                    {WEEKDAY_LABELS.map((label, i) => (
+                      <View key={i} style={{ flex: 1, alignItems: 'center' }}>
                         <Text style={{
-                          fontSize: Math.max(11, 12 * format.scaleFactor),
+                          fontSize: Math.max(9, 10 * format.scaleFactor),
                           fontFamily: theme.fontPairing.body,
                           color: theme.primaryColor,
-                          opacity: 0.4,
+                          opacity: 0.5,
+                          textTransform: 'uppercase',
                         }}>
-                          {day}
+                          {label}
                         </Text>
                       </View>
-                    )
-                  })}
-                </View>
-              </View>
-            )
-          })}
-        </View>
+                    ))}
+                  </View>
 
-        {/* Legend */}
-        <View style={{
-          marginTop: 8 * format.scaleFactor,
-          paddingTop: 10 * format.scaleFactor,
-          borderTopWidth: 2,
-          borderTopColor: theme.primaryColor,
-        }}>
-          <SportLegend sports={uniqueSports.slice(0, 6)} format={format} theme={theme} />
+                  {/* Days Grid */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {allDays.map((item) => {
+                      if ('empty' in item) {
+                        return (
+                          <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }} />
+                        )
+                      }
+
+                      const { day, activity: dayActivity } = item
+
+                      if (dayActivity) {
+                        const sportColor = SPORT_COLORS[getSportCategory(dayActivity.sportType)] || theme.accentColor
+                        return (
+                          <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }}>
+                            <View style={{
+                              width: cellSize,
+                              height: cellSize,
+                              borderRadius: cellSize / 2,
+                              backgroundColor: sportColor,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}>
+                              <SportIcon sport={dayActivity.sportType} size={iconSize} color={theme.textOverAccent ?? theme.backgroundColor} />
+                            </View>
+                          </View>
+                        )
+                      }
+
+                      // Rest day
+                      return (
+                        <View key={item.key} style={{ width: '14.28%', height: cellSize + 4, justifyContent: 'center', alignItems: 'center' }}>
+                          <Text style={{
+                            fontSize: Math.max(11, 12 * format.scaleFactor),
+                            fontFamily: theme.fontPairing.body,
+                            color: theme.primaryColor,
+                            opacity: 0.4,
+                          }}>
+                            {day}
+                          </Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+                </View>
+              )
+            })}
+          </View>
+
+          {/* Legend */}
+          <View style={{
+            marginTop: spacing.xs,
+            paddingTop: spacing.xs + 2,
+            borderTopWidth: 2,
+            borderTopColor: theme.primaryColor,
+          }}>
+            <SportLegend sports={uniqueSports.slice(0, 6)} format={format} theme={theme} />
+          </View>
         </View>
       </Page>
     </Document>

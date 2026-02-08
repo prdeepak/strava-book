@@ -194,7 +194,7 @@ const PhotoCollagePage = ({ activity, format, theme }: { activity: StravaActivit
     )
     return (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-            <View style={styles.container}><PdfImageCollection photos={photos} containerWidth={cW} containerHeight={cH} gap={4 * format.scaleFactor} /></View>
+            <View style={styles.container}><PdfImageCollection photos={photos} containerWidth={cW} containerHeight={cH} gap={4 * format.scaleFactor} placeholderColor={theme.surfaceColor} /></View>
         </Page>
     )
 }

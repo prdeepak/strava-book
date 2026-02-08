@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax -- Legacy 2-page race template; superseded by RaceSection variants */
 /**
  * Race_2p - Enhanced Two-Page Race Template
  *
@@ -13,7 +12,7 @@
  * - Light Mapbox map style for print quality
  */
 
-import { Document, Page, View, Text, Image, StyleSheet, Svg, Polyline } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Svg, Polyline } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { formatTime, formatPace, formatDistance, resolveActivityLocation } from '@/lib/activity-utils'
@@ -21,6 +20,7 @@ import { getMapboxLightUrl } from '@/lib/activity-utils'
 import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { SplitsChartSVG, SplitData } from '@/lib/generateSplitsChart'
+import { resolveSpacing } from '@/lib/typography'
 import mapboxPolyline from '@mapbox/polyline'
 import { PdfImage } from '@/components/pdf/PdfImage'
 
@@ -44,7 +44,7 @@ export interface Race2pProps {
 // ============================================================================
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
-    const scale = format.scaleFactor
+    const spacing = resolveSpacing(theme, format)
 
     return StyleSheet.create({
         // Page 1 - Hero
@@ -52,6 +52,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             width: format.dimensions.width,
             height: format.dimensions.height,
             position: 'relative',
+            padding: 0,
         },
         // Hero image container - PdfImage handles positioning
         heroImageContainer: {
@@ -68,7 +69,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             left: 0,
             right: 0,
             padding: format.safeMargin,
-            paddingTop: 60 * scale,
+            paddingTop: spacing.xl,
             background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
         },
         heroGradient: {
@@ -85,186 +86,195 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             left: format.safeMargin,
             right: format.safeMargin,
             backgroundColor: 'rgba(0,0,0,0.85)',
-            padding: 24 * scale,
-            paddingTop: 20 * scale,
+            padding: spacing.md,
+            paddingTop: spacing.sm + spacing.xs * 0.5,
         },
         heroLabel: {
             color: theme.accentColor,
-            fontSize: Math.max(12, 14 * scale),
+            fontSize: Math.max(12, 14 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             textTransform: 'uppercase',
             letterSpacing: 3,
-            marginBottom: 12 * scale,
+            marginBottom: spacing.sm * 0.75,
         },
         heroTitle: {
-            color: '#ffffff',
-            fontSize: Math.max(32, 42 * scale),
+            color: theme.backgroundColor,
+            fontSize: Math.max(32, 42 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
-            marginBottom: 12 * scale,
+            marginBottom: spacing.sm * 0.75,
             lineHeight: 1.15,
         },
         heroMeta: {
-            color: 'rgba(255,255,255,0.9)',
-            fontSize: Math.max(14, 16 * scale),
+            color: theme.backgroundColor + 'E6',
+            fontSize: Math.max(14, 16 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            marginBottom: 20 * scale,
+            marginBottom: spacing.sm + spacing.xs * 0.5,
             letterSpacing: 0.5,
         },
         heroStatsRow: {
             flexDirection: 'row',
-            gap: 32 * scale,
-            paddingTop: 16 * scale,
+            gap: spacing.lg * 0.67,
+            paddingTop: spacing.sm,
             borderTopWidth: 1,
-            borderTopColor: 'rgba(255,255,255,0.3)',
+            borderTopColor: theme.backgroundColor + '4D',
         },
         heroStat: {
             alignItems: 'flex-start',
         },
         heroStatValue: {
-            color: '#ffffff',
-            fontSize: Math.max(28, 36 * scale),
-            fontFamily: 'Helvetica-Bold',
+            color: theme.backgroundColor,
+            fontSize: Math.max(28, 36 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
         },
         heroStatLabel: {
-            color: 'rgba(255,255,255,0.75)',
-            fontSize: Math.max(10, 12 * scale),
+            color: theme.backgroundColor + 'BF',
+            fontSize: Math.max(10, 12 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
             textTransform: 'uppercase',
             letterSpacing: 1,
-            marginTop: 4 * scale,
+            marginTop: spacing.xs * 0.5,
         },
 
         // Page 2 - Stats
         statsPage: {
             width: format.dimensions.width,
             height: format.dimensions.height,
-            backgroundColor: '#ffffff',
-            padding: format.safeMargin,
+            backgroundColor: theme.backgroundColor,
+            padding: 0,
+            position: 'relative',
+        },
+        contentContainer: {
+            position: 'absolute',
+            top: format.safeMargin,
+            left: format.safeMargin,
+            right: format.safeMargin,
+            bottom: format.safeMargin,
+            flexDirection: 'column',
         },
         statsHeader: {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-end',
-            marginBottom: 16 * scale,
-            paddingBottom: 12 * scale,
+            marginBottom: spacing.sm,
+            paddingBottom: spacing.sm * 0.75,
             borderBottomWidth: 3,
             borderBottomColor: theme.accentColor,
         },
         statsTitle: {
-            fontSize: Math.max(20, 26 * scale),
+            fontSize: Math.max(20, 26 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             color: theme.primaryColor,
             textTransform: 'uppercase',
             letterSpacing: 2,
         },
         statsSubtitle: {
-            fontSize: Math.max(10, 12 * scale),
+            fontSize: Math.max(10, 12 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            color: '#666',
+            color: theme.primaryColor + '99',
         },
         sectionTitle: {
-            fontSize: Math.max(11, 13 * scale),
+            fontSize: Math.max(11, 13 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             color: theme.primaryColor,
             textTransform: 'uppercase',
             letterSpacing: 2,
-            marginBottom: 10 * scale,
-            marginTop: 16 * scale,
-            paddingBottom: 4 * scale,
+            marginBottom: spacing.xs + 2,
+            marginTop: spacing.sm,
+            paddingBottom: spacing.xs * 0.5,
             borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
+            borderBottomColor: theme.borderColor ?? (theme.primaryColor + '20'),
         },
         mapContainer: {
-            height: 200 * scale,
-            backgroundColor: '#f5f5f5',
-            marginBottom: 16 * scale,
+            height: 200 * format.scaleFactor,
+            backgroundColor: theme.surfaceColor ?? theme.primaryColor + '08',
+            marginBottom: spacing.sm,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: '#e0e0e0',
+            borderColor: theme.borderColor ?? (theme.primaryColor + '20'),
             position: 'relative',
         },
         chartContainer: {
-            height: 160 * scale,
-            backgroundColor: '#fafafa',
-            marginBottom: 16 * scale,
-            padding: 12 * scale,
+            height: 160 * format.scaleFactor,
+            backgroundColor: theme.surfaceColor ?? theme.primaryColor + '08',
+            marginBottom: spacing.sm,
+            padding: spacing.sm * 0.75,
             borderWidth: 1,
-            borderColor: '#e0e0e0',
+            borderColor: theme.borderColor ?? (theme.primaryColor + '20'),
         },
         quickStatsRow: {
             flexDirection: 'row',
             justifyContent: 'space-around',
             backgroundColor: theme.primaryColor,
-            padding: 16 * scale,
-            marginBottom: 16 * scale,
+            padding: spacing.sm,
+            marginBottom: spacing.sm,
         },
         quickStat: {
             alignItems: 'center',
         },
         quickStatValue: {
-            color: '#ffffff',
-            fontSize: Math.max(20, 24 * scale),
-            fontFamily: 'Helvetica-Bold',
+            color: theme.backgroundColor,
+            fontSize: Math.max(20, 24 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
         },
         quickStatLabel: {
-            color: 'rgba(255,255,255,0.8)',
-            fontSize: Math.max(8, 9 * scale),
+            color: theme.backgroundColor + 'CC',
+            fontSize: Math.max(8, 9 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
             textTransform: 'uppercase',
             letterSpacing: 0.5,
-            marginTop: 4 * scale,
+            marginTop: spacing.xs * 0.5,
         },
         socialSection: {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
             marginTop: 'auto',
-            paddingTop: 16 * scale,
+            paddingTop: spacing.sm,
             borderTopWidth: 2,
-            borderTopColor: '#e0e0e0',
+            borderTopColor: theme.borderColor ?? (theme.primaryColor + '20'),
         },
         kudosContainer: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 8 * scale,
+            gap: spacing.xs,
         },
         kudosCount: {
-            fontSize: Math.max(18, 22 * scale),
-            fontFamily: 'Helvetica-Bold',
+            fontSize: Math.max(18, 22 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
             color: theme.accentColor,
         },
         kudosLabel: {
-            fontSize: Math.max(9, 10 * scale),
+            fontSize: Math.max(9, 10 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            color: '#666',
+            color: theme.primaryColor + '99',
             textTransform: 'uppercase',
         },
         commentsContainer: {
             flex: 1,
-            marginLeft: 24 * scale,
+            marginLeft: spacing.md,
         },
         comment: {
-            marginBottom: 6 * scale,
+            marginBottom: spacing.xs * 0.75,
         },
         commentAuthor: {
-            fontSize: Math.max(8, 9 * scale),
-            fontFamily: 'Helvetica-Bold',
-            color: '#333',
+            fontSize: Math.max(8, 9 * format.scaleFactor),
+            fontFamily: theme.fontPairing.heading,
+            color: theme.primaryColor + 'CC',
         },
         commentText: {
-            fontSize: Math.max(8, 9 * scale),
+            fontSize: Math.max(8, 9 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
-            color: '#555',
+            color: theme.primaryColor + '99',
             fontStyle: 'italic',
         },
         thumbnailStrip: {
             flexDirection: 'row',
-            gap: 8 * scale,
-            marginTop: 12 * scale,
+            gap: spacing.xs,
+            marginTop: spacing.sm * 0.75,
         },
         thumbnailContainer: {
-            width: 60 * scale,
-            height: 60 * scale,
+            width: 60 * format.scaleFactor,
+            height: 60 * format.scaleFactor,
             overflow: 'hidden',
             position: 'relative',
         },
@@ -276,10 +286,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             alignItems: 'center',
         },
         placeholderText: {
-            color: '#ffffff',
-            fontSize: Math.max(24, 32 * scale),
+            color: theme.backgroundColor,
+            fontSize: Math.max(24, 32 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             textAlign: 'center',
+        },
+        noMapText: {
+            color: theme.primaryColor + '60',
+            textAlign: 'center',
+            marginTop: 80 * format.scaleFactor,
         },
     })
 }
@@ -416,6 +431,7 @@ const StatsPage = ({
     thumbnails: string[]
 }) => {
     const scale = format.scaleFactor
+    const spacing = resolveSpacing(theme, format)
 
     // Get map URL or fallback to SVG
     const mapWidth = format.dimensions.width - (format.safeMargin * 2)
@@ -446,103 +462,108 @@ const StatsPage = ({
     const time = formatTime(activity.moving_time)
     const pace = formatPace(activity.moving_time, activity.distance, 'metric')
 
+    const chartBgColor = theme.surfaceColor ?? theme.primaryColor + '08'
+
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.statsPage}>
-            {/* Header */}
-            <View style={styles.statsHeader}>
-                <Text style={styles.statsTitle}>Race Analysis</Text>
-                <Text style={styles.statsSubtitle}>{activity.name}</Text>
-            </View>
+            <View style={styles.contentContainer}>
+                {/* Header */}
+                <View style={styles.statsHeader}>
+                    <Text style={styles.statsTitle}>Race Analysis</Text>
+                    <Text style={styles.statsSubtitle}>{activity.name}</Text>
+                </View>
 
-            {/* Quick Stats Bar */}
-            <View style={styles.quickStatsRow}>
-                <View style={styles.quickStat}>
-                    <Text style={styles.quickStatValue}>{distance.split(' ')[0]}</Text>
-                    <Text style={styles.quickStatLabel}>{distance.split(' ')[1]}</Text>
-                </View>
-                <View style={styles.quickStat}>
-                    <Text style={styles.quickStatValue}>{time}</Text>
-                    <Text style={styles.quickStatLabel}>Time</Text>
-                </View>
-                <View style={styles.quickStat}>
-                    <Text style={styles.quickStatValue}>{pace.split('/')[0]}</Text>
-                    <Text style={styles.quickStatLabel}>/{pace.split('/')[1]}</Text>
-                </View>
-                <View style={styles.quickStat}>
-                    <Text style={styles.quickStatValue}>{Math.round(activity.total_elevation_gain)}</Text>
-                    <Text style={styles.quickStatLabel}>m elevation</Text>
-                </View>
-            </View>
-
-            {/* Map */}
-            <Text style={styles.sectionTitle}>Route</Text>
-            <View style={styles.mapContainer}>
-                {mapUrl ? (
-                    <PdfImage src={resolveImageForPdf(mapUrl) || mapUrl} />
-                ) : polyline ? (
-                    <Svg width={mapWidth} height={mapHeight} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
-                        <Polyline
-                            points={normalizePolylineToSvg(polyline, mapWidth, mapHeight)}
-                            stroke={theme.accentColor}
-                            strokeWidth={3 * scale}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            fill="none"
-                        />
-                    </Svg>
-                ) : (
-                    <Text style={{ color: '#999', textAlign: 'center', marginTop: 80 * scale }}>No map data</Text>
-                )}
-            </View>
-
-            {/* Splits Chart */}
-            {chartSplits.length > 0 && (
-                <>
-                    <Text style={styles.sectionTitle}>Performance Splits</Text>
-                    <View style={styles.chartContainer}>
-                        <SplitsChartSVG
-                            splits={chartSplits}
-                            totalTime={activity.moving_time}
-                            width={mapWidth - 24 * scale}
-                            height={130 * scale}
-                            backgroundColor="#fafafa"
-                        />
+                {/* Quick Stats Bar */}
+                <View style={styles.quickStatsRow}>
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{distance.split(' ')[0]}</Text>
+                        <Text style={styles.quickStatLabel}>{distance.split(' ')[1]}</Text>
                     </View>
-                </>
-            )}
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{time}</Text>
+                        <Text style={styles.quickStatLabel}>Time</Text>
+                    </View>
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{pace.split('/')[0]}</Text>
+                        <Text style={styles.quickStatLabel}>/{pace.split('/')[1]}</Text>
+                    </View>
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{Math.round(activity.total_elevation_gain)}</Text>
+                        <Text style={styles.quickStatLabel}>m elevation</Text>
+                    </View>
+                </View>
 
-            {/* Photo thumbnails */}
-            {thumbnails.length > 0 && (
-                <View style={styles.thumbnailStrip}>
-                    {thumbnails.slice(0, 4).map((url, idx) => (
-                        <View key={idx} style={styles.thumbnailContainer}>
-                            <PdfImage src={url} />
+                {/* Map */}
+                <Text style={styles.sectionTitle}>Route</Text>
+                <View style={styles.mapContainer}>
+                    {mapUrl ? (
+                        <PdfImage src={resolveImageForPdf(mapUrl) || mapUrl} />
+                    ) : polyline ? (
+                        <Svg width={mapWidth} height={mapHeight} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
+                            <Polyline
+                                points={normalizePolylineToSvg(polyline, mapWidth, mapHeight)}
+                                stroke={theme.accentColor}
+                                strokeWidth={3 * scale}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                fill="none"
+                            />
+                        </Svg>
+                    ) : (
+                        <Text style={styles.noMapText}>No map data</Text>
+                    )}
+                </View>
+
+                {/* Splits Chart */}
+                {chartSplits.length > 0 && (
+                    <>
+                        <Text style={styles.sectionTitle}>Performance Splits</Text>
+                        <View style={styles.chartContainer}>
+                            <SplitsChartSVG
+                                splits={chartSplits}
+                                totalTime={activity.moving_time}
+                                width={mapWidth - spacing.md}
+                                height={130 * scale}
+                                backgroundColor={chartBgColor}
+                                theme={theme}
+                            />
                         </View>
-                    ))}
-                </View>
-            )}
+                    </>
+                )}
 
-            {/* Social Section */}
-            <View style={styles.socialSection}>
-                <View style={styles.kudosContainer}>
-                    <Text style={styles.kudosCount}>{activity.kudos_count || 0}</Text>
-                    <Text style={styles.kudosLabel}>Kudos</Text>
-                </View>
-
-                {topComments.length > 0 && (
-                    <View style={styles.commentsContainer}>
-                        {topComments.map((comment, idx) => (
-                            <View key={idx} style={styles.comment}>
-                                <Text style={styles.commentAuthor}>
-                                    {comment.athlete?.firstname} {comment.athlete?.lastname?.charAt(0)}.
-                                </Text>
-                                <Text style={styles.commentText}>
-                                    {comment.text?.substring(0, 80)}{comment.text?.length > 80 ? '...' : ''}
-                                </Text>
+                {/* Photo thumbnails */}
+                {thumbnails.length > 0 && (
+                    <View style={styles.thumbnailStrip}>
+                        {thumbnails.slice(0, 4).map((url, idx) => (
+                            <View key={idx} style={styles.thumbnailContainer}>
+                                <PdfImage src={url} />
                             </View>
                         ))}
                     </View>
                 )}
+
+                {/* Social Section */}
+                <View style={styles.socialSection}>
+                    <View style={styles.kudosContainer}>
+                        <Text style={styles.kudosCount}>{activity.kudos_count || 0}</Text>
+                        <Text style={styles.kudosLabel}>Kudos</Text>
+                    </View>
+
+                    {topComments.length > 0 && (
+                        <View style={styles.commentsContainer}>
+                            {topComments.map((comment, idx) => (
+                                <View key={idx} style={styles.comment}>
+                                    <Text style={styles.commentAuthor}>
+                                        {comment.athlete?.firstname} {comment.athlete?.lastname?.charAt(0)}.
+                                    </Text>
+                                    <Text style={styles.commentText}>
+                                        {comment.text?.substring(0, 80)}{comment.text?.length > 80 ? '...' : ''}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
             </View>
         </Page>
     )

@@ -209,7 +209,16 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative' as const,
+    },
+    contentContainer: {
+      position: 'absolute' as const,
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column' as const,
     },
 
     // Left page (photos) styles
@@ -217,7 +226,8 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative' as const,
     },
     leftPageHeader: {
       marginBottom: spacing.sm,
@@ -601,6 +611,7 @@ export const MonthlyDividerSpread = ({
     <Document>
       {/* LEFT PAGE - Photos */}
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.leftPage}>
+        <View style={styles.contentContainer}>
         {/* Header with month/year for brand cohesion */}
         <View style={styles.leftPageHeader}>
           <Text style={styles.leftPageTitle}>{monthName}</Text>
@@ -659,10 +670,12 @@ export const MonthlyDividerSpread = ({
             </View>
           </View>
         )}
+        </View>
       </Page>
 
       {/* RIGHT PAGE - Calendar and Comments */}
       <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+        <View style={styles.contentContainer}>
         {/* Header */}
         <View style={styles.rightPageHeader}>
           <Text style={styles.monthTitle}>{monthName}</Text>
@@ -746,6 +759,7 @@ export const MonthlyDividerSpread = ({
             )}
           </View>
         )}
+        </View>
       </Page>
     </Document>
   )
@@ -800,6 +814,7 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
 
   return (
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.leftPage}>
+      <View style={styles.contentContainer}>
       {/* Header with month/year */}
       <View style={styles.leftPageHeader}>
         <Text style={styles.leftPageTitle}>{monthName}</Text>
@@ -847,6 +862,7 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
           </View>
         </View>
       )}
+      </View>
     </Page>
   )
 }
@@ -910,6 +926,7 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
 
   return (
     <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page}>
+      <View style={styles.contentContainer}>
       <View style={styles.rightPageHeader}>
         <Text style={styles.monthTitle}>{monthName}</Text>
         <Text style={styles.yearSubtitle}>{year}</Text>
@@ -1014,6 +1031,7 @@ export const MonthlyDividerRightPage = (props: MonthlyDividerSpreadProps) => {
           )}
         </View>
       )}
+      </View>
     </Page>
   )
 }
@@ -1120,7 +1138,16 @@ const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative',
+    },
+    rightContentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     rightHeader: {
       marginBottom: spacing.md,
@@ -1200,6 +1227,7 @@ const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
 
       {/* Right: Calendar */}
       <Page size={[format.dimensions.width, format.dimensions.height]} style={photoHeroStyles.rightPage}>
+        <View style={photoHeroStyles.rightContentContainer}>
         <View style={photoHeroStyles.rightHeader}>
           <Text style={photoHeroStyles.monthTitle}>{monthName}</Text>
           <Text style={photoHeroStyles.yearSubtitle}>{year}</Text>
@@ -1229,6 +1257,7 @@ const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
               cellSize={26 * format.scaleFactor}
             />
           )}
+        </View>
         </View>
       </Page>
     </>
@@ -1290,7 +1319,16 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative',
+    },
+    leftContentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     header: {
       marginBottom: spacing.lg,
@@ -1344,7 +1382,16 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative',
+    },
+    rightContentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     rightHeader: {
       marginBottom: spacing.lg,
@@ -1386,6 +1433,7 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
     <>
       {/* Left: Weekly distance bar chart */}
       <Page size={[format.dimensions.width, format.dimensions.height]} style={volumeStyles.leftPage}>
+        <View style={volumeStyles.leftContentContainer}>
         <View style={volumeStyles.header}>
           <Text style={volumeStyles.monthTitle}>{monthName}</Text>
           <Text style={volumeStyles.yearSubtitle}>{year}</Text>
@@ -1402,10 +1450,12 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
             )
           })}
         </View>
+        </View>
       </Page>
 
       {/* Right: Big summary stats */}
       <Page size={[format.dimensions.width, format.dimensions.height]} style={volumeStyles.rightPage}>
+        <View style={volumeStyles.rightContentContainer}>
         <View style={volumeStyles.rightHeader}>
           <Text style={volumeStyles.sectionLabel}>Training Summary</Text>
           <Text style={volumeStyles.monthTitle}>{monthName} {year}</Text>
@@ -1431,6 +1481,7 @@ const MonthlyDividerTrainingVolumePages = (props: MonthlyDividerSpreadProps) => 
             <Text style={volumeStyles.bigStatValue}>{Math.round(stats.totalElevation)}m</Text>
             <Text style={volumeStyles.bigStatLabel}>Elevation Gain</Text>
           </View>
+        </View>
         </View>
       </Page>
     </>
@@ -1481,7 +1532,16 @@ const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative',
+    },
+    leftContentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     header: {
       marginBottom: spacing.md,
@@ -1545,7 +1605,16 @@ const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.primaryColor,
-      padding: format.safeMargin,
+      padding: 0,
+      position: 'relative',
+    },
+    rightContentContainer: {
+      position: 'absolute',
+      top: format.safeMargin,
+      left: format.safeMargin,
+      right: format.safeMargin,
+      bottom: format.safeMargin,
+      flexDirection: 'column',
     },
     quoteHeader: {
       marginBottom: spacing.lg,
@@ -1604,6 +1673,7 @@ const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
     <>
       {/* Left: Enlarged calendar + stats */}
       <Page size={[format.dimensions.width, format.dimensions.height]} style={quoteStyles.leftPage}>
+        <View style={quoteStyles.leftContentContainer}>
         <View style={quoteStyles.header}>
           <Text style={quoteStyles.monthTitle}>{monthName}</Text>
           <Text style={quoteStyles.yearSubtitle}>{year}</Text>
@@ -1652,10 +1722,12 @@ const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
             </View>
           </View>
         </View>
+        </View>
       </Page>
 
       {/* Right: Featured quotes/comments on dark background */}
       <Page size={[format.dimensions.width, format.dimensions.height]} style={quoteStyles.rightPage}>
+        <View style={quoteStyles.rightContentContainer}>
         <View style={quoteStyles.quoteHeader}>
           <Text style={quoteStyles.quoteSectionLabel}>From the Community</Text>
         </View>
@@ -1676,6 +1748,7 @@ const MonthlyDividerQuoteCalendarPages = (props: MonthlyDividerSpreadProps) => {
             <Text style={quoteStyles.noQuotesText}>{monthName}</Text>
           </View>
         )}
+        </View>
       </Page>
     </>
   )

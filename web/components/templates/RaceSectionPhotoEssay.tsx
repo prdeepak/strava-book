@@ -178,6 +178,7 @@ export const RaceSectionPhotoEssayPages = ({
                                 containerHeight={photoAreaHeight}
                                 gap={6 * format.scaleFactor}
                                 borderRadius={4 * format.scaleFactor}
+                                placeholderColor={theme.surfaceColor}
                             />
                         </View>
 

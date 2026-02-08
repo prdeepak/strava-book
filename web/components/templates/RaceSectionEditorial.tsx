@@ -202,6 +202,7 @@ const P1PhotoGallery = ({
                             containerHeight={photoAreaHeight}
                             gap={6 * format.scaleFactor}
                             borderRadius={4 * format.scaleFactor}
+                            placeholderColor={theme.surfaceColor}
                         />
                     ) : (
                         <View style={{ width: contentWidth, height: photoAreaHeight, backgroundColor: theme.primaryColor + '10' }} />
