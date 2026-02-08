@@ -319,9 +319,10 @@ export const YearStatsPage = ({
     ? Math.round(yearSummary.totalDistance / 1000 / yearSummary.activityCount)
     : 0
 
-  const avgTimePerActivity = yearSummary.activityCount > 0
-    ? (yearSummary.totalTime / 3600 / yearSummary.activityCount).toFixed(1)
-    : '0.0'
+  const avgTimeHours = yearSummary.activityCount > 0
+    ? yearSummary.totalTime / 3600 / yearSummary.activityCount
+    : 0
+  const avgTimePerActivity = avgTimeHours.toFixed(1)
 
   const activeDays = yearSummary.activeDays
     ? (typeof yearSummary.activeDays === 'number' ? yearSummary.activeDays : yearSummary.activeDays.size)

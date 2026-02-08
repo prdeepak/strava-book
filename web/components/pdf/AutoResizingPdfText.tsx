@@ -1,4 +1,5 @@
 import { Text, View, StyleSheet } from '@react-pdf/renderer'
+import { DEFAULT_THEME } from '@/lib/book-types'
 
 /**
  * ------------------------------------------------------------------
@@ -109,7 +110,7 @@ export const AutoResizingPdfText = ({
   text,
   width,
   height,
-  font = 'Helvetica',
+  font = DEFAULT_THEME.fontPairing.body,
   min_fontsize = 8,
   max_fontsize = 40,
   h_align = 'center',

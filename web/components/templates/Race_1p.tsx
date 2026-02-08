@@ -5,6 +5,7 @@ import {
     resolveActivityLocation,
     formatDuration,
     formatPace,
+    formatDistanceValue,
     processSplits,
     processBestEfforts,
     getMapboxSatelliteUrl
@@ -62,7 +63,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     raceDate: {
         fontSize: Math.max(8, 10 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.accentColor,
         textTransform: 'uppercase',
         letterSpacing: 2,
@@ -78,7 +79,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     raceLocation: {
         fontSize: Math.max(8, 10 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + '99',
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -98,13 +99,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     heroStatValue: {
         fontSize: Math.max(28, 36 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold', // Monospace for stats
+        fontFamily: theme.fontPairing.heading,
         color: theme.accentColor,
         lineHeight: 1,
     },
     heroStatLabel: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + '88',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -130,7 +131,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     giantStatValue: {
         fontSize: Math.max(36, 48 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.accentColor,
         lineHeight: 1,
         textAlign: 'center',
@@ -186,7 +187,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     // Section headers
     sectionTitle: {
         fontSize: Math.max(8, 9 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         textTransform: 'uppercase',
         color: theme.accentColor,
         marginBottom: 6 * format.scaleFactor,
@@ -209,12 +210,12 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     splitLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + '99',
     },
     splitValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica', // Sans-serif for stats
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor,
     },
 
@@ -229,13 +230,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     effortLabel: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + '99',
         flex: 1,
     },
     effortValue: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.backgroundColor,
     },
     prBadge: {
@@ -247,7 +248,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     prBadgeText: {
         fontSize: Math.max(5, 6 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.textOverAccent ?? theme.backgroundColor,
     },
 
@@ -263,19 +264,19 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
     commentAuthor: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.accentColor,
         marginBottom: 1 * format.scaleFactor,
     },
     commentText: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + 'CC',
         lineHeight: 1.3,
     },
     kudosCount: {
         fontSize: Math.max(6, 7 * format.scaleFactor),
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         color: theme.accentColor,
         marginTop: 4 * format.scaleFactor,
     },
@@ -293,7 +294,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     // Description (more compact)
     description: {
         fontSize: Math.max(7, 8 * format.scaleFactor),
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         color: theme.backgroundColor + 'CC',
         fontStyle: 'italic',
         lineHeight: 1.3,
@@ -389,7 +390,7 @@ export const Race_1p = ({
         .slice(0, 3)
 
     // Calculate hero stats
-    const distanceKm = (activity.distance / 1000).toFixed(1)
+    const distanceKm = formatDistanceValue(activity.distance, 'metric')
     const timeFormatted = formatDuration(activity.moving_time)
     const avgPace = formatPace(activity.moving_time, activity.distance, 'metric')
     const elevationM = Math.round(activity.total_elevation_gain)
@@ -717,7 +718,7 @@ export const Race_1pPages = ({
     const durationMins = Math.floor((activity.moving_time % 3600) / 60)
     const durationSecs = activity.moving_time % 60
 
-    const distanceMiles = (activity.distance / 1609.34).toFixed(2)
+    const distanceMiles = formatDistanceValue(activity.distance, 'imperial')
     const elevationFt = Math.round(activity.total_elevation_gain * 3.28084)
 
     // Prepare splits and best efforts (limit to 6 for single page)

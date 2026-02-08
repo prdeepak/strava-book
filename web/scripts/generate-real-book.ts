@@ -200,7 +200,7 @@ async function main() {
     printReady: true,
   })
 
-  const pdfBuffer = await renderToBuffer(bookElement as any)
+  const pdfBuffer = await renderToBuffer(bookElement as Parameters<typeof renderToBuffer>[0])
   const pdfPath = path.join(outputsDir, `${label}-${timestamp}.pdf`)
   await fs.writeFile(pdfPath, pdfBuffer)
 

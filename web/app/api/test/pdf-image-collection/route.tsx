@@ -102,27 +102,29 @@ export async function GET(request: NextRequest) {
     },
   })
 
+  const document = (
+    <Document>
+      <Page size={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{photoCount} Photo{photoCount !== 1 ? 's' : ''} - {orientation} Container</Text>
+          <Text style={styles.subtitle}>Container: {containerWidth}×{containerHeight}pt | Gap: {gap}pt</Text>
+        </View>
+        <View style={styles.containerWrapper}>
+          <View style={styles.container}>
+            <PdfImageCollection
+              photos={photos}
+              containerWidth={containerWidth}
+              containerHeight={containerHeight}
+              gap={gap}
+            />
+          </View>
+        </View>
+      </Page>
+    </Document>
+  )
+
   try {
-    const pdfBuffer = await renderToBuffer(
-      <Document>
-        <Page size={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }} style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{photoCount} Photo{photoCount !== 1 ? 's' : ''} - {orientation} Container</Text>
-            <Text style={styles.subtitle}>Container: {containerWidth}×{containerHeight}pt | Gap: {gap}pt</Text>
-          </View>
-          <View style={styles.containerWrapper}>
-            <View style={styles.container}>
-              <PdfImageCollection
-                photos={photos}
-                containerWidth={containerWidth}
-                containerHeight={containerHeight}
-                gap={gap}
-              />
-            </View>
-          </View>
-        </Page>
-      </Document>
-    )
+    const pdfBuffer = await renderToBuffer(document)
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {

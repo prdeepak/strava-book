@@ -282,7 +282,8 @@ export const RaceSectionStatsPage = ({
 
                         {displaySplits.map((split, i) => {
                             // Calculate pace from moving_time/distance
-                            const paceSeconds = split.moving_time / (split.distance / 1000)
+                            const splitDistKm = split.distance * 0.001
+                            const paceSeconds = split.moving_time / splitDistKm
                             const paceMin = Math.floor(paceSeconds / 60)
                             const paceSec = Math.round(paceSeconds % 60).toString().padStart(2, '0')
                             const elev = Math.round(split.elevation_difference)

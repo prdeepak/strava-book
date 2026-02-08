@@ -18,7 +18,7 @@ import { extractPhotos } from '@/lib/photo-gallery-utils'
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
 
-const styles = StyleSheet.create({
+const createPlaceholderStyles = (theme: BookTheme) => StyleSheet.create({
     placeholderPage: {
         padding: 40,
         flexDirection: 'column',
@@ -27,16 +27,15 @@ const styles = StyleSheet.create({
     },
     placeholderTitle: {
         fontSize: 32,
-        fontFamily: 'Helvetica-Bold',
+        fontFamily: theme.fontPairing.heading,
         marginBottom: 20,
         textAlign: 'center',
     },
     placeholderText: {
         fontSize: 12,
-        fontFamily: 'Helvetica',
+        fontFamily: theme.fontPairing.body,
         textAlign: 'center',
-        // eslint-disable-next-line no-restricted-syntax -- static placeholder style, no theme context
-        color: '#666',
+        color: theme.primaryColor + '99',
     }
 })
 
@@ -108,8 +107,10 @@ export function computeYearSummary(activities: StravaActivity[], year: number): 
     const runs = activities.filter(a => a.type === 'Run' && a.distance >= 5000)
     const fastestActivity = runs.length > 0
         ? runs.reduce((fastest, a) => {
-            const currentPace = a.moving_time / a.distance
-            const fastestPace = fastest.moving_time / fastest.distance
+            const aDist = a.distance
+            const fDist = fastest.distance
+            const currentPace = a.moving_time / aDist
+            const fastestPace = fastest.moving_time / fDist
             return currentPace < fastestPace ? a : fastest
         }, runs[0])
         : activities[0]
@@ -635,6 +636,7 @@ export const BookDocument = ({
     mapboxToken,
     printReady = false,
 }: BookDocumentProps) => {
+    const styles = createPlaceholderStyles(theme)
     // Use periodName for display, fallback to year
     const displayPeriod = periodName || String(year)
     // Calculate year summary from activities if not provided
