@@ -319,6 +319,64 @@ function buildCompactManifest(activity: StravaActivity): SectionManifestPage[] {
   ]
 }
 
+/**
+ * Filmstrip variant — RaceSectionFilmstrip.tsx
+ *
+ * Pages:
+ *   1. P1 Journey Left (always)
+ *   2. P2 Journey Right (always)
+ *   3. P3 Hero + Best Efforts (if photos > 0 OR best_efforts exist)
+ *   4. P4 Data & Community (if splits OR comments OR kudos)
+ */
+function buildFilmstripManifest(activity: StravaActivity, mapboxToken?: string): SectionManifestPage[] {
+  const pages: SectionManifestPage[] = []
+  let idx = 0
+
+  const photoCount = countResolvablePhotos(activity)
+  const hasPhotos = photoCount > 0
+  const hasBestEfforts = !!(activity.best_efforts?.length)
+  const showPage3 = hasPhotos || hasBestEfforts
+
+  const hasSplits = !!(activity.splits_metric?.length)
+  const commentCount = getCommentCount(activity)
+  const hasComments = commentCount > 0
+  const kudos = activity.kudos_count || 0
+  const showPage4 = hasSplits || hasComments || kudos > 0
+
+  // P1: Journey Left (always)
+  pages.push(makePage(idx++, 'hero', {
+    hasMap: hasMap(activity, mapboxToken),
+    hasStats: true,
+    hasDescription: !!activity.description,
+  }))
+
+  // P2: Journey Right (always)
+  pages.push(makePage(idx++, 'description', {
+    hasMap: hasMap(activity, mapboxToken),
+    hasDescription: !!activity.description,
+    hasPhoto: hasPhotos,
+  }))
+
+  // P3: Hero + Best Efforts (conditional)
+  if (showPage3) {
+    pages.push(makePage(idx++, 'photos', {
+      hasPhoto: hasPhotos,
+      hasBestEfforts,
+    }))
+  }
+
+  // P4: Data & Community (conditional)
+  if (showPage4) {
+    pages.push(makePage(idx++, 'stats', {
+      hasStats: true,
+      hasSplits,
+      hasComments,
+    }))
+  }
+
+  return pages
+}
+
 // ============================================================================
 // Main entry point
 // ============================================================================
@@ -360,6 +418,9 @@ export function buildSectionManifest(
       break
     case 'compact':
       pages = buildCompactManifest(activity)
+      break
+    case 'filmstrip':
+      pages = buildFilmstripManifest(activity, mapboxToken)
       break
     default:
       pages = buildDefaultManifest(activity)

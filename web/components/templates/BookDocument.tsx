@@ -186,7 +186,7 @@ function getEntryRenderedPageCount(entry: BookEntry, tocEntryCount: number): num
             // proper recto/verso alignment in most cases.
             const variant = entry.raceVariant || 'default'
             const pageCounts: Record<string, number> = {
-                'default': 2, 'editorial': 2, 'magazine': 3,
+                'default': 2, 'editorial': 2, 'magazine': 3, 'filmstrip': 3,
                 'map-hero': 1, 'photo-essay': 1, 'stats-forward': 1, 'compact': 1,
             }
             return pageCounts[variant] || 2
@@ -262,7 +262,7 @@ function selectRaceVariants(
     races: StravaActivity[],
 ): Map<number, RaceSectionVariant> {
     const variantMap = new Map<number, RaceSectionVariant>()
-    const pool: RaceSectionVariant[] = ['default', 'editorial', 'magazine']
+    const pool: RaceSectionVariant[] = ['default', 'editorial', 'magazine', 'filmstrip']
 
     for (let i = 0; i < races.length; i++) {
         variantMap.set(races[i].id, pool[i % pool.length])

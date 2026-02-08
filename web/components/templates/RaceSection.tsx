@@ -12,6 +12,7 @@ import { RaceSectionStatsForwardPages } from './RaceSectionStatsForward'
 import { RaceSectionCompactPages } from './RaceSectionCompact'
 import { RaceSectionMagazinePages } from './RaceSectionMagazine'
 import { RaceSectionEditorialPages } from './RaceSectionEditorial'
+import { RaceSectionFilmstripPages } from './RaceSectionFilmstrip'
 
 export interface RaceSectionProps {
     activity: StravaActivity
@@ -169,6 +170,16 @@ const renderPages = (props: {
         case 'compact':
             return (
                 <RaceSectionCompactPages
+                    activity={rest.activity}
+                    format={rest.format}
+                    theme={rest.theme}
+                    mapboxToken={rest.mapboxToken}
+                    highlightLabel={rest.highlightLabel}
+                />
+            )
+        case 'filmstrip':
+            return (
+                <RaceSectionFilmstripPages
                     activity={rest.activity}
                     format={rest.format}
                     theme={rest.theme}

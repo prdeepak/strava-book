@@ -104,6 +104,7 @@ const VARIANT_PAGE_ORDERS: Record<RaceSectionVariant, PageType[]> = {
   'photo-essay': ['combined'],
   'stats-forward': ['combined'],
   'compact': ['combined'],
+  'filmstrip': ['hero', 'description', 'photos', 'stats'],
 }
 
 // Max pages per variant
@@ -111,6 +112,7 @@ const VARIANT_MAX_PAGES: Record<RaceSectionVariant, number> = {
   'default': 6,   // hero + desc + comments + stats + 2 photo pages
   'editorial': 5,
   'magazine': 4,
+  'filmstrip': 4,
   'map-hero': 1,
   'photo-essay': 1,
   'stats-forward': 1,
@@ -153,6 +155,9 @@ export function buildSectionManifest(
       break
     case 'compact':
       buildCompactManifest(pages, data)
+      break
+    case 'filmstrip':
+      buildFilmstripJudgeManifest(pages, data)
       break
   }
 
@@ -424,6 +429,75 @@ function buildCompactManifest(
       (data.hasBestEfforts ? 0.1 : 0) +
       (data.hasMap ? 0.15 : 0),
   })
+}
+
+function buildFilmstripJudgeManifest(
+  pages: PageManifest[],
+  data: ReturnType<typeof analyzeActivityData>
+) {
+  let idx = 0
+  const showPage3 = data.hasPhotos || data.hasBestEfforts
+  const showPage4 = data.hasSplits || data.hasComments || data.kudosCount > 0
+
+  // P1: Journey Left (always)
+  pages.push({
+    pageIndex: idx++,
+    pageType: 'hero',
+    hasPhoto: false,
+    hasDescription: data.hasDescription,
+    hasStats: true,
+    hasComments: false,
+    hasMap: data.hasMap,
+    hasSplits: false,
+    hasBestEfforts: false,
+    estimatedFillRatio: 0.3 + (data.hasMap ? 0.3 : 0) + (data.hasDescription ? 0.2 : 0),
+  })
+
+  // P2: Journey Right (always)
+  pages.push({
+    pageIndex: idx++,
+    pageType: 'description',
+    hasPhoto: data.hasPhotos,
+    hasDescription: data.hasDescription,
+    hasStats: false,
+    hasComments: false,
+    hasMap: data.hasMap,
+    hasSplits: false,
+    hasBestEfforts: false,
+    estimatedFillRatio: 0.3 + (data.hasDescription ? 0.2 : 0) + (data.hasPhotos ? 0.3 : 0),
+  })
+
+  // P3: Hero + Best Efforts (conditional)
+  if (showPage3) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'photos',
+      hasPhoto: data.hasPhotos,
+      hasDescription: false,
+      hasStats: false,
+      hasComments: false,
+      hasMap: false,
+      hasSplits: false,
+      hasBestEfforts: data.hasBestEfforts,
+      estimatedFillRatio: (data.hasPhotos ? 0.6 : 0) + (data.hasBestEfforts ? 0.3 : 0),
+    })
+  }
+
+  // P4: Data & Community (conditional on having splits, comments, or kudos)
+  if (showPage4) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'stats',
+      hasPhoto: false,
+      hasDescription: false,
+      hasStats: true,
+      hasComments: data.hasComments,
+      hasMap: false,
+      hasSplits: data.hasSplits,
+      hasBestEfforts: false,
+      estimatedFillRatio: 0.2 + (data.hasSplits ? 0.3 : 0) + (data.hasComments ? 0.2 : 0),
+    })
+  }
 }
 
 function buildSinglePageManifest(

@@ -7,7 +7,7 @@ export type { BookPageType }
 // === TEMPLATE VARIANT TYPES ===
 // Active variants (auto-selected via round-robin): 'default', 'editorial', 'magazine'
 // Legacy variants (still routable, not auto-selected): 'map-hero', 'photo-essay', 'stats-forward', 'compact'
-export type RaceSectionVariant = 'default' | 'map-hero' | 'photo-essay' | 'stats-forward' | 'compact' | 'magazine' | 'editorial'
+export type RaceSectionVariant = 'default' | 'map-hero' | 'photo-essay' | 'stats-forward' | 'compact' | 'magazine' | 'editorial' | 'filmstrip'
 export type MonthlyDividerVariant = 'default' | 'photo-hero' | 'training-volume' | 'quote-calendar'
 export type ActivityLogVariant = 'grid' | 'dense-list'
 
