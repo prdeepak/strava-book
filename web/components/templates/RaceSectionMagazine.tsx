@@ -14,6 +14,7 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { formatDuration, formatPace, formatDistanceValue, getMapboxLightUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
@@ -40,36 +41,11 @@ function hexToRgba(hex: string, opacity: number): string {
 }
 
 const getPhotos = (activity: StravaActivity): CollectionPhoto[] => {
-    const photos: CollectionPhoto[] = []
-    if (activity.comprehensiveData?.photos?.length) {
-        activity.comprehensiveData.photos.forEach((photo) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const photoAny = photo as any
-            const photoUrls = photoAny.urls as Record<string, string> | undefined
-            const photoSizes = photoAny.sizes as Record<string, [number, number]> | undefined
-            if (photoUrls) {
-                const url = photoUrls['5000'] || photoUrls['600'] || Object.values(photoUrls)[0]
-                if (url) {
-                    const resolved = resolveImageForPdf(url)
-                    if (resolved) {
-                        const size = photoSizes?.['5000'] || photoSizes?.['600']
-                        photos.push({ url: resolved, width: size?.[0], height: size?.[1] })
-                    }
-                }
-            }
-        })
-    }
-    if (photos.length === 0) {
-        const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-        if (primaryUrls) {
-            const url = primaryUrls['600'] || primaryUrls['5000'] || Object.values(primaryUrls)[0]
-            if (url) {
-                const resolved = resolveImageForPdf(url)
-                if (resolved) photos.push({ url: resolved })
-            }
-        }
-    }
-    return photos
+    return extractPhotos(activity).map(p => ({
+        url: p.url,
+        width: p.width,
+        height: p.height,
+    }))
 }
 
 const normalizePoints = (encodedPolyline: string, width: number, height: number): string => {
@@ -99,14 +75,19 @@ const HeroPage = ({ activity, format, theme, mapboxToken }: { activity: StravaAc
     const spacing = resolveSpacing(theme, format)
     const effects = resolveEffects(theme)
     let bgImage: string | null = null
-    const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-    if (primaryUrls) {
-        const rawUrl = primaryUrls['600'] || primaryUrls['5000'] || primaryUrls['100'] || Object.values(primaryUrls)[0]
-        if (rawUrl) bgImage = resolveImageForPdf(rawUrl)
+    let bgSourceWidth: number | undefined
+    let bgSourceHeight: number | undefined
+    const photos = getPhotos(activity)
+    if (photos.length > 0) {
+        bgImage = photos[0].url
+        bgSourceWidth = photos[0].width
+        bgSourceHeight = photos[0].height
     }
     if (!bgImage && mapboxToken && activity.map?.summary_polyline) {
         const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
         bgImage = resolveImageForPdf(`https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/600x600?access_token=${mapboxToken}&logo=false&attrib=false`)
+        bgSourceWidth = 1200  // 600@2x
+        bgSourceHeight = 1200
     }
     const overlayColor = hexToRgba(theme.primaryColor, effects.textOverlayOpacity)
     const dateStr = new Date(activity.start_date_local || activity.start_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
@@ -121,7 +102,7 @@ const HeroPage = ({ activity, format, theme, mapboxToken }: { activity: StravaAc
     })
     return (
         <Page size={[format.dimensions.width, format.dimensions.height]} style={styles.page}>
-            {bgImage && <View style={styles.bgContainer}><PdfImage src={bgImage} opacity={0.7} containerWidth={format.dimensions.width} containerHeight={format.dimensions.height} /></View>}
+            {bgImage && <View style={styles.bgContainer}><PdfImage src={bgImage} opacity={0.7} containerWidth={format.dimensions.width} containerHeight={format.dimensions.height} sourceWidth={bgSourceWidth} sourceHeight={bgSourceHeight} /></View>}
             <View style={styles.overlay} />
             <View style={styles.content}>
                 <Text style={styles.label}>RACE NAME</Text>
@@ -327,13 +308,14 @@ const TheBriefPage = ({ activity, format, theme }: { activity: StravaActivity; f
 }
 
 export const RaceSectionMagazinePages = ({ activity, format = FORMATS['10x10'], theme = DEFAULT_THEME, mapboxToken }: RaceSectionMagazineProps) => {
+    const hasDescription = !!activity.description
     const photos = getPhotos(activity)
     const hasPhotos = photos.length > 0
 
     return (
         <>
             <HeroPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />
-            <RaceReportPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />
+            {hasDescription && <RaceReportPage activity={activity} format={format} theme={theme} mapboxToken={mapboxToken} />}
             {hasPhotos && <PhotoCollagePage activity={activity} format={format} theme={theme} />}
             <TheBriefPage activity={activity} format={format} theme={theme} />
         </>

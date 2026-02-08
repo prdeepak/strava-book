@@ -3,6 +3,7 @@ import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
 import { resolveActivityLocation, formatDistanceValue, formatTime, formatPace, formatElevation } from '@/lib/activity-utils'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
@@ -146,23 +147,15 @@ export const RaceSectionHeroPage = ({
     highlightLabel,
     mapboxToken
 }: RaceSectionHeroPageProps) => {
-    // Check for high-res photo - prefer higher resolution if available
+    // Get photo with dimensions from comprehensive data (preferred) or primary
     let bgImage: string | null = null
-    const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-
-    if (primaryUrls) {
-        // Try to get the best available URL
-        const rawUrl = primaryUrls['600'] ||
-            primaryUrls['5000'] ||
-            primaryUrls['100'] ||
-            Object.values(primaryUrls)[0]
-
-        if (rawUrl) {
-            // Use resolveImageForPdf to handle the URL correctly for server-side PDF generation
-            // This handles both external URLs (returned as-is) and proxy-image URLs
-            // For PDF generation we want the direct external URL
-            bgImage = resolveImageForPdf(rawUrl)
-        }
+    let bgSourceWidth: number | undefined
+    let bgSourceHeight: number | undefined
+    const photos = extractPhotos(activity)
+    if (photos.length > 0) {
+        bgImage = photos[0].url
+        bgSourceWidth = photos[0].width
+        bgSourceHeight = photos[0].height
     }
 
     // Fallback: use Mapbox satellite map of the route when no photo is available
@@ -170,6 +163,8 @@ export const RaceSectionHeroPage = ({
         const pathParam = `path-5+fc4c02-0.8(${encodeURIComponent(activity.map.summary_polyline)})`
         const rawUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${pathParam}/auto/600x600?access_token=${mapboxToken}&logo=false&attrib=false`
         bgImage = resolveImageForPdf(rawUrl)
+        bgSourceWidth = 1200  // 600@2x
+        bgSourceHeight = 1200
     }
 
     const styles = createStyles(format, theme, !!bgImage)
@@ -193,6 +188,8 @@ export const RaceSectionHeroPage = ({
                         opacity={0.65}
                         containerWidth={format.dimensions.width}
                         containerHeight={format.dimensions.height}
+                        sourceWidth={bgSourceWidth}
+                        sourceHeight={bgSourceHeight}
                     />
                 </View>
             )}

@@ -325,7 +325,6 @@ async function runIntegrationTest(options: TestOptions): Promise<void> {
     },
     {
       verbose: true,
-      provider: 'auto',
       outputDir: pagesDir,
     }
   )

@@ -24,6 +24,7 @@ import {
 } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
@@ -57,47 +58,13 @@ interface RaceSectionEditorialProps {
     highlightLabel?: string
 }
 
-/** Extract all photos from activity data */
+/** Extract all photos from activity data - uses shared extractPhotos utility */
 const getPhotos = (activity: StravaActivity): CollectionPhoto[] => {
-    const photos: CollectionPhoto[] = []
-
-    if (activity.comprehensiveData?.photos?.length) {
-        activity.comprehensiveData.photos.forEach((photo) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const photoAny = photo as any
-            const photoUrls = photoAny.urls as Record<string, string> | undefined
-            const photoSizes = photoAny.sizes as Record<string, [number, number]> | undefined
-            if (photoUrls) {
-                const url = photoUrls['5000'] || photoUrls['600'] || Object.values(photoUrls)[0]
-                if (url) {
-                    const resolved = resolveImageForPdf(url)
-                    if (resolved) {
-                        const size = photoSizes?.['5000'] || photoSizes?.['600']
-                        photos.push({
-                            url: resolved,
-                            width: size?.[0],
-                            height: size?.[1],
-                        })
-                    }
-                }
-            }
-        })
-    }
-
-    if (photos.length === 0) {
-        const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-        if (primaryUrls) {
-            const url = primaryUrls['600'] || primaryUrls['5000'] || Object.values(primaryUrls)[0]
-            if (url) {
-                const resolved = resolveImageForPdf(url)
-                if (resolved) {
-                    photos.push({ url: resolved })
-                }
-            }
-        }
-    }
-
-    return photos
+    return extractPhotos(activity).map(p => ({
+        url: p.url,
+        width: p.width,
+        height: p.height,
+    }))
 }
 
 /** Normalize polyline coordinates to SVG viewbox */
@@ -262,12 +229,14 @@ const P2PanoramicMap = ({
     const distanceKm = formatDistanceValue(activity.distance)
     const elevationM = formatElevation(activity.total_elevation_gain)
 
+    const satW = Math.min(Math.round(format.dimensions.width * 2), 1280)
+    const satH = Math.min(Math.round(format.dimensions.height * 2), 1280)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
         ? resolveImageForPdf(getMapboxSatelliteUrl(
             activity.map.summary_polyline,
             mapboxToken,
-            Math.round(format.dimensions.width * 2),
-            Math.round(format.dimensions.height * 2),
+            satW,
+            satH,
         )) || undefined
         : undefined
 
@@ -347,6 +316,8 @@ const P2PanoramicMap = ({
                     overlayOpacity={0.3}
                     width={format.dimensions.width}
                     height={format.dimensions.height}
+                    sourceWidth={satW}
+                    sourceHeight={satH}
                 />
             ) : (
                 /* SVG polyline fallback on light background */

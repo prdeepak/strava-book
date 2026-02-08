@@ -7,13 +7,13 @@
  * 1. Heuristic (judgeSectionHeuristic) — fast, deterministic, no rendering.
  *    Default for CI.
  * 2. LLM-powered (judgeSectionVisual) — renders to PDF/PNG, sends to LLM.
- *    Uses the Bedrock → Gemini → Anthropic fallback chain.
+ *    Uses the Bedrock → Gemini fallback chain via llm-provider.
  */
 
 import * as fs from 'fs'
 import { StravaActivity } from '@/lib/strava'
 import { RaceSectionVariant } from '@/lib/book-types'
-import { callClaudeWithImages, isBedrockConfigured } from '@/lib/claude-client'
+import { callLlmWithImages, stripJsonFences } from '@/lib/llm-provider'
 import {
   SectionJudgment,
   SectionCriterionScore,
@@ -340,9 +340,11 @@ function buildMagazineManifest(
   pages: PageManifest[],
   data: ReturnType<typeof analyzeActivityData>
 ) {
-  // Magazine always renders 4 pages
+  let idx = 0
+
+  // Hero page (always)
   pages.push({
-    pageIndex: 0,
+    pageIndex: idx++,
     pageType: 'hero',
     hasPhoto: data.hasPhotos,
     hasDescription: false,
@@ -354,34 +356,41 @@ function buildMagazineManifest(
     estimatedFillRatio: data.hasPhotos || data.hasMap ? 0.8 : 0.3,
   })
 
-  pages.push({
-    pageIndex: 1,
-    pageType: 'description',
-    hasPhoto: false,
-    hasDescription: data.hasDescription,
-    hasStats: false,
-    hasComments: false,
-    hasMap: data.hasMap,
-    hasSplits: false,
-    hasBestEfforts: false,
-    estimatedFillRatio: data.hasDescription ? 0.6 : 0.15,
-  })
+  // Description page (only if description exists)
+  if (data.hasDescription) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'description',
+      hasPhoto: false,
+      hasDescription: true,
+      hasStats: false,
+      hasComments: false,
+      hasMap: data.hasMap,
+      hasSplits: false,
+      hasBestEfforts: false,
+      estimatedFillRatio: 0.6,
+    })
+  }
 
-  pages.push({
-    pageIndex: 2,
-    pageType: 'photos',
-    hasPhoto: data.hasPhotos,
-    hasDescription: false,
-    hasStats: false,
-    hasComments: false,
-    hasMap: false,
-    hasSplits: false,
-    hasBestEfforts: false,
-    estimatedFillRatio: data.hasPhotos ? Math.min(0.9, data.photoCount * 0.15) : 0.1,
-  })
+  // Photo collage page (only if photos exist)
+  if (data.hasPhotos) {
+    pages.push({
+      pageIndex: idx++,
+      pageType: 'photos',
+      hasPhoto: true,
+      hasDescription: false,
+      hasStats: false,
+      hasComments: false,
+      hasMap: false,
+      hasSplits: false,
+      hasBestEfforts: false,
+      estimatedFillRatio: Math.min(0.9, data.photoCount * 0.15),
+    })
+  }
 
+  // Stats page (always)
   pages.push({
-    pageIndex: 3,
+    pageIndex: idx++,
     pageType: 'stats',
     hasPhoto: false,
     hasDescription: false,
@@ -607,140 +616,46 @@ export function judgeSectionHeuristic(
 
 /**
  * Render section to PDF/PNG, send page images to LLM for evaluation.
- * Uses the Bedrock → Gemini → Anthropic fallback chain.
+ * Uses the Bedrock → Gemini fallback chain via llm-provider.
  */
 export async function judgeSectionVisual(
   imagePaths: string[],
   activity: StravaActivity,
   variantName: RaceSectionVariant,
-  options: { provider?: 'bedrock' | 'gemini' | 'anthropic' | 'auto'; verbose?: boolean } = {}
+  options: { verbose?: boolean } = {}
 ): Promise<SectionJudgment> {
-  const { provider = 'auto', verbose = false } = options
+  const { verbose = false } = options
   const manifest = buildSectionManifest(activity, variantName)
 
   if (imagePaths.length === 0) {
     return judgeSectionHeuristic(activity, variantName)
   }
 
-  // Read images
   const imagesBase64 = imagePaths.map(p => fs.readFileSync(p).toString('base64'))
   const prompt = buildSectionJudgePrompt(manifest)
 
-  // Build provider list
-  const availableProviders: Array<'bedrock' | 'gemini' | 'anthropic'> = []
-  if (provider === 'auto') {
-    if (isBedrockConfigured()) availableProviders.push('bedrock')
-    if (process.env.GEMINI_API_KEY) availableProviders.push('gemini')
-    if (process.env.ANTHROPIC_API_KEY) availableProviders.push('anthropic')
-  } else {
-    availableProviders.push(provider)
-  }
-
-  if (availableProviders.length === 0) {
-    if (verbose) console.log('[Section Judge] No LLM providers configured, using heuristic')
+  let result
+  try {
+    result = await callLlmWithImages(
+      imagesBase64.map(b64 => ({ base64: b64, format: 'png' as const })),
+      prompt,
+      { maxTokens: 2000, temperature: 0.1, logPrefix: '[Section Judge]', verbose }
+    )
+  } catch {
+    if (verbose) console.log('[Section Judge] All providers failed, using heuristic')
     return judgeSectionHeuristic(activity, variantName)
   }
 
-  let responseText = ''
-  for (const p of availableProviders) {
-    try {
-      responseText = await callProvider(p, imagesBase64, prompt, verbose)
-      if (verbose) console.log(`[Section Judge] Used provider: ${p}`)
-      break
-    } catch {
-      if (verbose) console.log(`[Section Judge] ${p} failed, trying next...`)
-      if (p === availableProviders[availableProviders.length - 1]) {
-        if (verbose) console.log('[Section Judge] All providers failed, using heuristic')
-        return judgeSectionHeuristic(activity, variantName)
-      }
-    }
-  }
-
   try {
-    return parseJudgmentResponse(responseText)
+    return { ...parseJudgmentResponse(result.text), provider: result.provider, model: result.model }
   } catch {
     if (verbose) console.log('[Section Judge] Failed to parse LLM response, using heuristic')
     return judgeSectionHeuristic(activity, variantName)
   }
 }
 
-async function callProvider(
-  provider: 'bedrock' | 'gemini' | 'anthropic',
-  imagesBase64: string[],
-  prompt: string,
-  verbose: boolean
-): Promise<string> {
-  if (provider === 'bedrock') {
-    const images = imagesBase64.map(b64 => ({ base64: b64, format: 'png' as const }))
-    const result = await callClaudeWithImages(images, prompt, { maxTokens: 2000, temperature: 0.1 })
-    if (verbose) console.log('[Section Judge] Bedrock response received')
-    return result
-  }
-
-  if (provider === 'gemini') {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) throw new Error('GEMINI_API_KEY not set')
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parts: any[] = imagesBase64.map(b64 => ({
-      inline_data: { mime_type: 'image/png', data: b64 },
-    }))
-    parts.push({ text: prompt })
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 2000 },
-      }),
-    })
-
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`)
-    const data = await response.json()
-    if (verbose) console.log('[Section Judge] Gemini response received')
-    return data.candidates[0].content.parts[0].text
-  }
-
-  // Anthropic
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const content: any[] = imagesBase64.map(b64 => ({
-    type: 'image',
-    source: { type: 'base64', media_type: 'image/png', data: b64 },
-  }))
-  content.push({ type: 'text', text: prompt })
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content }],
-    }),
-  })
-
-  if (!response.ok) throw new Error(`Anthropic API error: ${response.status}`)
-  const data = await response.json()
-  if (verbose) console.log('[Section Judge] Anthropic response received')
-  return data.content[0].text
-}
-
 function parseJudgmentResponse(responseText: string): SectionJudgment {
-  let cleanJson = responseText.trim()
-  if (cleanJson.startsWith('```json')) cleanJson = cleanJson.slice(7)
-  if (cleanJson.startsWith('```')) cleanJson = cleanJson.slice(3)
-  if (cleanJson.endsWith('```')) cleanJson = cleanJson.slice(0, -3)
-  cleanJson = cleanJson.trim()
-
+  const cleanJson = stripJsonFences(responseText)
   const parsed = JSON.parse(cleanJson)
 
   const clamp = (v: unknown) => {

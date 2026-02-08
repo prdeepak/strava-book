@@ -9,6 +9,7 @@ import { Page, View, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { formatPeriodRange } from '@/lib/activity-utils'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 import { PdfImage } from '@/components/pdf/PdfImage'
@@ -71,6 +72,8 @@ export const CoverPage = ({
   const endDate = propEndDate
   let athleteName = propAthleteName
   let backgroundImage = propBackgroundImage
+  let backgroundImageWidth = propBackgroundImageWidth
+  let backgroundImageHeight = propBackgroundImageHeight
 
   if (activity && !propTitle) {
     // Derive from activity for testing
@@ -86,12 +89,16 @@ export const CoverPage = ({
       ? `${activity.athlete.firstname || ''} ${activity.athlete.lastname || ''}`.trim()
       : 'Athlete'
 
-    // Get photo from activity
-    const photoUrls = activity.photos?.primary?.urls ||
-      activity.comprehensiveData?.photos?.[0]?.urls || {}
-    const sizes = Object.keys(photoUrls).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
-    if (sizes.length > 0) {
-      backgroundImage = photoUrls[sizes[0]]
+    // Get photo from activity using extractPhotos for dimensions
+    const activityPhotos = extractPhotos(activity as import('@/lib/strava').StravaActivity)
+    if (activityPhotos.length > 0) {
+      backgroundImage = activityPhotos[0].url
+      if (!propBackgroundImageWidth && activityPhotos[0].width) {
+        backgroundImageWidth = activityPhotos[0].width
+      }
+      if (!propBackgroundImageHeight && activityPhotos[0].height) {
+        backgroundImageHeight = activityPhotos[0].height
+      }
     }
   }
 
@@ -216,8 +223,8 @@ export const CoverPage = ({
             src={bgImage}
             containerWidth={pageWidth}
             containerHeight={imageHeight}
-            sourceWidth={propBackgroundImageWidth}
-            sourceHeight={propBackgroundImageHeight}
+            sourceWidth={backgroundImageWidth}
+            sourceHeight={backgroundImageHeight}
           />
         )}
       </View>

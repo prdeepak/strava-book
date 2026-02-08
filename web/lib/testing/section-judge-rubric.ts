@@ -20,6 +20,8 @@ export interface SectionJudgment {
   pass: boolean
   summary: string
   suggestions: string[]
+  provider?: string
+  model?: string
 }
 
 export interface SectionCriterionScore {

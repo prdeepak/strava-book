@@ -13,6 +13,7 @@ import { ActivityLog } from './ActivityLog'
 import { BlankPageComponent } from './BlankPage'
 import { BookFormat, BookTheme, YearSummary, MonthlyStats, RaceSectionVariant, MonthlyDividerVariant, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { calculateActivitiesPerPage } from '@/lib/activity-utils'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -412,9 +413,10 @@ export function generateBookEntries(
         ? races.sort((a, b) => (b.distance || 0) - (a.distance || 0))[0]
         : undefined
 
-    // Try A-race photo first, then any activity with a photo
-    const coverPhotoSource = aRace?.photos?.primary?.urls?.['600']
-        || activities.find(a => a.photos?.primary?.urls?.['600'])?.photos?.primary?.urls?.['600']
+    // Try A-race photo first, then any activity with a photo (using extractPhotos)
+    const aRacePhotos = aRace ? extractPhotos(aRace) : []
+    const coverPhotoSource = aRacePhotos[0]?.url
+        || activities.map(a => extractPhotos(a)).find(p => p.length > 0)?.[0]?.url
 
     // 1. COVER (page 1)
     entries.push({

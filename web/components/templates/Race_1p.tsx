@@ -9,7 +9,7 @@ import {
     processBestEfforts,
     getMapboxSatelliteUrl
 } from '@/lib/activity-utils'
-import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import mapboxPolyline from '@mapbox/polyline'
 import { PdfImage } from '@/components/pdf/PdfImage'
 
@@ -358,8 +358,9 @@ export const Race_1p = ({
     const styles = createStyles(format, theme)
     const location = resolveActivityLocation(activity)
 
-    // Get Strava photo if available
-    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+    // Get Strava photo if available (using extractPhotos for dimensions)
+    const _photos = extractPhotos(activity)
+    const stravaPhoto = _photos[0]?.url || null
 
     // Get satellite map URL if token and polyline available
     // Use direct URL for @react-pdf/renderer (proxy URLs don't work server-side)
@@ -677,8 +678,9 @@ export const Race_1pPages = ({
     const styles = createStyles(format, theme)
     const location = resolveActivityLocation(activity)
 
-    // Get Strava photo if available
-    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+    // Get Strava photo if available (using extractPhotos for dimensions)
+    const _pPhotos = extractPhotos(activity)
+    const stravaPhoto = _pPhotos[0]?.url || null
 
     // Get satellite map URL if token and polyline available
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)

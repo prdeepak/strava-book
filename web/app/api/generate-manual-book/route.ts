@@ -286,7 +286,6 @@ export async function POST(request: NextRequest) {
         },
         {
           verbose: true,
-          provider: 'auto',
           outputDir: pagesDir,  // Will use already-extracted PNGs
         }
       )

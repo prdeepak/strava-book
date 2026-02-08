@@ -12,7 +12,7 @@ import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValue, formatElevation } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
-import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
@@ -24,47 +24,13 @@ interface RaceSectionPhotoEssayProps {
     highlightLabel?: string
 }
 
-// Get all photos from activity with dimensions
+// Get all photos from activity with dimensions - uses shared extractPhotos utility
 const getPhotos = (activity: StravaActivity): CollectionPhoto[] => {
-    const photos: CollectionPhoto[] = []
-
-    if (activity.comprehensiveData?.photos?.length) {
-        activity.comprehensiveData.photos.forEach((photo) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const photoAny = photo as any
-            const photoUrls = photoAny.urls as Record<string, string> | undefined
-            const photoSizes = photoAny.sizes as Record<string, [number, number]> | undefined
-            if (photoUrls) {
-                const url = photoUrls['5000'] || photoUrls['600'] || Object.values(photoUrls)[0]
-                if (url) {
-                    const resolved = resolveImageForPdf(url)
-                    if (resolved) {
-                        const size = photoSizes?.['5000'] || photoSizes?.['600']
-                        photos.push({
-                            url: resolved,
-                            width: size?.[0],
-                            height: size?.[1],
-                        })
-                    }
-                }
-            }
-        })
-    }
-
-    if (photos.length === 0) {
-        const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-        if (primaryUrls) {
-            const url = primaryUrls['600'] || primaryUrls['5000'] || Object.values(primaryUrls)[0]
-            if (url) {
-                const resolved = resolveImageForPdf(url)
-                if (resolved) {
-                    photos.push({ url: resolved })
-                }
-            }
-        }
-    }
-
-    return photos
+    return extractPhotos(activity).map(p => ({
+        url: p.url,
+        width: p.width,
+        height: p.height,
+    }))
 }
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {

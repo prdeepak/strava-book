@@ -347,7 +347,9 @@ export function getMapboxLightUrl(
     width: number = 800,
     height: number = 400
 ): string {
-    return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${width}x${height}@2x?access_token=${mapboxToken}&logo=false`
+    const w = Math.min(Math.round(width), 1280)
+    const h = Math.min(Math.round(height), 1280)
+    return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${w}x${h}@2x?access_token=${mapboxToken}&logo=false`
 }
 
 /**
@@ -360,5 +362,7 @@ export function getMapboxSatelliteUrl(
     width: number = 800,
     height: number = 400
 ): string {
-    return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${width}x${height}@2x?access_token=${mapboxToken}&logo=false`
+    const w = Math.min(Math.round(width), 1280)
+    const h = Math.min(Math.round(height), 1280)
+    return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/path-4+ff4500-0.8(${encodeURIComponent(polyline)})/auto/${w}x${h}@2x?access_token=${mapboxToken}&logo=false`
 }

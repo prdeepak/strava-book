@@ -12,7 +12,9 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { RaceSectionVariant } from '@/lib/book-types'
+import React from 'react'
+import { renderToBuffer } from '@react-pdf/renderer'
+import { RaceSectionVariant, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import {
   applyDataProfile,
@@ -27,6 +29,7 @@ import {
   SectionJudgment,
   SectionManifest,
 } from './section-judge'
+import { pdfToImages } from './test-harness'
 
 // ============================================================================
 // Types
@@ -68,6 +71,73 @@ export interface VariantTestReport {
   }
   matrix: Record<string, Record<string, { score: number; pass: boolean }>>
   markdown: string
+}
+
+// ============================================================================
+// PDF Rendering Pipeline
+// ============================================================================
+
+let fontsRegistered = false
+
+async function ensureFontsRegistered() {
+  if (fontsRegistered) return
+  await import('@/lib/pdf-fonts')
+  fontsRegistered = true
+}
+
+async function renderVariantToImages(
+  activity: StravaActivity,
+  variant: RaceSectionVariant,
+  outputDir: string,
+  profileName: string,
+  verbose: boolean
+): Promise<string[]> {
+  await ensureFontsRegistered()
+
+  const { RaceSection } = await import('@/components/templates/RaceSection')
+
+  const renderDir = path.join(outputDir, 'renders')
+  if (!fs.existsSync(renderDir)) {
+    fs.mkdirSync(renderDir, { recursive: true })
+  }
+
+  try {
+    const pdfBuffer = await renderToBuffer(
+      // RaceSection returns a <Document> which is the correct top-level element
+       
+      React.createElement(RaceSection, {
+        activity,
+        format: FORMATS['10x10'],
+        theme: DEFAULT_THEME,
+        variant,
+        mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+      }) as any
+    )
+
+    const pdfPath = path.join(renderDir, `${variant}-${profileName}.pdf`)
+    fs.writeFileSync(pdfPath, pdfBuffer)
+
+    if (verbose) {
+      console.log(`    [render] PDF saved: ${pdfPath}`)
+    }
+
+    // Clean stale PNGs from previous runs for this variant+profile
+    const basename = `${variant}-${profileName}`
+    const existingFiles = fs.readdirSync(renderDir)
+    for (const f of existingFiles) {
+      if (f.startsWith(basename) && f.endsWith('.png')) {
+        fs.unlinkSync(path.join(renderDir, f))
+      }
+    }
+
+    const imagePaths = pdfToImages(pdfPath, renderDir, verbose)
+    return imagePaths.filter(p => p.endsWith('.png'))
+  } catch (error) {
+    if (verbose) {
+      console.log(`    [render] Failed to render ${variant} x ${profileName}: ${error}`)
+    }
+    return []
+  }
 }
 
 // ============================================================================
@@ -119,9 +189,8 @@ export async function runVariantTests(
 
       let judgment: SectionJudgment
       if (llmJudge) {
-        // LLM mode would need PDF rendering pipeline
-        // For now, fall back to heuristic (LLM mode requires running dev server)
-        judgment = await judgeSectionVisual([], activity, variant, { verbose })
+        const imagePaths = await renderVariantToImages(activity, variant, outputDir || path.join(process.cwd(), 'test-output', 'variant-tests'), profileName, verbose)
+        judgment = await judgeSectionVisual(imagePaths, activity, variant, { verbose })
       } else {
         judgment = judgeSectionHeuristic(activity, variant)
       }
@@ -275,13 +344,31 @@ function generateMarkdownReport(
 // ============================================================================
 
 if (require.main === module) {
+  // Load .env.local for API keys when running as CLI
+  const dotenv = require('dotenv')
+  dotenv.config({ path: path.join(__dirname, '../../.env.local') })
+
   const args = process.argv.slice(2)
   const verbose = args.includes('--verbose') || args.includes('-v')
   const llmJudge = args.includes('--llm-judge')
 
+  // Parse --variants default,editorial,magazine
+  const variantsIdx = args.indexOf('--variants')
+  const variants = variantsIdx >= 0
+    ? args[variantsIdx + 1].split(',') as RaceSectionVariant[]
+    : undefined
+
+  // Parse --profiles full-data,bare-minimum
+  const profilesIdx = args.indexOf('--profiles')
+  const profiles = profilesIdx >= 0
+    ? args[profilesIdx + 1].split(',')
+    : undefined
+
   const config: VariantTestConfig = {
     verbose,
     llmJudge,
+    variants,
+    profiles,
     outputDir: path.join(process.cwd(), 'test-output', 'variant-tests'),
   }
 

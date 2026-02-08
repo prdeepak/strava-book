@@ -16,7 +16,6 @@ import { BookEntry, BookPageType } from './curator'
 
 export interface ScoringOptions {
   verbose?: boolean
-  provider?: 'bedrock' | 'gemini' | 'anthropic' | 'auto'
   resolution?: number
   skipTypes?: BookPageType[]  // Page types to skip scoring
   outputDir?: string          // Directory to save extracted page images (persistent)
@@ -118,7 +117,6 @@ export async function scorePdfPages(
 ): Promise<ScoringResult> {
   const {
     verbose = false,
-    provider = 'auto',
     resolution = 150,
     skipTypes = [],
     outputDir,
@@ -157,7 +155,7 @@ export async function scorePdfPages(
   let errorCount = 0
   let totalScore = 0
 
-  const judgeOptions: JudgeOptions = { provider, verbose }
+  const judgeOptions: JudgeOptions = { verbose }
 
   try {
     // Score each page
@@ -263,7 +261,7 @@ export async function scoreSamplePages(
   },
   options: ScoringOptions = {}
 ): Promise<ScoringResult> {
-  const { verbose = false, provider = 'auto', resolution = 150 } = options
+  const { verbose = false, resolution = 150 } = options
 
   // Check if pdftoppm is available
   const available = await isPdftoppmAvailable()
@@ -294,7 +292,7 @@ export async function scoreSamplePages(
   let errorCount = 0
   let totalScore = 0
 
-  const judgeOptions: JudgeOptions = { provider, verbose }
+  const judgeOptions: JudgeOptions = { verbose }
 
   try {
     // Score sampled pages

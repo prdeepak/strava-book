@@ -57,6 +57,11 @@ const eslintConfig = defineConfig([
           selector: "CallExpression[callee.property.name='toFixed'][callee.object.type='BinaryExpression'][callee.object.operator='/']",
           message: "Don't format numbers inline with .toFixed(). Use shared formatters from @/lib/activity-utils.",
         },
+        // Ban direct access to activity.photos.primary - use extractPhotos() instead
+        {
+          selector: "MemberExpression[property.name='primary'][object.property.name='photos']",
+          message: "Use extractPhotos() from @/lib/photo-gallery-utils instead of accessing activity.photos.primary directly. See docs/StyleGuide.md#photo-extraction",
+        },
       ],
       // Ban local shadow formatters that duplicate shared utilities
       "no-shadow": ["warn", {

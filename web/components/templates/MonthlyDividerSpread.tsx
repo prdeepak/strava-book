@@ -11,6 +11,7 @@ import { getMonthName, formatDistance, formatTime } from '@/lib/activity-utils'
 import { StravaActivity } from '@/lib/strava'
 import { IconCalendarMonth, BubbleCalendarMonth, DayActivity, stravaActivitiesToDayActivities } from '@/lib/calendar-views'
 import { resolveTypography, resolveSpacing, resolveEffects } from '@/lib/typography'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 import { PdfImage } from '@/components/pdf/PdfImage'
@@ -30,40 +31,17 @@ interface MonthlyDividerSpreadProps {
   inlineActivities?: StravaActivity[]
 }
 
-// Check if an activity has photos
+// Check if an activity has photos (uses extractPhotos for consistent logic)
 function activityHasPhotos(activity: StravaActivity): boolean {
-  const comprehensivePhotos = activity.comprehensiveData?.photos || []
-  if (comprehensivePhotos.length > 0) return true
-
-  // Check primary photo
-  if (activity.photos?.primary?.urls) {
-    const sizes = Object.keys(activity.photos.primary.urls)
-    if (sizes.length > 0) return true
-  }
-
-  return false
+  return extractPhotos(activity).length > 0
 }
 
-// Get the best photo URL from an activity
-function getActivityHeroPhoto(activity: StravaActivity): string | null {
-  // Try comprehensive photos first (highest resolution)
-  const comprehensivePhotos = activity.comprehensiveData?.photos || []
-  for (const photo of comprehensivePhotos) {
-    const sizes = Object.keys(photo.urls || {}).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
-    if (sizes.length > 0) {
-      return photo.urls[String(sizes[0])]
-    }
+// Get the best photo URL from an activity (with optional dimensions)
+function getActivityHeroPhoto(activity: StravaActivity): { url: string; width?: number; height?: number } | null {
+  const photos = extractPhotos(activity)
+  if (photos.length > 0) {
+    return { url: photos[0].url, width: photos[0].width, height: photos[0].height }
   }
-
-  // Fall back to primary photo
-  if (activity.photos?.primary?.urls) {
-    const sizes = Object.keys(activity.photos.primary.urls).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
-    if (sizes.length > 0) {
-      const urls = activity.photos.primary.urls as Record<string, string>
-      return urls[String(sizes[0])]
-    }
-  }
-
   return null
 }
 
@@ -128,7 +106,7 @@ function scoreActivity(activity: StravaActivity): number {
   return score
 }
 
-// Extract best photos from activities (sorted by hierarchy score)
+// Extract best photos from activities (sorted by hierarchy score, uses extractPhotos)
 function getTopPhotos(activities: StravaActivity[], maxPhotos: number = 4): Array<{ url: string; caption?: string; activityName: string }> {
   const photos: Array<{ url: string; caption?: string; activityName: string; score: number }> = []
 
@@ -137,32 +115,14 @@ function getTopPhotos(activities: StravaActivity[], maxPhotos: number = 4): Arra
     .sort((a, b) => b.score - a.score)
 
   for (const { activity } of scoredActivities) {
-    // Get photos from comprehensive data first
-    const activityPhotos = activity.comprehensiveData?.photos || []
+    const activityPhotos = extractPhotos(activity)
     for (const photo of activityPhotos) {
-      const sizes = Object.keys(photo.urls || {}).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
-      if (sizes.length > 0) {
-        photos.push({
-          url: photo.urls[String(sizes[0])],
-          caption: photo.caption,
-          activityName: activity.name || 'Activity',
-          score: scoreActivity(activity)
-        })
-      }
-    }
-
-    // Check primary photo if no comprehensive photos
-    if (activityPhotos.length === 0 && activity.photos?.primary?.urls) {
-      const sizes = Object.keys(activity.photos.primary.urls).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a)
-      if (sizes.length > 0) {
-        const urls = activity.photos.primary.urls as Record<string, string>
-        photos.push({
-          url: urls[String(sizes[0])],
-          caption: undefined,
-          activityName: activity.name || 'Activity',
-          score: scoreActivity(activity)
-        })
-      }
+      photos.push({
+        url: photo.url,
+        caption: photo.caption,
+        activityName: activity.name || 'Activity',
+        score: scoreActivity(activity)
+      })
     }
 
     if (photos.length >= maxPhotos) break
@@ -611,7 +571,10 @@ export const MonthlyDividerSpread = ({
   }
 
   // Get hero photo from featured activity
-  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoData = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoUrl = heroPhotoData?.url || null
+  const heroPhotoW = heroPhotoData?.width
+  const heroPhotoH = heroPhotoData?.height
 
   // Get comments from featured activity (1-2 comments as per spec)
   const featuredComments = featuredActivity ? getActivityComments(featuredActivity, 2) : []
@@ -647,7 +610,7 @@ export const MonthlyDividerSpread = ({
         {heroPhotoUrl ? (
           <View style={styles.fullBleedHeroContainer}>
             {/* Single hero photo from featured activity */}
-            <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
+            <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} sourceWidth={heroPhotoW} sourceHeight={heroPhotoH} />
           </View>
         ) : topPhotos.length > 0 ? (
           <View style={styles.photoGrid}>
@@ -827,7 +790,10 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
   }
 
   // Get hero photo from featured activity
-  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoData = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoUrl = heroPhotoData?.url || null
+  const heroPhotoW = heroPhotoData?.width
+  const heroPhotoH = heroPhotoData?.height
 
   // Fallback to legacy top photos
   const topPhotos = getTopPhotos(allActivities, 4)
@@ -843,7 +809,7 @@ export const MonthlyDividerLeftPage = (props: MonthlyDividerSpreadProps) => {
       {heroPhotoUrl ? (
         <View style={styles.fullBleedHeroContainer}>
           {/* Single hero photo from featured activity */}
-          <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} />
+          <PdfImage src={heroPhotoUrl} containerWidth={contentWidth} containerHeight={contentHeight - 60 * format.scaleFactor} sourceWidth={heroPhotoW} sourceHeight={heroPhotoH} />
         </View>
       ) : topPhotos.length > 0 ? (
         <View style={styles.photoGrid}>
@@ -1091,7 +1057,10 @@ const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
       featuredActivity = activitiesWithPhotos[0].activity
     }
   }
-  const heroPhotoUrl = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoData = featuredActivity ? getActivityHeroPhoto(featuredActivity) : null
+  const heroPhotoUrl = heroPhotoData?.url || null
+  const heroPhotoW = heroPhotoData?.width
+  const heroPhotoH = heroPhotoData?.height
 
   const stats = {
     activityCount: allActivities.length,
@@ -1197,6 +1166,8 @@ const MonthlyDividerPhotoHeroPages = (props: MonthlyDividerSpreadProps) => {
           overlayOpacity={0.35}
           width={format.dimensions.width}
           height={format.dimensions.height}
+          sourceWidth={heroPhotoW}
+          sourceHeight={heroPhotoH}
         />
         <View style={photoHeroStyles.contentContainer}>
           <AutoResizingPdfText
