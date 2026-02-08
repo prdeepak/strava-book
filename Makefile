@@ -1,6 +1,6 @@
 # Shortcuts for Docker & Antigravity
 
-.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-claude dev-image dev-attach dev-stop dev-rebuild real-book
+.PHONY: up down build shell run test logs clean help sync web-shell web-dev web-build web-check check-docker test-visual test-template test-list test-pdf test-integration test-integration-quick test-ai test-e2e test-graphic test-graphic-list workspace-new workspace-claude workspace-task workspace-list workspace-start workspace-stop workspace-destroy workspace-cleanup workspace-info sync-main workspace-merge web-restart restart web-install dev dev-claude dev-image dev-attach dev-stop dev-rebuild real-book
 
 # =============================================================================
 # Environment Detection
@@ -58,6 +58,7 @@ help:
 	@echo "Multi-agent workspace commands:"
 	@echo "  make workspace-new name=X              - Create isolated workspace"
 	@echo "  make workspace-claude name=X prompt=Y  - Create workspace + launch Claude"
+	@echo "  make workspace-task name=X task=FILE   - Create workspace + run task autonomously"
 	@echo "  make workspace-list                    - List all workspaces with status"
 	@echo "  make workspace-start id=X              - Start a workspace container"
 	@echo "  make workspace-stop id=X               - Stop a workspace container"
@@ -410,6 +411,9 @@ workspace-new:
 
 workspace-claude:
 	@./scripts/workspace-manager.sh claude $(name) "$(prompt)"
+
+workspace-task:
+	@./scripts/workspace-manager.sh task $(name) "$(task)"
 
 workspace-list:
 	@./scripts/workspace-manager.sh list
