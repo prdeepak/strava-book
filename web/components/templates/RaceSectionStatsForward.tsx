@@ -13,6 +13,7 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValue, formatElevation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
@@ -160,7 +161,14 @@ export const RaceSectionStatsForwardPages = ({
     const elevationM = formatElevation(activity.total_elevation_gain)
 
     // Get small accent image (photo or map)
-    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+    const photos = extractPhotos(activity)
+    const firstPhoto = photos[0]
+    const stravaPhoto = firstPhoto?.url || null
+    const photoW = firstPhoto?.width
+    const photoH = firstPhoto?.height
+
+    const satW = Math.min(240 * 2, 1280)
+    const satH = Math.min(160 * 2, 1280)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
         ? resolveImageForPdf(getMapboxSatelliteUrl(
             activity.map.summary_polyline,
@@ -170,6 +178,8 @@ export const RaceSectionStatsForwardPages = ({
         )) || undefined
         : undefined
     const accentImage = stravaPhoto || satelliteMapUrl
+    const accentSourceWidth = stravaPhoto ? photoW : satW
+    const accentSourceHeight = stravaPhoto ? photoH : satH
 
     // Check for PRs
     const topPRs = (activity.best_efforts || [])
@@ -244,7 +254,7 @@ export const RaceSectionStatsForwardPages = ({
                     </View>
                     {accentImage && (
                         <View style={styles.accentContainer}>
-                            <PdfImage src={accentImage} />
+                            <PdfImage src={accentImage} sourceWidth={accentSourceWidth} sourceHeight={accentSourceHeight} />
                         </View>
                     )}
                 </View>

@@ -1,7 +1,7 @@
 import { Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME } from '@/lib/book-types'
-import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 
 const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create({
@@ -42,49 +42,13 @@ const createStyles = (format: BookFormat, theme: BookTheme) => StyleSheet.create
     },
 })
 
-// Get all photos from activity with dimensions
+// Get all photos from activity with dimensions - uses shared extractPhotos utility
 const getPhotos = (activity: StravaActivity): CollectionPhoto[] => {
-    const photos: CollectionPhoto[] = []
-
-    // Check comprehensiveData photos first
-    if (activity.comprehensiveData?.photos?.length) {
-        activity.comprehensiveData.photos.forEach((photo) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const photoAny = photo as any
-            const photoUrls = photoAny.urls as Record<string, string> | undefined
-            const photoSizes = photoAny.sizes as Record<string, [number, number]> | undefined
-            if (photoUrls) {
-                const url = photoUrls['5000'] || photoUrls['600'] || Object.values(photoUrls)[0]
-                if (url) {
-                    const resolved = resolveImageForPdf(url)
-                    if (resolved) {
-                        const size = photoSizes?.['5000'] || photoSizes?.['600']
-                        photos.push({
-                            url: resolved,
-                            width: size?.[0],
-                            height: size?.[1],
-                        })
-                    }
-                }
-            }
-        })
-    }
-
-    // Fall back to primary photo if no comprehensiveData
-    if (photos.length === 0) {
-        const primaryUrls = activity.photos?.primary?.urls as Record<string, string> | undefined
-        if (primaryUrls) {
-            const url = primaryUrls['600'] || primaryUrls['5000'] || Object.values(primaryUrls)[0]
-            if (url) {
-                const resolved = resolveImageForPdf(url)
-                if (resolved) {
-                    photos.push({ url: resolved })
-                }
-            }
-        }
-    }
-
-    return photos
+    return extractPhotos(activity).map(p => ({
+        url: p.url,
+        width: p.width,
+        height: p.height,
+    }))
 }
 
 export interface RaceSectionPhotosPageProps {

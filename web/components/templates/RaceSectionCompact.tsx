@@ -12,6 +12,7 @@ import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation, formatDuration, formatPace, formatDistanceValue, formatElevation, processSplits, processBestEfforts, getMapboxSatelliteUrl } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
+import { extractPhotos } from '@/lib/photo-gallery-utils'
 import { PdfImage } from '@/components/pdf/PdfImage'
 import { AutoResizingPdfText } from '@/components/pdf/AutoResizingPdfText'
 
@@ -192,7 +193,14 @@ export const RaceSectionCompactPages = ({
     const avgPace = formatPace(activity.moving_time, activity.distance)
     const elevationM = formatElevation(activity.total_elevation_gain)
 
-    const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600'])
+    const photos = extractPhotos(activity)
+    const firstPhoto = photos[0]
+    const stravaPhoto = firstPhoto?.url || null
+    const photoW = firstPhoto?.width
+    const photoH = firstPhoto?.height
+
+    const satW = Math.min(Math.round(format.dimensions.width * 2), 1280)
+    const satH = Math.min(Math.round(160 * 2), 1280)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
         ? resolveImageForPdf(getMapboxSatelliteUrl(
             activity.map.summary_polyline,
@@ -220,11 +228,11 @@ export const RaceSectionCompactPages = ({
                 <View style={styles.topSection}>
                     {stravaPhoto ? (
                         <View style={styles.photoContainer}>
-                            <PdfImage src={stravaPhoto} />
+                            <PdfImage src={stravaPhoto} sourceWidth={photoW} sourceHeight={photoH} />
                         </View>
                     ) : satelliteMapUrl ? (
                         <View style={styles.photoContainer}>
-                            <PdfImage src={satelliteMapUrl} />
+                            <PdfImage src={satelliteMapUrl} sourceWidth={satW} sourceHeight={satH} />
                         </View>
                     ) : null}
                     <View style={styles.titleSection}>
@@ -308,7 +316,7 @@ export const RaceSectionCompactPages = ({
                 {satelliteMapUrl && !stravaPhoto && null}
                 {satelliteMapUrl && stravaPhoto && (
                     <View style={styles.mapContainer}>
-                        <PdfImage src={satelliteMapUrl} />
+                        <PdfImage src={satelliteMapUrl} sourceWidth={satW} sourceHeight={satH} />
                     </View>
                 )}
             </View>

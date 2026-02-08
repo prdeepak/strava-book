@@ -129,12 +129,14 @@ export const RaceSectionMapHeroPages = ({
     const elevationM = formatElevation(activity.total_elevation_gain)
 
     // Get satellite map URL for full-bleed background
+    const satW = Math.min(Math.round(format.dimensions.width * 2), 1280)
+    const satH = Math.min(Math.round(format.dimensions.height * 2), 1280)
     const satelliteMapUrl = (mapboxToken && activity.map?.summary_polyline)
         ? resolveImageForPdf(getMapboxSatelliteUrl(
             activity.map.summary_polyline,
             mapboxToken,
-            Math.round(format.dimensions.width * 2),
-            Math.round(format.dimensions.height * 2)
+            satW,
+            satH
         )) || undefined
         : undefined
 
@@ -159,6 +161,8 @@ export const RaceSectionMapHeroPages = ({
                 overlayOpacity={0.4}
                 width={format.dimensions.width}
                 height={format.dimensions.height}
+                sourceWidth={satW}
+                sourceHeight={satH}
             />
 
             {/* Highlight badge */}

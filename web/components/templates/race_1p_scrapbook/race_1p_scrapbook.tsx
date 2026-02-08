@@ -20,6 +20,7 @@ import {
 } from '@/lib/activity-utils';
 import { SplitsChartSVG } from '@/lib/generateSplitsChart';
 import { resolveImageForPdf } from '@/lib/pdf-image-loader';
+import { extractPhotos } from '@/lib/photo-gallery-utils';
 import { BookFormat, FORMATS } from '@/lib/book-types';
 import { PdfImage } from '@/components/pdf/PdfImage';
 
@@ -486,8 +487,9 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken, form
   // Transform StravaActivity to ScrapbookPageProps
   const location = resolveActivityLocation(activity);
 
-  // Get Strava photo if available - use resolveImageForPdf for server-side rendering
-  const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600']) || '/assets/placeholder-photo.jpg';
+  // Get Strava photo if available - use extractPhotos for proper photo extraction
+  const _scrapPhotos = extractPhotos(activity);
+  const stravaPhoto = _scrapPhotos[0]?.url || '/assets/placeholder-photo.jpg';
 
   // Get satellite map if token available
   let satelliteMap = '/assets/placeholder-map.jpg';
@@ -588,7 +590,8 @@ const ScrapbookPDF: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken, form
 export const ScrapbookPDFPages: React.FC<ScrapbookPDFProps> = ({ activity, mapboxToken, format = FORMATS['10x10'] }) => {
   // Transform StravaActivity to ScrapbookPageProps (same as ScrapbookPDF)
   const location = resolveActivityLocation(activity);
-  const stravaPhoto = resolveImageForPdf(activity.photos?.primary?.urls?.['600']) || '/assets/placeholder-photo.jpg';
+  const _scrapPagesPhotos = extractPhotos(activity);
+  const stravaPhoto = _scrapPagesPhotos[0]?.url || '/assets/placeholder-photo.jpg';
 
   let satelliteMap = '/assets/placeholder-map.jpg';
   if (mapboxToken && activity.map.summary_polyline) {

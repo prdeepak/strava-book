@@ -182,12 +182,16 @@ import { FullBleedBackground } from '@/components/pdf/FullBleedBackground'
   role="hero"                   // 'hero' (full opacity) or 'background' (faded + overlay)
   width={format.dimensions.width}
   height={format.dimensions.height}
+  sourceWidth={photo.width}     // REQUIRED when image is provided
+  sourceHeight={photo.height}   // REQUIRED when image is provided
 />
 ```
 
 **Photo Roles:**
 - `hero`: Full opacity, no overlay. The photo IS the content.
 - `background`: Reduced opacity + dark overlay for text readability.
+
+**Always pass `sourceWidth`/`sourceHeight`** when an image is provided. Without them, PdfImage assumes 4:3 aspect ratio and will stretch/distort non-4:3 images.
 
 ### AutoResizingPdfText
 
@@ -241,16 +245,16 @@ import { PdfImage } from '@/components/pdf/PdfImage'
 // Container must have known dimensions and position: 'relative'
 <View style={{ width: 300, height: 200, position: 'relative', overflow: 'hidden' }}>
   <PdfImage
-    src={imageUrl}
+    src={photo.url}
     containerWidth={300}
     containerHeight={200}
-    sourceWidth={1920}        // Optional: enables precise centering
-    sourceHeight={1080}
+    sourceWidth={photo.width}   // REQUIRED — use extractPhotos() to get this
+    sourceHeight={photo.height} // REQUIRED — use extractPhotos() to get this
   />
 </View>
 ```
 
-When source dimensions are unknown, omit them - the component falls back to flexbox centering.
+**Always provide `sourceWidth` and `sourceHeight`.** Without them, PdfImage assumes 4:3 (1200×900) and calculates wrong aspect-fill geometry. react-pdf then stretches the image to the calculated dimensions, distorting non-4:3 photos. Use `extractPhotos()` to get photo URLs with their dimensions (see Photo Extraction below).
 
 ### PdfImageCollection
 
@@ -299,6 +303,106 @@ import { PdfImageCollection } from '@/components/pdf/PdfImageCollection'
 | `containerHeight` | `number` | required | Container height in points |
 | `gap` | `number` | `4` | Gap between photos in points |
 | `borderRadius` | `number` | `0` | Border radius for photos |
+
+## Photo Extraction
+
+### The Rule
+
+**Always use `extractPhotos()` to get photos from activities.** Never access `activity.photos?.primary?.urls` directly.
+
+```tsx
+import { extractPhotos } from '@/lib/photo-gallery-utils'
+
+const photos = extractPhotos(activity)
+if (photos.length > 0) {
+  const hero = photos[0]
+  // hero.url — resolved URL for react-pdf
+  // hero.width — source pixel width (from Strava sizes data)
+  // hero.height — source pixel height
+  // hero.isPortrait — true if height > width
+  // hero.caption — optional caption text
+}
+```
+
+### Why This Matters
+
+Strava photos come from two sources:
+- `activity.comprehensiveData.photos[]` — includes `sizes` with pixel dimensions
+- `activity.photos.primary.urls` — does NOT include dimensions
+
+PdfImage needs `sourceWidth`/`sourceHeight` for correct aspect-fill. Without them, it assumes 4:3 and stretches non-4:3 images. `extractPhotos()` handles the fallback chain and always extracts dimensions when available.
+
+### Anti-patterns (DO NOT use)
+
+```tsx
+// BAD — no dimensions available from primary photo
+const url = activity.photos?.primary?.urls?.['600']
+<PdfImage src={url} containerWidth={300} containerHeight={200} />
+
+// BAD — local getPhotos() that duplicates extractPhotos logic
+const getPhotos = (activity) => { ... }
+
+// GOOD — extractPhotos with dimensions
+const photos = extractPhotos(activity)
+<PdfImage
+  src={photos[0].url}
+  containerWidth={300}
+  containerHeight={200}
+  sourceWidth={photos[0].width}
+  sourceHeight={photos[0].height}
+/>
+```
+
+### Mapbox Satellite Images
+
+`getMapboxSatelliteUrl()` and `getMapboxLightUrl()` in `activity-utils.ts` generate Mapbox Static Images API URLs. Key constraints:
+
+- **1280px dimension cap** — API maximum is 1280×1280. Both functions clamp internally.
+- **`@2x` suffix** — Appended automatically. Actual pixel output is 2× the request.
+- **PdfImage only needs aspect ratio** — `sourceWidth`/`sourceHeight` determine crop geometry, not resolution. Pass the request dimensions directly.
+
+```tsx
+import { getMapboxSatelliteUrl } from '@/lib/activity-utils'
+
+// Request size: double the container for sharpness, capped at 1280
+const satW = Math.min(Math.round(containerWidth * 2), 1280)
+const satH = Math.min(Math.round(containerHeight * 2), 1280)
+const url = getMapboxSatelliteUrl(polyline, token, satW, satH)
+
+// Pass request dimensions as source — aspect ratio is what matters
+<PdfImage src={url} sourceWidth={satW} sourceHeight={satH} />
+```
+
+## Activity Data Utilities
+
+### Shared Formatters
+
+All activity formatting lives in `@/lib/activity-utils`. Never format distances, times, or paces inline.
+
+```tsx
+import {
+  formatDuration,       // seconds → "1:23:45" or "23:45"
+  formatPace,           // (movingTime, distance) → "5:30"
+  formatDistanceValue,  // meters → "42.2" (no unit)
+  formatDistance,        // meters → "42.2 km" (with unit)
+  formatElevation,      // meters → "856m" or "1.2K"
+  formatTotalHours,     // seconds → "156 hrs" (for summaries)
+  resolveActivityLocation, // activity → "Boston, MA" or null
+  processSplits,        // activity → SplitData[] (pace per km)
+  processBestEfforts,   // activity → BestEffortData[] (PRs)
+} from '@/lib/activity-utils'
+```
+
+ESLint flags inline distance division (`activity.distance / 1000`) and `.toFixed()` on divisions in template files.
+
+### Date Formatting
+
+Use `toLocaleDateString()` directly — there is no shared date formatter yet:
+
+```tsx
+const dateStr = new Date(activity.start_date_local || activity.start_date)
+    .toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+```
 
 ## Page Layout Pattern
 
@@ -390,13 +494,20 @@ When creating or modifying a template:
    - `AutoResizingPdfText` for dynamic text sizing
    - `PageHeader` for section headers
 
-5. **Never hardcode:**
+5. **Use `extractPhotos()` for all photo access:**
+   ```tsx
+   import { extractPhotos } from '@/lib/photo-gallery-utils'
+   const photos = extractPhotos(activity)
+   // Always pass sourceWidth/sourceHeight to PdfImage and FullBleedBackground
+   ```
+
+6. **Never hardcode:**
    - Colors (use `theme.*`)
    - Font sizes (use `resolveTypography`)
    - Spacing (use `resolveSpacing`)
    - Opacity values (use `resolveEffects`)
 
-6. **Conditional text backgrounds:**
+7. **Conditional text backgrounds:**
    ```tsx
    const textBgOpacity = hasImageBackground ? effects.textOverlayOpacity : 0
    ```
@@ -424,12 +535,26 @@ These CSS properties do NOT work reliably in react-pdf:
 | `transform` | Use absolute positioning with calculated offsets |
 | Page `padding` with absolute children | Use content container pattern (see above) |
 
-ESLint is configured to flag `objectFit` usage.
+## ESLint Rules for Templates
+
+Files in `components/templates/**/*.tsx` and `components/pdf/**/*.tsx` have extra lint rules:
+
+| Rule | What it catches | Fix |
+|------|----------------|-----|
+| Ban `objectFit` / `objectPosition` | Doesn't work in react-pdf | Use `PdfImage` |
+| Ban raw `<Image>` | Stretches without aspect-fill | Use `PdfImage` |
+| Ban `activity.photos.primary` | Missing dimensions | Use `extractPhotos()` |
+| Ban hardcoded hex colors | Breaks theming | Use `theme.*` colors |
+| Ban hardcoded font names | Breaks font pairing | Use `theme.fontPairing.*` |
+| Ban inline distance math | Inconsistent formatting | Use `formatDistanceValue()` etc. |
 
 ## Files Reference
 
 - **Type definitions:** `web/lib/book-types.ts`
 - **Typography utilities:** `web/lib/typography.ts`
+- **Activity formatters:** `web/lib/activity-utils.ts`
+- **Photo extraction:** `web/lib/photo-gallery-utils.ts`
 - **Primitives:** `web/components/pdf/`
 - **Templates:** `web/components/templates/`
 - **Default theme:** `DEFAULT_THEME` in `book-types.ts`
+- **ESLint config:** `web/eslint.config.mjs`
