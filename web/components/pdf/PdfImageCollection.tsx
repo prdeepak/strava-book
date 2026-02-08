@@ -31,6 +31,8 @@ export interface PdfImageCollectionProps {
   gap?: number
   /** Border radius for photos (default: 0) */
   borderRadius?: number
+  /** Background color for empty image slots (default: '#f5f5f5'). Pass theme.surfaceColor for theme compliance. */
+  placeholderColor?: string
 }
 
 interface LayoutCell {
@@ -208,7 +210,8 @@ export const PdfImageCollection = ({
   containerWidth,
   containerHeight,
   gap = 4,
-  borderRadius = 0
+  borderRadius = 0,
+  placeholderColor = '#f5f5f5'
 }: PdfImageCollectionProps) => {
   if (photos.length === 0) {
     return null
@@ -236,8 +239,7 @@ export const PdfImageCollection = ({
     slot: {
       position: 'absolute',
       overflow: 'hidden',
-      // eslint-disable-next-line no-restricted-syntax -- placeholder bg for empty image slots
-      backgroundColor: '#e5e5e5',
+      backgroundColor: placeholderColor,
     },
   })
 

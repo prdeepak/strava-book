@@ -11,6 +11,7 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { StravaActivity } from '@/lib/strava'
 import { BookFormat, BookTheme, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { resolveActivityLocation, formatDistance, formatTime } from '@/lib/activity-utils'
+import { resolveSpacing } from '@/lib/typography'
 import { extractPhotos, PhotoData } from '@/lib/photo-gallery-utils'
 import { PdfImageCollection, CollectionPhoto } from '@/components/pdf/PdfImageCollection'
 
@@ -32,34 +33,43 @@ export interface PhotoGalleryProps {
 // ============================================================================
 
 const createStyles = (format: BookFormat, theme: BookTheme) => {
-    const scale = format.scaleFactor
+    const spacing = resolveSpacing(theme, format)
 
     return StyleSheet.create({
         page: {
             width: format.dimensions.width,
             height: format.dimensions.height,
             backgroundColor: theme.backgroundColor,
-            padding: format.safeMargin,
+            padding: 0,
+            position: 'relative',
+        },
+        contentContainer: {
+            position: 'absolute',
+            top: format.safeMargin,
+            left: format.safeMargin,
+            right: format.safeMargin,
+            bottom: format.safeMargin,
+            flexDirection: 'column',
         },
         header: {
-            marginBottom: 16 * scale,
+            marginBottom: spacing.sm,
         },
         sectionLabel: {
             color: theme.accentColor,
-            fontSize: Math.max(9, 10 * scale),
+            fontSize: Math.max(9, 10 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             textTransform: 'uppercase',
             letterSpacing: 2,
-            marginBottom: 4 * scale,
+            marginBottom: spacing.xs * 0.5,
         },
         title: {
-            fontSize: Math.max(18, 24 * scale),
+            fontSize: Math.max(18, 24 * format.scaleFactor),
             fontFamily: theme.fontPairing.heading,
             color: theme.primaryColor,
-            marginBottom: 4 * scale,
+            marginBottom: spacing.xs * 0.5,
         },
         subtitle: {
-            fontSize: Math.max(10, 12 * scale),
+            fontSize: Math.max(10, 12 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
             color: theme.primaryColor + '99',
         },
@@ -68,15 +78,15 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             position: 'relative',
         },
         footer: {
-            marginTop: 12 * scale,
-            paddingTop: 8 * scale,
+            marginTop: spacing.sm * 0.75,
+            paddingTop: spacing.xs,
             borderTopWidth: 1,
             borderTopColor: theme.borderColor ?? (theme.primaryColor + '20'),
             flexDirection: 'row',
             justifyContent: 'space-between',
         },
         footerText: {
-            fontSize: Math.max(8, 9 * scale),
+            fontSize: Math.max(8, 9 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
             color: theme.primaryColor + '99',
         },
@@ -86,7 +96,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
             alignItems: 'center',
         },
         emptyText: {
-            fontSize: Math.max(14, 16 * scale),
+            fontSize: Math.max(14, 16 * format.scaleFactor),
             fontFamily: theme.fontPairing.body,
             color: theme.primaryColor + '40',
         },
@@ -122,6 +132,7 @@ export const PhotoGallery = ({
 }: PhotoGalleryProps) => {
     const styles = createStyles(format, theme)
     const scale = format.scaleFactor
+    const spacing = resolveSpacing(theme, format)
 
     // Get photos from props or activity
     const photos = photosProp || (activity ? extractPhotos(activity) : [])
@@ -130,11 +141,11 @@ export const PhotoGallery = ({
     // Calculate gallery dimensions (accounting for margins)
     const galleryWidth = format.dimensions.width - (format.safeMargin * 2)
 
-    // Header height: sectionLabel (~12) + title (~28) + subtitle (~14) + marginBottom (16) ≈ 70
+    // Header height: sectionLabel (~12) + title (~28) + subtitle (~14) + marginBottom (spacing.sm) ≈ 70
     const hasHeader = !!(title || activity)
     const headerHeight = hasHeader ? 70 * scale : 0
 
-    // Footer height: marginTop (12) + paddingTop (8) + text (~12) ≈ 32
+    // Footer height: marginTop + paddingTop + text ≈ 32
     const hasFooter = !!activity
     const footerHeight = hasFooter ? 32 * scale : 0
 
@@ -151,44 +162,47 @@ export const PhotoGallery = ({
     return (
         <Document>
             <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page} wrap={false}>
-                {/* Header */}
-                {hasHeader && (
-                    <View style={styles.header}>
-                        <Text style={styles.sectionLabel}>Photo Gallery</Text>
-                        <Text style={styles.title}>{title || activity?.name || 'Untitled'}</Text>
-                        {activity && (
-                            <Text style={styles.subtitle}>{date}{location ? ` | ${location}` : ''}</Text>
+                <View style={styles.contentContainer}>
+                    {/* Header */}
+                    {hasHeader && (
+                        <View style={styles.header}>
+                            <Text style={styles.sectionLabel}>Photo Gallery</Text>
+                            <Text style={styles.title}>{title || activity?.name || 'Untitled'}</Text>
+                            {activity && (
+                                <Text style={styles.subtitle}>{date}{location ? ` | ${location}` : ''}</Text>
+                            )}
+                        </View>
+                    )}
+
+                    {/* Gallery container */}
+                    <View style={[styles.galleryContainer, { height: galleryHeight }]}>
+                        {photos.length === 0 ? (
+                            <View style={styles.emptyState}>
+                                <Text style={styles.emptyText}>No photos available</Text>
+                            </View>
+                        ) : (
+                            <PdfImageCollection
+                                photos={collectionPhotos}
+                                containerWidth={galleryWidth}
+                                containerHeight={galleryHeight}
+                                gap={gap * scale}
+                                placeholderColor={theme.surfaceColor}
+                            />
                         )}
                     </View>
-                )}
 
-                {/* Gallery container */}
-                <View style={[styles.galleryContainer, { height: galleryHeight }]}>
-                    {photos.length === 0 ? (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyText}>No photos available</Text>
+                    {/* Footer with activity stats */}
+                    {hasFooter && (
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>
+                                {formatDistance(activity!.distance, 'metric')} | {formatTime(activity!.moving_time)}
+                            </Text>
+                            <Text style={styles.footerText}>
+                                {photos.length} photo{photos.length !== 1 ? 's' : ''}
+                            </Text>
                         </View>
-                    ) : (
-                        <PdfImageCollection
-                            photos={collectionPhotos}
-                            containerWidth={galleryWidth}
-                            containerHeight={galleryHeight}
-                            gap={gap * scale}
-                        />
                     )}
                 </View>
-
-                {/* Footer with activity stats */}
-                {hasFooter && (
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>
-                            {formatDistance(activity!.distance, 'metric')} | {formatTime(activity!.moving_time)}
-                        </Text>
-                        <Text style={styles.footerText}>
-                            {photos.length} photo{photos.length !== 1 ? 's' : ''}
-                        </Text>
-                    </View>
-                )}
             </Page>
         </Document>
     )
@@ -205,6 +219,7 @@ export const PhotoGalleryPage = ({
 }: PhotoGalleryProps) => {
     const styles = createStyles(format, theme)
     const scale = format.scaleFactor
+    const spacing = resolveSpacing(theme, format)
 
     const photos = photosProp || (activity ? extractPhotos(activity) : [])
     const collectionPhotos = toCollectionPhotos(photos)
@@ -228,41 +243,44 @@ export const PhotoGalleryPage = ({
 
     return (
         <Page size={{ width: format.dimensions.width, height: format.dimensions.height }} style={styles.page} wrap={false}>
-            {hasHeader && (
-                <View style={styles.header}>
-                    <Text style={styles.sectionLabel}>Photo Gallery</Text>
-                    <Text style={styles.title}>{title || activity?.name || 'Untitled'}</Text>
-                    {activity && (
-                        <Text style={styles.subtitle}>{date}{location ? ` | ${location}` : ''}</Text>
+            <View style={styles.contentContainer}>
+                {hasHeader && (
+                    <View style={styles.header}>
+                        <Text style={styles.sectionLabel}>Photo Gallery</Text>
+                        <Text style={styles.title}>{title || activity?.name || 'Untitled'}</Text>
+                        {activity && (
+                            <Text style={styles.subtitle}>{date}{location ? ` | ${location}` : ''}</Text>
+                        )}
+                    </View>
+                )}
+
+                <View style={[styles.galleryContainer, { height: galleryHeight }]}>
+                    {photos.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyText}>No photos available</Text>
+                        </View>
+                    ) : (
+                        <PdfImageCollection
+                            photos={collectionPhotos}
+                            containerWidth={galleryWidth}
+                            containerHeight={galleryHeight}
+                            gap={gap * scale}
+                            placeholderColor={theme.surfaceColor}
+                        />
                     )}
                 </View>
-            )}
 
-            <View style={[styles.galleryContainer, { height: galleryHeight }]}>
-                {photos.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>No photos available</Text>
+                {hasFooter && (
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>
+                            {formatDistance(activity!.distance, 'metric')} | {formatTime(activity!.moving_time)}
+                        </Text>
+                        <Text style={styles.footerText}>
+                            {photos.length} photo{photos.length !== 1 ? 's' : ''}
+                        </Text>
                     </View>
-                ) : (
-                    <PdfImageCollection
-                        photos={collectionPhotos}
-                        containerWidth={galleryWidth}
-                        containerHeight={galleryHeight}
-                        gap={gap * scale}
-                    />
                 )}
             </View>
-
-            {hasFooter && (
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        {formatDistance(activity!.distance, 'metric')} | {formatTime(activity!.moving_time)}
-                    </Text>
-                    <Text style={styles.footerText}>
-                        {photos.length} photo{photos.length !== 1 ? 's' : ''}
-                    </Text>
-                </View>
-            )}
         </Page>
     )
 }

@@ -25,7 +25,9 @@ Primitives (components/pdf/)
 ├── PdfImage - images with "cover" behavior (fills container, clips excess)
 ├── PdfImageCollection - arranges multiple photos in a grid layout
 ├── AutoResizingPdfText - text with auto-sizing and background opacity
-└── PageHeader - standardized section headers
+├── PageHeader - standardized section headers
+├── RaceDataViz - splits chart + elevation profile container
+└── BestEffortsTable - best efforts with PR rank color-coding
 
     ↓ composed into
 
@@ -303,6 +305,120 @@ import { PdfImageCollection } from '@/components/pdf/PdfImageCollection'
 | `containerHeight` | `number` | required | Container height in points |
 | `gap` | `number` | `4` | Gap between photos in points |
 | `borderRadius` | `number` | `0` | Border radius for photos |
+| `placeholderColor` | `string` | `'#f5f5f5'` | Background for empty photo cells (pass `theme.surfaceColor`) |
+
+### RaceDataViz
+
+Composable race data visualization container for splits charts and elevation profiles.
+
+```tsx
+import { RaceDataViz } from '@/components/pdf/RaceDataViz'
+
+<RaceDataViz
+  splits={activity.splits_metric}
+  totalTime={activity.moving_time}
+  width={contentWidth}
+  height={120}
+  showSplits={true}        // Pace/splits bar chart
+  showElevation={true}     // Elevation profile line chart
+  gap={8}                  // Gap between charts when both shown
+  theme={theme}
+  backgroundColor={theme.surfaceColor}
+/>
+```
+
+**How it works:**
+- When both charts are shown, splits get 60% height and elevation gets 40%
+- When only one is shown, it gets the full height
+- Returns `null` if no splits data or nothing to show
+- Internally uses `SplitsChartSVG` and `ElevationProfileFromSplits`
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `splits` | `Array<{moving_time, distance, elevation_difference}>` | required | Splits/laps data |
+| `totalTime` | `number` | required | Total activity time in seconds |
+| `width` | `number` | required | Container width in points |
+| `height` | `number` | required | Total container height |
+| `showSplits` | `boolean` | `true` | Show pace bar chart |
+| `showElevation` | `boolean` | `true` | Show elevation profile |
+| `gap` | `number` | `8` | Gap between charts |
+| `theme` | `BookTheme` | `DEFAULT_THEME` | Theme for chart colors |
+| `backgroundColor` | `string` | `'transparent'` | Background color |
+
+### BestEffortsTable
+
+Displays an athlete's best efforts with PR rank color-coding.
+
+```tsx
+import { BestEffortsTable } from '@/components/pdf/BestEffortsTable'
+
+<BestEffortsTable
+  activity={activity}
+  format={format}
+  theme={theme}
+  maxEfforts={10}
+/>
+```
+
+**How it works:**
+- Prioritizes top-3 PR efforts (gold/silver/bronze highlighting)
+- Then shows longest-distance efforts
+- Color-codes: gold (#FFD700) for 1st, silver (#C0C0C0) for 2nd, bronze (#CD7F32) for 3rd
+- Returns `null` if no best efforts data
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `activity` | `StravaActivity` | required | Activity with `best_efforts` data |
+| `format` | `BookFormat` | `FORMATS['10x10']` | Book format for scaling |
+| `theme` | `BookTheme` | `DEFAULT_THEME` | Theme for colors and fonts |
+| `maxEfforts` | `number` | `10` | Maximum number of efforts to display |
+
+## Chart Colors
+
+### Default Chart Colors
+
+Charts use `resolveChartColors()` to get theme-aware colors with sensible defaults:
+
+| Token | Default | Purpose |
+|-------|---------|---------|
+| `barFill` | `#7ed3f7` | Splits bar fill (Strava-style light blue) |
+| `barStroke` | `#5bc0de` | Splits bar stroke |
+| `gridLine` | `#e5e7eb` | Grid lines |
+| `axisLine` | `#9ca3af` | Axis lines |
+| `axisLabel` | `#6b7280` | Axis label text |
+| `markerLine` | `#d1d5db` | Marker/reference lines |
+| `markerText` | `#374151` | Marker text |
+| `elevationFill` | `#e5e7eb` | Elevation profile fill |
+| `elevationStroke` | `#9ca3af` | Elevation profile stroke |
+
+### Usage
+
+```tsx
+import { resolveChartColors } from '@/lib/typography'
+
+const chartColors = resolveChartColors(theme)
+// Returns DEFAULT_CHART_COLORS merged with theme.chartColors overrides
+
+// Use in chart SVG:
+<Rect fill={chartColors.barFill} stroke={chartColors.barStroke} />
+<Line stroke={chartColors.gridLine} />
+<SvgText fill={chartColors.axisLabel}>...</SvgText>
+```
+
+Themes can override individual chart colors via `theme.chartColors`:
+```tsx
+const customTheme: BookTheme = {
+  ...DEFAULT_THEME,
+  chartColors: {
+    barFill: '#4ade80',    // Override just the bar color
+    barStroke: '#22c55e',
+  }
+}
+```
 
 ## Photo Extraction
 

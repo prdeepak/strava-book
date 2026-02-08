@@ -96,6 +96,7 @@ export const RaceSectionPhotosPage = ({
                     containerWidth={containerWidth}
                     containerHeight={containerHeight}
                     gap={8 * scale}
+                    placeholderColor={theme.surfaceColor}
                 />
             </View>
 
