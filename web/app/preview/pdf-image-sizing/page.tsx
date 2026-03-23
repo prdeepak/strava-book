@@ -84,7 +84,7 @@ export default function PdfImageSizingPage() {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [containerWidth, containerHeight, selectedFixture])
+  }, [containerWidth, containerHeight, selectedFixture, pdfUrl])
 
   // Cleanup URL on unmount
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function PdfImageSizingPage() {
         URL.revokeObjectURL(pdfUrl)
       }
     }
-  }, [])
+  }, [pdfUrl])
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -209,6 +209,7 @@ export default function PdfImageSizingPage() {
                       : 'border-transparent hover:border-gray-600'
                   }`}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fixture.path}
                     alt={fixture.label}

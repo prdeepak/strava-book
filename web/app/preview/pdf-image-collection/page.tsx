@@ -76,7 +76,7 @@ export default function PdfImageCollectionPage() {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [containerWidth, containerHeight, photoCount, gap])
+  }, [containerWidth, containerHeight, photoCount, gap, pdfUrl])
 
   // Cleanup URL on unmount
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function PdfImageCollectionPage() {
         URL.revokeObjectURL(pdfUrl)
       }
     }
-  }, [])
+  }, [pdfUrl])
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -222,6 +222,7 @@ export default function PdfImageCollectionPage() {
                   key={fixture.id}
                   className="relative rounded overflow-hidden border-2 border-blue-500"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fixture.path}
                     alt={`Photo ${idx + 1}`}
@@ -237,6 +238,7 @@ export default function PdfImageCollectionPage() {
                   key={fixture.id}
                   className="relative rounded overflow-hidden border border-gray-600 opacity-40"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fixture.path}
                     alt="Unused"

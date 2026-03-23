@@ -288,7 +288,7 @@ async function testDirectPdfGeneration(config: ApiTestConfig): Promise<ApiTestRe
 /**
  * Test: Font registration works
  */
-async function testFontRegistration(_config: ApiTestConfig): Promise<ApiTestResult> {
+async function testFontRegistration(): Promise<ApiTestResult> {
     const startTime = Date.now()
     const testName = 'Font Registration'
 
@@ -553,7 +553,7 @@ export async function runApiTests(
 
         // Run tests
         console.log('[1/6] Testing font registration...')
-        results.push(await testFontRegistration(config))
+        results.push(await testFontRegistration())
 
         console.log('[2/6] Testing direct PDF generation...')
         results.push(await testDirectPdfGeneration(config))

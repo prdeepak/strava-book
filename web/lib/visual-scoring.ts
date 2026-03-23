@@ -261,7 +261,7 @@ export async function scoreSamplePages(
   },
   options: ScoringOptions = {}
 ): Promise<ScoringResult> {
-  const { verbose = false, resolution = 150 } = options
+  const { verbose = false } = options
 
   // Check if pdftoppm is available
   const available = await isPdftoppmAvailable()

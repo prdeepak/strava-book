@@ -228,7 +228,6 @@ function updateSession(
 // ============================================================================
 
 // Prompt template for future real AI integration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _NARRATIVE_ARC_PROMPT = `You are a creative director analyzing an athlete's year of activities to create a compelling narrative arc for their yearbook.
 
 ACTIVITIES SUMMARY:

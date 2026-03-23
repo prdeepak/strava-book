@@ -151,7 +151,7 @@ function getDefaultFixture(): ActivityFixture | null {
 async function renderVariant(
   Template: TemplateComponent,
   fixture: ActivityFixture,
-  variant: string
+  _variant: string
 ): Promise<{ buffer: Buffer; reactElement: React.ReactElement } | { error: string }> {
   try {
     // Import book types

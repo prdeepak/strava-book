@@ -12,6 +12,16 @@ const hexColorRule = {
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Allow underscore-prefixed variables to signal intentionally unused params
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
