@@ -315,10 +315,8 @@ test.describe('Modal Close', () => {
       await modalTrigger.first().click()
       await page.waitForTimeout(500)
 
-      // Look for close button (often an X or close icon)
-      const closeButton = page.getByRole('button', { name: /close/i })
-        .or(page.locator('button[aria-label*="close" i]'))
-        .or(page.locator('button svg').filter({ has: page.locator('path') }))
+      // Look for close button by its aria-label
+      const closeButton = page.getByRole('button', { name: /close modal/i })
 
       if (await closeButton.count() > 0) {
         await closeButton.first().click()

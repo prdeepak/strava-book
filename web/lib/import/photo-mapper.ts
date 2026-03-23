@@ -84,6 +84,35 @@ async function getJpegDimensions(filePath: string): Promise<{ width: number; hei
 }
 
 /**
+ * Directory where imported photos are copied into the cache.
+ * Photos are stored here so the Docker image is self-contained
+ * (no dependency on the original export folder at render time).
+ */
+const PHOTOS_CACHE_DIR = path.join(process.cwd(), '.cache', 'strava', 'photos')
+
+/**
+ * Copy a photo into the cache and return the cache-relative path.
+ * Uses the photo's unique basename to avoid collisions.
+ */
+async function copyPhotoToCache(
+  sourcePath: string,
+  filename: string
+): Promise<string> {
+  await fs.mkdir(PHOTOS_CACHE_DIR, { recursive: true })
+  const destPath = path.join(PHOTOS_CACHE_DIR, filename)
+
+  // Skip if already copied
+  try {
+    await fs.access(destPath)
+  } catch {
+    await fs.copyFile(sourcePath, destPath)
+  }
+
+  // Return cache-relative path (resolved by pdf-image-loader at render time)
+  return `cache-photo://${filename}`
+}
+
+/**
  * Map media files to activities as StravaPhoto[]
  *
  * @param exportDir - Root of the Strava export (contains media/ and media.csv)
@@ -124,7 +153,11 @@ export async function mapPhotosToActivities(
 
       // Extract UUID from filename
       const basename = path.basename(mediaRef, path.extname(mediaRef))
+      const ext = path.extname(mediaRef)
       const caption = captions.get(mediaRef) || ''
+
+      // Copy photo into cache so the app is self-contained
+      const cachedUrl = await copyPhotoToCache(fullPath, `${basename}${ext}`)
 
       // Get dimensions
       const dims = await getJpegDimensions(fullPath)
@@ -132,7 +165,7 @@ export async function mapPhotosToActivities(
       const photo: StravaPhoto = {
         unique_id: basename,
         urls: {
-          '5000': fullPath,
+          '5000': cachedUrl,
         },
         source: 1,
         uploaded_at: new Date().toISOString(),
