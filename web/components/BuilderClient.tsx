@@ -83,6 +83,7 @@ export default function BuilderClient({
     const [bookModalOpen, setBookModalOpen] = useState(false)
     const [periodPdfModalOpen, setPeriodPdfModalOpen] = useState(false)
     const [onboardingDismissed, setOnboardingDismissed] = useState(true) // default true to avoid flash
+    const [exportGuideOpen, setExportGuideOpen] = useState(false)
 
     // Check localStorage for onboarding dismissal
     useEffect(() => {
@@ -244,6 +245,44 @@ export default function BuilderClient({
                         </div>
                     </div>
                 )}
+
+                {/* Strava export guide */}
+                <div className="max-w-6xl mx-auto mb-6">
+                    <button
+                        onClick={() => setExportGuideOpen(!exportGuideOpen)}
+                        className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+                    >
+                        <svg className={`w-4 h-4 transition-transform ${exportGuideOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Want your full history with all photos and GPS data?
+                    </button>
+                    {exportGuideOpen && (
+                        <div className="mt-3 bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
+                            <h3 className="font-semibold text-stone-800 mb-2">Download your complete Strava archive</h3>
+                            <p className="text-sm text-stone-600 mb-4">
+                                The Strava API only returns basic activity data. For your complete history including all photos, detailed GPS traces, and weather data, request a bulk export from Strava.
+                            </p>
+                            <ol className="text-sm text-stone-600 space-y-3 mb-4">
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">1</span>
+                                    <span>Go to <a href="https://www.strava.com/athlete/delete_your_account" target="_blank" rel="noopener noreferrer" className="text-orange-600 underline hover:text-orange-700">strava.com/athlete/delete_your_account</a> &mdash; don&apos;t worry, you&apos;re just requesting a data export, not deleting anything</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">2</span>
+                                    <span>Click <strong>&quot;Request Your Archive&quot;</strong> &mdash; Strava will email you a download link (usually within a few hours)</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">3</span>
+                                    <span>Download and unzip the archive, then upload it here to enrich your book with full photo galleries and detailed route data</span>
+                                </li>
+                            </ol>
+                            <p className="text-xs text-stone-400">
+                                Your data stays on this server and is only used for book generation.
+                            </p>
+                        </div>
+                    )}
+                </div>
 
                 {/* Strava connection warning */}
                 {stravaError && (
