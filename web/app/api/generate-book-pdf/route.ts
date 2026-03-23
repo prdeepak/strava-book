@@ -23,13 +23,17 @@ export async function GET() {
         const activities = await getAthleteActivities(accessToken)
         console.log('[Book PDF] Found', activities.length, 'activities')
 
-        // Identify race activities (workout_type === 1) that need photo enrichment
-        const raceActivities = activities.filter(a => a.workout_type === 1)
-        console.log('[Book PDF] Found', raceActivities.length, 'race activities to enrich with photos')
+        // Identify activities that need photo enrichment: races, or any activity with photos
+        const photoActivities = activities.filter(a =>
+            a.workout_type === 1 ||
+            (a.total_photo_count && a.total_photo_count > 0) ||
+            (a.photos?.count && a.photos.count > 0)
+        )
+        console.log('[Book PDF] Found', photoActivities.length, 'activities to enrich with photos')
 
-        // Fetch photos for race activities only (to minimize API calls)
-        const enrichedRaceActivities = await enrichActivitiesWithPhotos(raceActivities, accessToken)
-        console.log('[Book PDF] Enriched race activities with photos')
+        // Fetch photos for qualifying activities
+        const enrichedRaceActivities = await enrichActivitiesWithPhotos(photoActivities, accessToken)
+        console.log('[Book PDF] Enriched activities with photos')
 
         // Merge enriched race activities back into the activities array
         const enrichedActivities = activities.map(activity => {

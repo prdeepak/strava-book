@@ -5,8 +5,11 @@ import { isAdminUser } from "@/lib/admin"
 
 const isMockAuth = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true'
 
-// Mock athlete ID for e2e testing
-const MOCK_ATHLETE_ID = 'mock-athlete-123'
+// Mock athlete ID - configurable for demo deployments
+const MOCK_ATHLETE_ID = process.env.MOCK_ATHLETE_ID || 'mock-athlete-123'
+
+const DEMO_USERNAME = process.env.DEMO_USERNAME || 'guest'
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD
 
 // Build providers list based on environment
 const providers = isMockAuth
@@ -14,9 +17,26 @@ const providers = isMockAuth
         CredentialsProvider({
             id: 'mock-auth',
             name: 'Mock Auth',
-            credentials: {},
-            async authorize() {
-                // Return mock user for e2e testing
+            credentials: {
+                username: { label: "Username", type: "text" },
+                password: { label: "Password", type: "password" },
+            },
+            async authorize(credentials) {
+                // When DEMO_PASSWORD is set, require valid credentials (production demo mode)
+                if (DEMO_PASSWORD) {
+                    if (
+                        credentials?.username === DEMO_USERNAME &&
+                        credentials?.password === DEMO_PASSWORD
+                    ) {
+                        return {
+                            id: 'mock-user-123',
+                            name: 'Demo User',
+                            email: 'demo@strava-book.local',
+                        }
+                    }
+                    return null
+                }
+                // No DEMO_PASSWORD set — allow any credentials (e2e testing)
                 return {
                     id: 'mock-user-123',
                     name: 'Test Runner',

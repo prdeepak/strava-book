@@ -91,14 +91,16 @@ export async function POST(request: NextRequest) {
         console.log('[Book Generation] Rendering PDF...')
         const startTime = Date.now()
 
-        // Fetch detailed data for race activities (workout_type === 1)
-        // Race pages need photos, splits, best efforts, and comments which are not in the summary
+        // Fetch detailed data for activities that have photos or are races
+        // These pages need photos, splits, best efforts, and comments which are not in the summary
         const enrichedActivities = await Promise.all(activities.map(async (activity) => {
-            // Only fetch details for Races (workout_type === 1)
-            // AND ensure we have an access token to make the call
-            if (activity.workout_type === 1 && session.accessToken) {
+            // Fetch details for races, or any activity with photos
+            const needsEnrichment = activity.workout_type === 1 ||
+                (activity.total_photo_count && activity.total_photo_count > 0) ||
+                (activity.photos?.count && activity.photos.count > 0)
+            if (needsEnrichment && session.accessToken) {
                 try {
-                    console.log(`[Book Generation] Fetching details for race: ${activity.name} (${activity.id})`)
+                    console.log(`[Book Generation] Fetching details for: ${activity.name} (${activity.id})`)
                     // Fetch details in parallel
                     // import { getActivity, getActivityPhotos, getActivityComments } from '@/lib/strava'
                     const [details, photos, comments] = await Promise.all([

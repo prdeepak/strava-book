@@ -82,6 +82,13 @@ export default function BuilderClient({
     const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
     const [bookModalOpen, setBookModalOpen] = useState(false)
     const [periodPdfModalOpen, setPeriodPdfModalOpen] = useState(false)
+    const [onboardingDismissed, setOnboardingDismissed] = useState(true) // default true to avoid flash
+    const [exportGuideOpen, setExportGuideOpen] = useState(false)
+
+    // Check localStorage for onboarding dismissal
+    useEffect(() => {
+        setOnboardingDismissed(localStorage.getItem('strava-book-onboarding-dismissed') === 'true')
+    }, [])
 
     // Load activities for selected athlete when in admin mode
     useEffect(() => {
@@ -203,6 +210,80 @@ export default function BuilderClient({
             <Header userName={athleteName} />
 
             <main className="min-h-screen bg-stone-50 text-stone-900 p-8">
+                {/* Onboarding welcome banner */}
+                {!onboardingDismissed && (
+                    <div className="max-w-6xl mx-auto mb-6">
+                        <div className="bg-white border border-orange-200 rounded-xl p-6 shadow-sm">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-xl font-bold text-stone-800 mb-4">Ready to build your book?</h2>
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">1</span>
+                                            <span className="text-sm text-stone-600">Set your date range</span>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">2</span>
+                                            <span className="text-sm text-stone-600">Review your activities</span>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">3</span>
+                                            <span className="text-sm text-stone-600">Click &quot;Generate Book&quot;</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        localStorage.setItem('strava-book-onboarding-dismissed', 'true')
+                                        setOnboardingDismissed(true)
+                                    }}
+                                    className="flex-shrink-0 ml-4 px-4 py-1.5 text-sm font-medium text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Strava export guide */}
+                <div className="max-w-6xl mx-auto mb-6">
+                    <button
+                        onClick={() => setExportGuideOpen(!exportGuideOpen)}
+                        className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+                    >
+                        <svg className={`w-4 h-4 transition-transform ${exportGuideOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Want your full history with all photos and GPS data?
+                    </button>
+                    {exportGuideOpen && (
+                        <div className="mt-3 bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
+                            <h3 className="font-semibold text-stone-800 mb-2">Download your complete Strava archive</h3>
+                            <p className="text-sm text-stone-600 mb-4">
+                                The Strava API only returns basic activity data. For your complete history including all photos, detailed GPS traces, and weather data, request a bulk export from Strava.
+                            </p>
+                            <ol className="text-sm text-stone-600 space-y-3 mb-4">
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">1</span>
+                                    <span>Go to <a href="https://www.strava.com/athlete/delete_your_account" target="_blank" rel="noopener noreferrer" className="text-orange-600 underline hover:text-orange-700">strava.com/athlete/delete_your_account</a> &mdash; don&apos;t worry, you&apos;re just requesting a data export, not deleting anything</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">2</span>
+                                    <span>Click <strong>&quot;Request Your Archive&quot;</strong> &mdash; Strava will email you a download link (usually within a few hours)</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">3</span>
+                                    <span>Download and unzip the archive, then upload it here to enrich your book with full photo galleries and detailed route data</span>
+                                </li>
+                            </ol>
+                            <p className="text-xs text-stone-400">
+                                Your data stays on this server and is only used for book generation.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
                 {/* Strava connection warning */}
                 {stravaError && (
                     <div className="max-w-6xl mx-auto mb-4">
@@ -212,7 +293,6 @@ export default function BuilderClient({
                             </svg>
                             <span>
                                 Strava connection issue. Showing {cachedCount || 0} cached activities.
-                                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route requires full page navigation */}
                                 <a href="/signin" className="ml-2 underline font-medium">Re-connect Strava</a>
                             </span>
                         </div>
@@ -295,7 +375,11 @@ export default function BuilderClient({
 
                     <div className="flex justify-between items-center mb-6">
                         <div className="text-sm font-mono bg-stone-200 px-3 py-1 rounded inline-block">
-                            Found {activities.length} activities
+                            {activities.length} activities
+                            {(() => {
+                                const raceCount = activities.filter(a => a.workout_type === 1).length
+                                return raceCount > 0 ? ` including ${raceCount} race${raceCount !== 1 ? 's' : ''}` : ''
+                            })()}
                             {isViewingOtherUser && ' (cached)'}
                         </div>
 
@@ -310,6 +394,15 @@ export default function BuilderClient({
                         )}
                     </div>
                 </div>
+
+                {activities.length === 0 && !loading && (
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center py-16 bg-white rounded-xl border border-stone-200">
+                            <p className="text-stone-500 text-lg mb-2">No activities found in this date range.</p>
+                            <p className="text-stone-400 text-sm">Try adjusting your dates or click Reset to restore defaults.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {activities.map((activity) => {

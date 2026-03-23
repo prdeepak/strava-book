@@ -263,7 +263,7 @@ const templateRegistry: Record<string, () => Promise<TemplateComponent>> = {
     },
     'ActivityLog': async () => {
         const mod = await import('../../components/templates/ActivityLog')
-        return mod.ActivityLog
+        return mod.ActivityLogDocument
     },
     'BackCover': async () => {
         const mod = await import('../../components/templates/BackCover')

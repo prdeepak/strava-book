@@ -271,6 +271,91 @@ export async function enrichActivityWithGeocoding(
 }
 
 // ============================================================================
+// ACTIVITY TYPE CLASSIFICATION
+// ============================================================================
+
+const INDOOR_SPORT_TYPES = new Set([
+    'WeightTraining', 'Yoga', 'Workout', 'CrossFit', 'Elliptical',
+    'VirtualRide', 'VirtualRun', 'Meditation', 'Pilates', 'StairStepper',
+])
+
+/**
+ * Check if an activity has GPS route data
+ */
+export function hasRouteData(activity: StravaActivity): boolean {
+    return !!activity.map?.summary_polyline
+}
+
+/**
+ * Check if an activity is an indoor/virtual activity type
+ */
+export function isIndoorActivity(activity: StravaActivity): boolean {
+    return INDOOR_SPORT_TYPES.has(activity.sport_type || activity.type || '')
+}
+
+/**
+ * Returns sport-appropriate stats as {value, label}[] pairs
+ */
+export function getRelevantStats(
+    activity: StravaActivity,
+    units: 'metric' | 'imperial' = 'metric'
+): { value: string; label: string }[] {
+    const stats: { value: string; label: string }[] = []
+    const sportType = activity.sport_type || activity.type || ''
+
+    // Distance (skip for non-distance activities)
+    if (activity.distance > 0) {
+        stats.push({
+            value: formatDistanceValue(activity.distance, units),
+            label: units === 'metric' ? 'km' : 'mi',
+        })
+    }
+
+    // Duration (always relevant)
+    stats.push({
+        value: formatTime(activity.moving_time),
+        label: 'time',
+    })
+
+    // Pace (only for distance-based activities)
+    const paceTypes = new Set(['Run', 'Walk', 'Hike', 'Ride', 'Swim', 'VirtualRun', 'VirtualRide', 'NordicSki', 'TrailRun'])
+    if (activity.distance > 0 && paceTypes.has(sportType)) {
+        const isSpeed = sportType.includes('Ride') || sportType === 'Swim'
+        if (isSpeed && activity.distance > 0) {
+            const speedKmh = (activity.distance / 1000) / (activity.moving_time / 3600)
+            const speedValue = units === 'imperial' ? speedKmh / 1.60934 : speedKmh
+            stats.push({
+                value: speedValue.toFixed(1),
+                label: units === 'metric' ? 'km/h' : 'mph',
+            })
+        } else {
+            stats.push({
+                value: formatPace(activity.moving_time, activity.distance, units),
+                label: 'pace',
+            })
+        }
+    }
+
+    // Elevation (for outdoor activities with gain)
+    if (activity.total_elevation_gain > 0) {
+        stats.push({
+            value: String(Math.round(activity.total_elevation_gain)),
+            label: units === 'metric' ? 'm' : 'ft',
+        })
+    }
+
+    // Suffer score / relative effort if available
+    if (activity.suffer_score && activity.suffer_score > 0) {
+        stats.push({
+            value: String(activity.suffer_score),
+            label: 'effort',
+        })
+    }
+
+    return stats
+}
+
+// ============================================================================
 // RACE DATA UTILITIES
 // ============================================================================
 
