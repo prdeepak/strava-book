@@ -1,0 +1,20 @@
+FROM node:20-alpine AS builder
+RUN apk add --no-cache poppler-utils fontconfig ttf-dejavu ttf-liberation font-noto
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+COPY . .
+RUN mkdir -p .cache/strava
+RUN npm run build
+
+FROM node:20-alpine AS runner
+RUN apk add --no-cache poppler-utils fontconfig ttf-dejavu ttf-liberation font-noto
+WORKDIR /app
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+# Copy Strava cache if present (optional, for demo/preview deployments)
+COPY --from=builder /app/.cache ./.cache
+EXPOSE 3000
+ENV PORT=3000 NODE_ENV=production
+CMD ["node", "server.js"]

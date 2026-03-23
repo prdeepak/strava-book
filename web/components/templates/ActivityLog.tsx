@@ -1,9 +1,12 @@
 /**
  * ActivityLog - Grid layout of activity cards for PDF generation
  *
- * Displays multiple activities in a 2-column grid layout (6 per page).
- * Each card shows activity name, date, location, stats, and a satellite map
- * with the route overlay (when GPS data is available).
+ * Three card variants based on available data:
+ * 1. Photo Card - activity has photos: photo hero + name/date + stats + small map
+ * 2. Route Card - has GPS route but no photos: light-style map + clean layout
+ * 3. Indoor Card - indoor/virtual or no route: no map, larger name, sport label, accent band
+ *
+ * Feature cards span both columns for standout activities (highest kudos or PRs).
  *
  * Follows Style Guide patterns:
  * - Content container pattern (padding:0 on Page)
@@ -15,14 +18,18 @@
 import { Page, View, Text, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { formatTime, formatPace, formatDistanceValue, formatElevation, resolveActivityLocation, getMapboxSatelliteUrl } from '@/lib/activity-utils'
+import { resolveActivityLocation, getMapboxLightUrl, hasRouteData, isIndoorActivity, getRelevantStats } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'
+import { extractPhotos, PhotoData } from '@/lib/photo-gallery-utils'
+import { formatTime, formatPace, formatDistanceValue, formatElevation } from '@/lib/activity-utils'
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+type CardVariant = 'photo' | 'route' | 'indoor'
 
 interface ActivityLogProps {
   activities?: StravaActivity[]
@@ -35,6 +42,51 @@ interface ActivityLogProps {
   title?: string
   mapboxToken?: string
   variant?: ActivityLogVariant
+}
+
+interface ClassifiedActivity {
+  activity: StravaActivity
+  cardVariant: CardVariant
+  photos: PhotoData[]
+  isFeature: boolean
+}
+
+// ============================================================================
+// CLASSIFICATION
+// ============================================================================
+
+/**
+ * Determine card variant and feature status for each activity
+ */
+function classifyActivities(
+  activities: StravaActivity[],
+): ClassifiedActivity[] {
+  // Find the activity with the highest kudos for potential feature card
+  let maxKudos = 0
+  let maxKudosId: number | null = null
+  for (const a of activities) {
+    if ((a.kudos_count || 0) > maxKudos) {
+      maxKudos = a.kudos_count || 0
+      maxKudosId = a.id
+    }
+  }
+
+  return activities.map(activity => {
+    const photos = extractPhotos(activity)
+    const hasPR = (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
+    const isFeature = (activity.id === maxKudosId && maxKudos >= 5) || hasPR
+
+    let cardVariant: CardVariant
+    if (photos.length > 0) {
+      cardVariant = 'photo'
+    } else if (hasRouteData(activity)) {
+      cardVariant = 'route'
+    } else {
+      cardVariant = 'indoor'
+    }
+
+    return { activity, cardVariant, photos, isFeature }
+  })
 }
 
 // ============================================================================
@@ -53,7 +105,7 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       width: format.dimensions.width,
       height: format.dimensions.height,
       backgroundColor: theme.backgroundColor,
-      padding: 0, // Content container pattern
+      padding: 0,
       position: 'relative',
     },
     contentContainer: {
@@ -83,39 +135,94 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       justifyContent: 'space-between',
       flex: 1,
     },
-    activityCard: {
+
+    // --- Half-width card (2-column) ---
+    cardHalf: {
       width: '48.5%',
       backgroundColor: theme.backgroundColor,
       marginBottom: spacing.xs,
       borderWidth: 1,
-      borderColor: theme.primaryColor + '20', // 12% opacity
+      borderColor: theme.primaryColor + '20',
       overflow: 'hidden',
     },
-    // Map container - shows satellite map with route overlay
-    // PdfImage handles positioning inside this container
-    mapContainer: {
+
+    // --- Full-width feature card ---
+    cardFull: {
       width: '100%',
-      height: 90 * format.scaleFactor,
-      backgroundColor: theme.primaryColor + '10',
+      backgroundColor: theme.backgroundColor,
+      marginBottom: spacing.xs,
+      borderWidth: 1,
+      borderColor: theme.primaryColor + '20',
+      overflow: 'hidden',
+      flexDirection: 'row',
+    },
+
+    // --- Photo card ---
+    photoHero: {
+      width: '100%',
+      height: 110 * format.scaleFactor,
       overflow: 'hidden',
       position: 'relative',
     },
-    noMapPlaceholder: {
+    photoHeroFeature: {
+      width: '50%',
+      height: 130 * format.scaleFactor,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    featureContent: {
+      width: '50%',
+      flexDirection: 'column',
+    },
+    smallMap: {
       width: '100%',
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
+      height: 40 * format.scaleFactor,
+      overflow: 'hidden',
+      position: 'relative',
       backgroundColor: theme.primaryColor + '08',
     },
-    noMapText: {
-      fontSize: caption.fontSize,
-      fontFamily: caption.fontFamily,
-      color: theme.primaryColor + '40',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
+
+    // --- Route card ---
+    routeMap: {
+      width: '100%',
+      height: 100 * format.scaleFactor,
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: theme.primaryColor + '08',
     },
+    routeMapFeature: {
+      width: '50%',
+      height: 130 * format.scaleFactor,
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: theme.primaryColor + '08',
+    },
+
+    // --- Indoor card ---
+    indoorAccentBand: {
+      width: '100%',
+      height: 4 * format.scaleFactor,
+      backgroundColor: theme.accentColor,
+    },
+    indoorSportLabel: {
+      fontSize: caption.fontSize * 0.85,
+      fontFamily: caption.fontFamily,
+      color: theme.accentColor,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 2,
+    },
+    indoorNameLarge: {
+      fontSize: subheading.fontSize * 0.85,
+      fontFamily: subheading.fontFamily,
+      color: theme.primaryColor,
+      marginBottom: 4,
+    },
+
+    // --- Shared card content ---
     cardContent: {
       padding: spacing.xs,
+      flex: 1,
     },
     cardHeader: {
       marginBottom: spacing.xs / 2,
@@ -191,38 +298,308 @@ const createStyles = (format: BookFormat, theme: BookTheme) => {
       paddingHorizontal: 4,
       paddingVertical: 2,
     },
+    noMapPlaceholder: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.primaryColor + '08',
+    },
+    noMapText: {
+      fontSize: caption.fontSize,
+      fontFamily: caption.fontFamily,
+      color: theme.primaryColor + '40',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
   })
 }
 
 // ============================================================================
-// HELPERS
+// CARD COMPONENTS
 // ============================================================================
 
 /**
- * Check if activity has any best efforts in top 3
+ * Shared stats + social row used by all card variants
  */
-function hasTopBestEfforts(activity: StravaActivity): boolean {
-  const efforts = activity.best_efforts || []
-  return efforts.some(e => e.pr_rank && e.pr_rank <= 3)
+function CardStats({
+  activity,
+  units,
+  styles,
+  spacing,
+}: {
+  activity: StravaActivity
+  units: 'metric' | 'imperial'
+  styles: ReturnType<typeof createStyles>
+  spacing: ReturnType<typeof resolveSpacing>
+}) {
+  const stats = getRelevantStats(activity, units)
+  const hasPR = (activity.best_efforts || []).some(e => e.pr_rank && e.pr_rank <= 3)
+
+  return (
+    <>
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        {stats.slice(0, 4).map((stat, i) => (
+          <View key={i} style={styles.statItem}>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Social Row */}
+      {((activity.kudos_count || 0) > 0 || (activity.comment_count || 0) > 0 || hasPR) && (
+        <View style={styles.socialRow}>
+          <View style={{ flexDirection: 'row' }}>
+            {(activity.kudos_count || 0) > 0 && (
+              <Text style={[styles.kudos, { marginRight: spacing.xs }]}>
+                {activity.kudos_count} kudos
+              </Text>
+            )}
+            {(activity.comment_count || 0) > 0 && (
+              <Text style={styles.comments}>
+                {activity.comment_count} comments
+              </Text>
+            )}
+          </View>
+          {hasPR && (
+            <Text style={styles.prBadge}>PR</Text>
+          )}
+        </View>
+      )}
+    </>
+  )
 }
 
 /**
- * Get satellite map URL for an activity
+ * Photo Card: photo hero + name/date + stats + optional small map
  */
-function getSatelliteMapUrl(
-  activity: StravaActivity,
-  mapboxToken: string | undefined,
-  width: number,
-  height: number
-): string | null {
-  if (!mapboxToken || !activity.map?.summary_polyline) {
-    return null
+function PhotoCard({
+  classified,
+  styles,
+  spacing,
+  units,
+  mapboxToken,
+  format,
+}: {
+  classified: ClassifiedActivity
+  styles: ReturnType<typeof createStyles>
+  spacing: ReturnType<typeof resolveSpacing>
+  units: 'metric' | 'imperial'
+  mapboxToken?: string
+  format: BookFormat
+}) {
+  const { activity, photos, isFeature } = classified
+  const date = new Date(activity.start_date_local)
+  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  const location = resolveActivityLocation(activity)
+  const photo = photos[0]
+  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+
+  // Small map for route overlay
+  const smallMapUrl = hasRouteData(activity) && mapboxToken
+    ? getMapboxLightUrl(activity.map.summary_polyline, mapboxToken, 400, 120)
+    : null
+
+  if (isFeature) {
+    const heroWidth = contentWidth * 0.5
+    const heroHeight = 130 * format.scaleFactor
+    return (
+      <View style={styles.cardFull}>
+        <View style={styles.photoHeroFeature}>
+          <PdfImage
+            src={resolveImageForPdf(photo.url) || photo.url}
+            containerWidth={heroWidth}
+            containerHeight={heroHeight}
+            sourceWidth={photo.width}
+            sourceHeight={photo.height}
+          />
+        </View>
+        <View style={[styles.cardContent, styles.featureContent]}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.activityName}>{activity.name}</Text>
+            <Text style={styles.activityMeta}>
+              {dateStr} {location ? `\u2022 ${location}` : ''}
+            </Text>
+          </View>
+          {activity.description && (
+            <Text style={styles.description}>
+              {activity.description.length > 120
+                ? activity.description.substring(0, 120) + '...'
+                : activity.description}
+            </Text>
+          )}
+          <CardStats activity={activity} units={units} styles={styles} spacing={spacing} />
+        </View>
+      </View>
+    )
   }
-  return getMapboxSatelliteUrl(
-    activity.map.summary_polyline,
-    mapboxToken,
-    Math.round(width),
-    Math.round(height)
+
+  const cardWidth = contentWidth * 0.485
+  const heroHeight = 110 * format.scaleFactor
+  return (
+    <View style={styles.cardHalf}>
+      <View style={styles.photoHero}>
+        <PdfImage
+          src={resolveImageForPdf(photo.url) || photo.url}
+          containerWidth={cardWidth}
+          containerHeight={heroHeight}
+          sourceWidth={photo.width}
+          sourceHeight={photo.height}
+        />
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.activityName}>{activity.name}</Text>
+          <Text style={styles.activityMeta}>
+            {dateStr} {location ? `\u2022 ${location}` : ''}
+          </Text>
+        </View>
+        <CardStats activity={activity} units={units} styles={styles} spacing={spacing} />
+      </View>
+      {smallMapUrl && (
+        <View style={styles.smallMap}>
+          <PdfImage
+            src={resolveImageForPdf(smallMapUrl) || smallMapUrl}
+            containerWidth={cardWidth}
+            containerHeight={40 * format.scaleFactor}
+          />
+        </View>
+      )}
+    </View>
+  )
+}
+
+/**
+ * Route Card: light-style map hero + clean stats layout
+ */
+function RouteCard({
+  classified,
+  styles,
+  spacing,
+  units,
+  mapboxToken,
+  format,
+}: {
+  classified: ClassifiedActivity
+  styles: ReturnType<typeof createStyles>
+  spacing: ReturnType<typeof resolveSpacing>
+  units: 'metric' | 'imperial'
+  mapboxToken?: string
+  format: BookFormat
+}) {
+  const { activity, isFeature } = classified
+  const date = new Date(activity.start_date_local)
+  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  const location = resolveActivityLocation(activity)
+  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
+
+  const mapUrl = mapboxToken && activity.map?.summary_polyline
+    ? getMapboxLightUrl(activity.map.summary_polyline, mapboxToken, 800, 400)
+    : null
+
+  if (isFeature) {
+    const mapWidth = contentWidth * 0.5
+    const mapHeight = 130 * format.scaleFactor
+    return (
+      <View style={styles.cardFull}>
+        <View style={styles.routeMapFeature}>
+          {mapUrl ? (
+            <PdfImage
+              src={resolveImageForPdf(mapUrl) || mapUrl}
+              containerWidth={mapWidth}
+              containerHeight={mapHeight}
+            />
+          ) : (
+            <View style={styles.noMapPlaceholder}>
+              <Text style={styles.noMapText}>{activity.sport_type || activity.type || 'Activity'}</Text>
+            </View>
+          )}
+        </View>
+        <View style={[styles.cardContent, styles.featureContent]}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.activityName}>{activity.name}</Text>
+            <Text style={styles.activityMeta}>
+              {dateStr} {location ? `\u2022 ${location}` : ''}
+            </Text>
+          </View>
+          {activity.description && (
+            <Text style={styles.description}>
+              {activity.description.length > 120
+                ? activity.description.substring(0, 120) + '...'
+                : activity.description}
+            </Text>
+          )}
+          <CardStats activity={activity} units={units} styles={styles} spacing={spacing} />
+        </View>
+      </View>
+    )
+  }
+
+  const cardWidth = contentWidth * 0.485
+  const mapHeight = 100 * format.scaleFactor
+  return (
+    <View style={styles.cardHalf}>
+      <View style={styles.routeMap}>
+        {mapUrl ? (
+          <PdfImage
+            src={resolveImageForPdf(mapUrl) || mapUrl}
+            containerWidth={cardWidth}
+            containerHeight={mapHeight}
+          />
+        ) : (
+          <View style={styles.noMapPlaceholder}>
+            <Text style={styles.noMapText}>{activity.sport_type || activity.type || 'Activity'}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.activityName}>{activity.name}</Text>
+          <Text style={styles.activityMeta}>
+            {dateStr} {location ? `\u2022 ${location}` : ''}
+          </Text>
+        </View>
+        <CardStats activity={activity} units={units} styles={styles} spacing={spacing} />
+      </View>
+    </View>
+  )
+}
+
+/**
+ * Indoor Card: accent band, sport label, larger activity name, no map
+ */
+function IndoorCard({
+  classified,
+  styles,
+  spacing,
+  units,
+}: {
+  classified: ClassifiedActivity
+  styles: ReturnType<typeof createStyles>
+  spacing: ReturnType<typeof resolveSpacing>
+  units: 'metric' | 'imperial'
+}) {
+  const { activity } = classified
+  const date = new Date(activity.start_date_local)
+  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  const location = resolveActivityLocation(activity)
+
+  return (
+    <View style={styles.cardHalf}>
+      <View style={styles.indoorAccentBand} />
+      <View style={styles.cardContent}>
+        <Text style={styles.indoorSportLabel}>
+          {activity.sport_type || activity.type || 'Activity'}
+        </Text>
+        <Text style={styles.indoorNameLarge}>{activity.name}</Text>
+        <Text style={styles.activityMeta}>
+          {dateStr} {location ? `\u2022 ${location}` : ''}
+        </Text>
+        <CardStats activity={activity} units={units} styles={styles} spacing={spacing} />
+      </View>
+    </View>
   )
 }
 
@@ -263,14 +640,17 @@ export const ActivityLog = ({
   // Handle both single activity and activities array
   const activities = activitiesProp || (activityProp ? [activityProp] : [])
 
-  // Slice activities for this page (default 6 cards per page)
-  const pageActivities = activities.slice(startIndex, startIndex + activitiesPerPage)
+  // Classify activities into card variants
+  const classified = classifyActivities(activities)
 
-  // Calculate map dimensions based on card width
-  // Card is 48.5% of content width, map is full card width
-  const contentWidth = format.dimensions.width - (format.safeMargin * 2)
-  const cardWidth = contentWidth * 0.485
-  const mapHeight = 90 * format.scaleFactor
+  // Reduce to 4 activities/page when photos are present (cards are taller)
+  const hasPhotos = classified.some(c => c.cardVariant === 'photo')
+  const effectivePerPage = hasPhotos
+    ? Math.min(activitiesPerPage, 4)
+    : activitiesPerPage
+
+  // Slice activities for this page
+  const pageItems = classified.slice(startIndex, startIndex + effectivePerPage)
 
   return (
     <Page
@@ -285,103 +665,45 @@ export const ActivityLog = ({
 
         {/* Activity Cards Grid */}
         <View style={styles.cardsContainer}>
-          {pageActivities.map((activity, index) => {
-            const date = new Date(activity.start_date_local)
-            const dateStr = date.toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-            })
-            const location = resolveActivityLocation(activity)
+          {pageItems.map((item, index) => {
+            const key = item.activity.id || index
 
-            const time = formatTime(activity.moving_time)
-            const pace = formatPace(activity.moving_time, activity.distance, units)
-
-            // Get satellite map URL
-            const mapUrl = getSatelliteMapUrl(activity, mapboxToken, cardWidth * 2, mapHeight * 2)
-            const hasTopEfforts = hasTopBestEfforts(activity)
-
-            return (
-              <View key={activity.id || index} style={styles.activityCard}>
-                {/* Map Section - Satellite with route overlay */}
-                <View style={styles.mapContainer}>
-                  {mapUrl ? (
-                    <PdfImage src={resolveImageForPdf(mapUrl) || mapUrl} />
-                  ) : (
-                    <View style={styles.noMapPlaceholder}>
-                      <Text style={styles.noMapText}>
-                        {activity.sport_type || activity.type || 'Activity'}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Card Content */}
-                <View style={styles.cardContent}>
-                  {/* Header */}
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.activityName}>{activity.name}</Text>
-                    <Text style={styles.activityMeta}>
-                      {dateStr} {location ? `\u2022 ${location}` : ''}
-                    </Text>
-                  </View>
-
-                  {/* Description (truncated) */}
-                  {activity.description && (
-                    <Text style={styles.description}>
-                      {activity.description.length > 80
-                        ? activity.description.substring(0, 80) + '...'
-                        : activity.description
-                      }
-                    </Text>
-                  )}
-
-                  {/* Key Stats */}
-                  <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>
-                        {formatDistanceValue(activity.distance, units)}
-                      </Text>
-                      <Text style={styles.statLabel}>{units === 'metric' ? 'km' : 'mi'}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{time}</Text>
-                      <Text style={styles.statLabel}>time</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{pace}</Text>
-                      <Text style={styles.statLabel}>pace</Text>
-                    </View>
-                    {activity.total_elevation_gain > 0 && (
-                      <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{Math.round(activity.total_elevation_gain)}</Text>
-                        <Text style={styles.statLabel}>m</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Social/Engagement Row */}
-                  {((activity.kudos_count || 0) > 0 || (activity.comment_count || 0) > 0 || hasTopEfforts) && (
-                    <View style={styles.socialRow}>
-                      <View style={{ flexDirection: 'row' }}>
-                        {(activity.kudos_count || 0) > 0 && (
-                          <Text style={[styles.kudos, { marginRight: spacing.xs }]}>
-                            {activity.kudos_count} kudos
-                          </Text>
-                        )}
-                        {(activity.comment_count || 0) > 0 && (
-                          <Text style={styles.comments}>
-                            {activity.comment_count} comments
-                          </Text>
-                        )}
-                      </View>
-                      {hasTopEfforts && (
-                        <Text style={styles.prBadge}>PR</Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              </View>
-            )
+            switch (item.cardVariant) {
+              case 'photo':
+                return (
+                  <PhotoCard
+                    key={key}
+                    classified={item}
+                    styles={styles}
+                    spacing={spacing}
+                    units={units}
+                    mapboxToken={mapboxToken}
+                    format={format}
+                  />
+                )
+              case 'route':
+                return (
+                  <RouteCard
+                    key={key}
+                    classified={item}
+                    styles={styles}
+                    spacing={spacing}
+                    units={units}
+                    mapboxToken={mapboxToken}
+                    format={format}
+                  />
+                )
+              case 'indoor':
+                return (
+                  <IndoorCard
+                    key={key}
+                    classified={item}
+                    styles={styles}
+                    spacing={spacing}
+                    units={units}
+                  />
+                )
+            }
           })}
         </View>
       </View>

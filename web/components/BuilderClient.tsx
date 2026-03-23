@@ -82,6 +82,12 @@ export default function BuilderClient({
     const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
     const [bookModalOpen, setBookModalOpen] = useState(false)
     const [periodPdfModalOpen, setPeriodPdfModalOpen] = useState(false)
+    const [onboardingDismissed, setOnboardingDismissed] = useState(true) // default true to avoid flash
+
+    // Check localStorage for onboarding dismissal
+    useEffect(() => {
+        setOnboardingDismissed(localStorage.getItem('strava-book-onboarding-dismissed') === 'true')
+    }, [])
 
     // Load activities for selected athlete when in admin mode
     useEffect(() => {
@@ -203,6 +209,42 @@ export default function BuilderClient({
             <Header userName={athleteName} />
 
             <main className="min-h-screen bg-stone-50 text-stone-900 p-8">
+                {/* Onboarding welcome banner */}
+                {!onboardingDismissed && (
+                    <div className="max-w-6xl mx-auto mb-6">
+                        <div className="bg-white border border-orange-200 rounded-xl p-6 shadow-sm">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-xl font-bold text-stone-800 mb-4">Ready to build your book?</h2>
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">1</span>
+                                            <span className="text-sm text-stone-600">Set your date range</span>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">2</span>
+                                            <span className="text-sm text-stone-600">Review your activities</span>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center">3</span>
+                                            <span className="text-sm text-stone-600">Click &quot;Generate Book&quot;</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        localStorage.setItem('strava-book-onboarding-dismissed', 'true')
+                                        setOnboardingDismissed(true)
+                                    }}
+                                    className="flex-shrink-0 ml-4 px-4 py-1.5 text-sm font-medium text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Strava connection warning */}
                 {stravaError && (
                     <div className="max-w-6xl mx-auto mb-4">
@@ -212,7 +254,6 @@ export default function BuilderClient({
                             </svg>
                             <span>
                                 Strava connection issue. Showing {cachedCount || 0} cached activities.
-                                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route requires full page navigation */}
                                 <a href="/signin" className="ml-2 underline font-medium">Re-connect Strava</a>
                             </span>
                         </div>
@@ -295,7 +336,11 @@ export default function BuilderClient({
 
                     <div className="flex justify-between items-center mb-6">
                         <div className="text-sm font-mono bg-stone-200 px-3 py-1 rounded inline-block">
-                            Found {activities.length} activities
+                            {activities.length} activities
+                            {(() => {
+                                const raceCount = activities.filter(a => a.workout_type === 1).length
+                                return raceCount > 0 ? ` including ${raceCount} race${raceCount !== 1 ? 's' : ''}` : ''
+                            })()}
                             {isViewingOtherUser && ' (cached)'}
                         </div>
 
@@ -310,6 +355,15 @@ export default function BuilderClient({
                         )}
                     </div>
                 </div>
+
+                {activities.length === 0 && !loading && (
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center py-16 bg-white rounded-xl border border-stone-200">
+                            <p className="text-stone-500 text-lg mb-2">No activities found in this date range.</p>
+                            <p className="text-stone-400 text-sm">Try adjusting your dates or click Reset to restore defaults.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {activities.map((activity) => {
