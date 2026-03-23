@@ -114,7 +114,7 @@ export default async function BuilderPage() {
     let stravaError = false
 
     // Load cached activities first (fast, always works)
-    if (!isMockAuth && athleteId) {
+    if (athleteId) {
         try {
             const cached = await getCachedActivitiesForAthlete(athleteId)
             cachedActivities = cached
@@ -137,8 +137,12 @@ export default async function BuilderPage() {
     // Try to fetch fresh activities from Strava
     try {
         if (isMockAuth) {
-            // Use mock activities for e2e testing
-            activities = getMockActivities()
+            // Use cached activities if available, fall back to mock data for e2e
+            if (cachedActivities.length > 0) {
+                activities = cachedActivities
+            } else {
+                activities = getMockActivities()
+            }
         } else {
             const { data: freshActivities } = await cachedStrava.getAthleteActivities(accessToken, athleteId, { perPage: 200 })
             // Merge fresh with cached

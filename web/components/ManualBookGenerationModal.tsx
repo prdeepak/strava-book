@@ -106,9 +106,10 @@ export default function ManualBookGenerationModal({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [scoresMarkdown, setScoresMarkdown] = useState<string | null>(null)
 
-  // Reset state when modal opens
+  // Reset state when modal first opens (track previous isOpen to detect open transition)
+  const [prevIsOpen, setPrevIsOpen] = useState(false)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpen) {
       setStep('dates')
       setFetchProgress({ phase: 'idle', total: 0, completed: 0, message: '' })
       setGeneratedData(null)
@@ -130,7 +131,9 @@ export default function ManualBookGenerationModal({
         bookName: generatePeriodName(new Date(dates.startDate), new Date(dates.endDate), activities),
       }))
     }
-  }, [isOpen, initialActivities, getInitialDateRange, pdfUrl, filterActivitiesByDate])
+    setPrevIsOpen(isOpen)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   const filteredActivities = filterActivitiesByDate(
     initialActivities,
