@@ -113,8 +113,9 @@ function readLocalImageAsBase64(filePath: string): string | null {
  * This function handles:
  * 1. External HTTP(S) URLs -> returns the URL (react-pdf can fetch these)
  * 2. Absolute file paths -> returns the path (react-pdf can read these)
- * 3. Relative paths starting with 'photos/' -> resolves to fixture photos directory
- * 4. API proxy URLs -> extracts original URL and returns it for direct fetch
+ * 3. Cache photo URLs (cache-photo://<file>) -> resolves to .cache/strava/photos/
+ * 4. Relative paths starting with 'photos/' -> resolves to fixture photos directory
+ * 5. API proxy URLs -> extracts original URL and returns it for direct fetch
  *
  * @param url The image URL or path
  * @param basePath Optional base path for resolving relative paths
@@ -134,6 +135,18 @@ export function resolveImageForPdf(
   // HTTP(S) URLs - react-pdf can fetch these directly
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url
+  }
+
+  // Cache-relative photo path from Strava export import
+  // Format: cache-photo://<filename>
+  if (url.startsWith('cache-photo://') && isServer && fs && path) {
+    const filename = url.replace('cache-photo://', '')
+    const cachePath = path.join(process.cwd(), '.cache', 'strava', 'photos', filename)
+    if (fs.existsSync(cachePath)) {
+      return cachePath
+    }
+    console.warn(`[pdf-image-loader] Cache photo not found: ${cachePath}`)
+    return null
   }
 
   // API proxy URL - extract the original URL
