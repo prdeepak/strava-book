@@ -110,8 +110,6 @@ export const SportIcon = ({ sport, size, color }: SportIconProps) => {
   const strokeWidth = Math.max(1.5, size / 10)
 
   // All icons designed for 24x24 viewBox, scaled to size
-  const scale = size / 24
-
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {category === 'Run' && (
@@ -477,7 +475,7 @@ export const HeatmapCalendarMonth = ({
   theme = DEFAULT_THEME,
   cellSize: propCellSize,
   showMonthLabel = true,
-  showWeekdayLabels = false,
+  showWeekdayLabels: _showWeekdayLabels,
   colorBy = 'distance',
   maxValue: propMaxValue,
 }: HeatmapCalendarMonthProps) => {
@@ -668,7 +666,7 @@ export const BubbleCalendarMonth = ({
 
       {/* Bubble grid */}
       <View style={{ position: 'relative', height: gridHeight }}>
-        {days.map(({ day, dayOfWeek, weekRow, primaryActivity, allActivities }) => {
+        {days.map(({ day, dayOfWeek, weekRow, primaryActivity }) => {
           const x = dayOfWeek * (cellSize + cellGap)
           const y = weekRow * (cellSize + cellGap + (showActivityNames ? 10 * format.scaleFactor : 0))
 

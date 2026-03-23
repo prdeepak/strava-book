@@ -8,7 +8,7 @@
  * 4. Each photo fills one cell with proper aspect-fill
  */
 
-import { View, Text, StyleSheet } from '@react-pdf/renderer'
+import { View, StyleSheet } from '@react-pdf/renderer'
 import { PdfImage } from './PdfImage'
 import { DEFAULT_THEME } from '@/lib/book-types'
 
@@ -45,12 +45,6 @@ interface LayoutCell {
   rowSpan: number
   /** Number of columns this cell spans */
   colSpan: number
-}
-
-interface GridLayout {
-  rows: number
-  cols: number
-  cells: LayoutCell[]
 }
 
 /**

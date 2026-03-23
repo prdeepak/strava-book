@@ -12,11 +12,9 @@ import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { BookDocument, computeYearSummary, getCategoryForType } from '@/components/templates/BookDocument'
+import { BookDocument, computeYearSummary } from '@/components/templates/BookDocument'
 import { FORMATS, DEFAULT_THEME } from '@/lib/book-types'
-import { BookEntry } from '@/lib/curator'
 import { StravaActivity } from '@/lib/strava'
-import { TOCEntry } from '@/components/templates/TableOfContents'
 import { generateBookEntries, findCoverPhotosFromActivities } from '@/lib/book-entry-generator'
 
 // Register fonts
@@ -99,7 +97,7 @@ async function loadActivitiesFromCache(cacheDir: string): Promise<StravaActivity
         }
 
         activities.push(activity)
-      } catch (e) {
+      } catch {
         console.warn(`  Warning: Could not parse ${file}`)
       }
     }
@@ -246,22 +244,6 @@ async function generateBookFromCache(): Promise<void> {
   const format = FORMATS['10x10']
   const theme = DEFAULT_THEME
   const yearSummary = computeYearSummary(activities, year)
-
-  // Build TOC entries
-  const tocEntries: TOCEntry[] = entries
-    .filter(entry =>
-      entry.type !== 'COVER' &&
-      entry.type !== 'TABLE_OF_CONTENTS' &&
-      entry.type !== 'ACTIVITY_LOG' &&
-      entry.type !== 'BLANK_PAGE' &&
-      entry.type !== 'BACK_COVER'
-    )
-    .map(entry => ({
-      title: entry.title || entry.type,
-      pageNumber: entry.pageNumber || 0,
-      type: entry.type,
-      category: getCategoryForType(entry.type),
-    }))
 
   const renderStart = Date.now()
   const pdfBuffer = await renderToBuffer(

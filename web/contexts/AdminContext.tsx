@@ -45,14 +45,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Load state from localStorage on mount (client-side only)
   // This is a legitimate pattern for hydrating state from external storage
+  /* eslint-disable react-hooks/set-state-in-effect -- Hydrating from localStorage on mount is intentional */
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const state: StoredAdminState = JSON.parse(stored)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAdminModeState(state.adminMode)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedAthleteIdState(state.selectedAthleteId)
       }
     } catch {
@@ -60,6 +59,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
     setInitialized(true)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Persist state to localStorage when it changes
   useEffect(() => {

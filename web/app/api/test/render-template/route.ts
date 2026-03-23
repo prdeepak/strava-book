@@ -22,19 +22,6 @@ import { ActivityLogDocument } from '@/components/templates/ActivityLog'
 import { BackCover } from '@/components/templates/BackCover'
 import { Foreword } from '@/components/templates/Foreword'
 import { TableOfContents } from '@/components/templates/TableOfContents'
-import rawActivitiesJson from '@/lib/testing/fixtures/raw-activities.json'
-import * as path from 'path'
-
-// Resolve photo paths in fixtures to absolute paths
-function resolveFixturePhotoPaths<T>(fixture: T): T {
-  const fixturesDir = path.join(process.cwd(), 'lib/testing/fixtures')
-  const json = JSON.stringify(fixture)
-  const resolved = json.replace(/"(photos\/[^"]+)"/g, (_match, relativePath) => {
-    const absolutePath = path.join(fixturesDir, relativePath)
-    return `"${absolutePath}"`
-  })
-  return JSON.parse(resolved)
-}
 
 // Minimal test activity
 const TEST_ACTIVITY = {
@@ -183,25 +170,6 @@ const TEST_RICH_ACTIVITY = {
     streams: {},
     fetchedAt: '2024-04-15T20:00:00Z',
   },
-}
-
-// Minimal activity for testing minimal variant
-const TEST_MINIMAL_ACTIVITY = {
-  id: 99999002,
-  name: 'Local 10K',
-  type: 'Run',
-  sport_type: 'Run',
-  distance: 10000,
-  moving_time: 3000,
-  elapsed_time: 3100,
-  total_elevation_gain: 45,
-  start_date: '2024-06-15T08:00:00Z',
-  start_date_local: '2024-06-15T08:00:00Z',
-  timezone: '(GMT+00:00) UTC',
-  kudos_count: 2,
-  map: { id: 'a99999002', summary_polyline: 'kqbjGbducNoBCiKtBoDOqF', resource_state: 2 },
-  workout_type: 1,
-  comprehensiveData: { photos: [], comments: [], streams: {}, fetchedAt: '2024-06-15T12:00:00Z' },
 }
 
 // Template registry with component and default props

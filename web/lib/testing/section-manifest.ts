@@ -264,7 +264,7 @@ function buildMagazineManifest(activity: StravaActivity): SectionManifestPage[] 
  * Map Hero variant — RaceSectionMapHero.tsx
  * Fixed: 1 page always.
  */
-function buildMapHeroManifest(activity: StravaActivity): SectionManifestPage[] {
+function buildMapHeroManifest(_activity: StravaActivity): SectionManifestPage[] {
   return [
     makePage(0, 'hero', {
       hasMap: true,

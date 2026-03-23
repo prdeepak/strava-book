@@ -18,7 +18,7 @@
 import { Page, View, Text, StyleSheet, Document } from '@react-pdf/renderer'
 import { BookFormat, BookTheme, ActivityLogVariant, DEFAULT_THEME, FORMATS } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
-import { resolveActivityLocation, getMapboxLightUrl, hasRouteData, isIndoorActivity, getRelevantStats } from '@/lib/activity-utils'
+import { resolveActivityLocation, getMapboxLightUrl, hasRouteData, getRelevantStats } from '@/lib/activity-utils'
 import { resolveTypography, resolveSpacing } from '@/lib/typography'
 import { resolveImageForPdf } from '@/lib/pdf-image-loader'
 import { PdfImage } from '@/components/pdf/PdfImage'

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { renderToBuffer, Document } from '@react-pdf/renderer'
+import { renderToBuffer } from '@react-pdf/renderer'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { BookFormat, BookTheme, FORMATS, DEFAULT_THEME } from '@/lib/book-types'
 import { StravaActivity } from '@/lib/strava'
 import { normalizeFontName } from '@/lib/ai-validation'
 import { PDFDocument as PDFLibDocument } from 'pdf-lib'
-import React from 'react'
 
 // Import templates
 import { YearStats } from '@/components/templates/YearStats'

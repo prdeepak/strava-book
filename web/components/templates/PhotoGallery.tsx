@@ -132,7 +132,6 @@ export const PhotoGallery = ({
 }: PhotoGalleryProps) => {
     const styles = createStyles(format, theme)
     const scale = format.scaleFactor
-    const spacing = resolveSpacing(theme, format)
 
     // Get photos from props or activity
     const photos = photosProp || (activity ? extractPhotos(activity) : [])
@@ -219,7 +218,6 @@ export const PhotoGalleryPage = ({
 }: PhotoGalleryProps) => {
     const styles = createStyles(format, theme)
     const scale = format.scaleFactor
-    const spacing = resolveSpacing(theme, format)
 
     const photos = photosProp || (activity ? extractPhotos(activity) : [])
     const collectionPhotos = toCollectionPhotos(photos)
