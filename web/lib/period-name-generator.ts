@@ -138,10 +138,21 @@ export function getDefaultDateRange(activities: StravaActivity[]): { startDate: 
     const dates = activities.map(a => new Date(a.start_date_local || a.start_date))
     const sorted = dates.sort((a, b) => a.getTime() - b.getTime())
 
-    return {
-        startDate: sorted[0],
-        endDate: sorted[sorted.length - 1]
+    const earliest = sorted[0]
+    const latest = sorted[sorted.length - 1]
+
+    // For large datasets spanning many years, default to most recent 12 months
+    // Users can manually widen the range if they want a multi-year book
+    const monthSpan = (latest.getFullYear() - earliest.getFullYear()) * 12
+                    + (latest.getMonth() - earliest.getMonth())
+    if (monthSpan > 14) {
+        const start = new Date(latest)
+        start.setMonth(start.getMonth() - 12)
+        start.setDate(1)
+        return { startDate: start, endDate: latest }
     }
+
+    return { startDate: earliest, endDate: latest }
 }
 
 /**

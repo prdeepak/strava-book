@@ -8,6 +8,7 @@ import { FOREWORD_MAX_CHARS } from '@/components/templates/Foreword'
 import { generatePeriodName, getDefaultDateRange } from '@/lib/period-name-generator'
 import { getRaces, getMonthlyHighlights } from '@/lib/activity-scoring'
 import PhotoSelector, { extractPhotosFromActivities, PhotoOption, SelectedPhoto } from './PhotoSelector'
+import { findCoverPhotosFromActivities } from '@/lib/book-entry-generator'
 
 interface ManualBookGenerationModalProps {
   activities: StravaActivity[]
@@ -256,6 +257,15 @@ export default function ManualBookGenerationModal({
         enrichedActivities,
         allPhotos,
       })
+
+      // Auto-populate cover photos from activities if not manually set
+      const autoPhotos = findCoverPhotosFromActivities(enrichedActivities)
+      setConfig(prev => ({
+        ...prev,
+        coverPhoto: prev.coverPhoto || (autoPhotos.coverPhoto.url ? autoPhotos.coverPhoto : null),
+        backgroundPhoto: prev.backgroundPhoto || (autoPhotos.backgroundPhoto.url ? autoPhotos.backgroundPhoto : null),
+        backCoverPhoto: prev.backCoverPhoto || (autoPhotos.backCoverPhoto.url ? autoPhotos.backCoverPhoto : null),
+      }))
 
       setFetchProgress({
         phase: 'complete',

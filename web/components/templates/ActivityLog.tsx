@@ -643,14 +643,8 @@ export const ActivityLog = ({
   // Classify activities into card variants
   const classified = classifyActivities(activities)
 
-  // Reduce to 4 activities/page when photos are present (cards are taller)
-  const hasPhotos = classified.some(c => c.cardVariant === 'photo')
-  const effectivePerPage = hasPhotos
-    ? Math.min(activitiesPerPage, 4)
-    : activitiesPerPage
-
-  // Slice activities for this page
-  const pageItems = classified.slice(startIndex, startIndex + effectivePerPage)
+  // Activities are pre-paginated by the book generator — render all that were passed
+  const pageItems = classified
 
   return (
     <Page

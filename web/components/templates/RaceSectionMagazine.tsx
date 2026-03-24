@@ -271,6 +271,7 @@ const TheBriefPage = ({ activity, format, theme }: { activity: StravaActivity; f
                         />
                     </View>
                 )}
+                {(kudos > 0 || dispComments.length > 0) && (
                 <View style={styles.communitySection}>
                     <Text style={styles.sectionTitle}>Community</Text>
                     <Text style={styles.communityHeader}>Support & Comments</Text>
@@ -302,6 +303,7 @@ const TheBriefPage = ({ activity, format, theme }: { activity: StravaActivity; f
                         </View>
                     )}
                 </View>
+                )}
             </View>
         </Page>
     )

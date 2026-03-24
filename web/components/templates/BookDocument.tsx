@@ -549,7 +549,7 @@ export function generateBookEntries(
 
         // 7b. ACTIVITY LOG PAGES for this month (skip if merged into divider)
         if (!mergeIntoMonthlyDivider) {
-            const effectivePerPage = logVariant === 'dense-list' ? 15 : activitiesPerPage
+            const effectivePerPage = logVariant === 'dense-list' ? 15 : 6
             const totalLogPages = Math.ceil(monthNonRaces.length / effectivePerPage)
 
             for (let pageNum = 0; pageNum < totalLogPages; pageNum++) {
@@ -814,7 +814,7 @@ export const BookDocument = ({
                             key={index}
                             activities={pageActivities}
                             startIndex={0}  // Activities are already filtered for this page
-                            activitiesPerPage={entry.activityLogVariant === 'dense-list' ? 15 : perPage}
+                            activitiesPerPage={entry.activityLogVariant === 'dense-list' ? 15 : 6}
                             format={format}
                             theme={theme}
                             mapboxToken={mapboxToken}

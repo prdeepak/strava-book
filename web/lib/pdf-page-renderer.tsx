@@ -22,7 +22,7 @@ import { RaceSectionPages } from '@/components/templates/RaceSection'
 import { MonthlyDividerSpreadPages } from '@/components/templates/MonthlyDividerSpread'
 import { ActivityLog } from '@/components/templates/ActivityLog'
 import { BackCoverPage } from '@/components/templates/BackCover'
-import { calculateActivitiesPerPage } from '@/lib/activity-utils'
+
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -229,7 +229,7 @@ export async function renderEntryAsPdf(
       }
 
       case 'ACTIVITY_LOG': {
-        const perPage = calculateActivitiesPerPage(format)
+        const perPage = entry.activityLogVariant === 'dense-list' ? 15 : 6
         const pageActivities = entry.activityIds
           ? activities.filter(a => entry.activityIds?.includes(a.id))
           : activities.slice(
@@ -245,6 +245,7 @@ export async function renderEntryAsPdf(
               format={format}
               theme={theme}
               mapboxToken={mapboxToken}
+              variant={entry.activityLogVariant || 'grid'}
             />
           </Document>
         )

@@ -1,45 +1,58 @@
-# Task: Self-contained photo cache for Azure deployment
+# Task: Fix book generation issues for demo deployment
 
-## Problem
+## Context
 
-When importing a Strava export via `scripts/import-strava-export.ts`, the photo-mapper stores **absolute file paths** (e.g., `/Users/deepak/bin/strava-book/main/strava-export-deepak/export_112292663/media/photo.jpg`) as photo URLs in `.cache/strava/activities/`. This works locally but breaks in Docker/Azure where the export folder doesn't exist.
+We're preparing a production Docker deployment for celebratemyrace.com so a friend (Dan) can see what a real book looks like. The app runs in demo mode with cached data from a Strava export (987 activities, 449 photos). Book generation works end-to-end but the output has quality issues.
 
-## Solution
+The generated test book is at `web/outputs/2025-race-season.pdf` (508 pages, 288MB).
 
-Two changes make the app self-contained:
+## Issues to fix (priority order)
 
-### 1. `web/lib/import/photo-mapper.ts`
-- Added `copyPhotoToCache()` — copies each photo from the export into `.cache/strava/photos/`
-- Changed the URL stored in the cache from an absolute path to `cache-photo://{filename}`
-- Photos are deduplicated by filename (skips copy if already present)
+### 1. Activity Log pages are nearly empty (CRITICAL)
 
-### 2. `web/lib/pdf-image-loader.ts`
-- Added handler for `cache-photo://` URLs in `resolveImageForPdf()`
-- Resolves `cache-photo://{filename}` to `{cwd}/.cache/strava/photos/{filename}`
-- Existing HTTP URLs (from Strava API) and absolute paths continue to work
+Page ~500 shows "ACTIVITY LOG" header with a single tiny clipped card, rest of the page is blank. This is a rendering bug in the ActivityLog template — cards aren't filling the page.
 
-### No Dockerfile changes needed
-`Dockerfile.prod` already copies `.cache/` into the runner stage, so `.cache/strava/photos/` is included automatically.
+Look at: `web/components/templates/ActivityLog.tsx`
 
-## What to test
+To reproduce: generate a book and check activity log pages (they start around page 88+ based on the TOC).
 
-1. **Import with photo copying**: Run the import and verify photos land in `.cache/strava/photos/`:
-   ```bash
-   cd web
-   npx tsx scripts/import-strava-export.ts \
-     --export-dir=../../strava-export-deepak/export_112292663 \
-     --athlete-id=112292663
-   ls .cache/strava/photos/ | head
-   ```
+### 2. Date range defaults to full export (Jan 2010 - Feb 2026) instead of a sensible range
 
-2. **PDF generation**: Generate a book and verify imported photos render correctly (no broken images).
+The book was generated with all 987 activities spanning 16 years. This causes:
+- 508 pages (way too many)
+- 7+ pages of table of contents
+- Many sparse months from 2010-2015 with 1-2 activities each
+- Monthly training log pages showing 0.0km for most weeks
 
-3. **Existing API photos still work**: Activities with Strava CDN URLs (https://dgtzuqphqg23d.cloudfront.net/...) should be unaffected.
+The modal in `web/components/ManualBookGenerationModal.tsx` gets its default range from `getDefaultDateRange()` in `web/lib/period-name-generator.ts`. For a demo, the range should be something like the most recent 12 months of data (which would be roughly Feb 2025 back to Feb 2024, based on the export ending at Feb 2026).
 
-4. **E2E tests**: `make test-e2e-ci` should pass (these use mock data, not the import path, so they should be unaffected).
+### 3. Empty "Community" section on race stats pages
 
-5. **Docker build** (optional): Build with `Dockerfile.prod` and verify the photos are baked into the image:
-   ```bash
-   docker build -f Dockerfile.prod -t strava-book-test .
-   docker run --rm strava-book-test ls .cache/strava/photos/ | head
-   ```
+Race stats pages (e.g., "The Brief" on page 21) show a "COMMUNITY / Support & Comments" header with nothing below it. Imported data has no comments. The template should hide this section when there are no comments.
+
+Look at: `web/components/templates/RaceSectionStatsPage.tsx` or similar race templates.
+
+### 4. Cover has no photo
+
+The cover page shows a dark gray rectangle instead of a photo. This is expected since no cover photo was selected in the modal — but for the demo, consider auto-selecting the first available photo as a default.
+
+## How to test
+
+```bash
+make web-dev          # Start dev server
+make web-check        # Lint + build
+make test-e2e-ci      # E2e tests (must pass before PR)
+```
+
+To generate a test book, use the builder UI or the script:
+```bash
+cd web && npx tsx scripts/generate-real-book.ts
+```
+
+## Notes
+
+- Focus on issues 1 and 2 — those are the most visible problems for the demo
+- Issue 3 is a nice-to-have polish
+- Issue 4 can be left for the user to select a photo manually
+- The cached data is in `web/.cache/strava/` with photos in `web/.cache/strava/photos/`
+- Don't break e2e tests — they use mock data (3 activities), not the full cache
