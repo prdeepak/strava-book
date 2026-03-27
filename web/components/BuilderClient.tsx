@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { StravaActivity } from '@/lib/strava'
 import { CachedAthleteInfo } from '@/lib/admin'
 import PDFGenerationModal from '@/components/PDFGenerationModal'
@@ -203,6 +204,7 @@ export default function BuilderClient({
         return WORKOUT_TYPES[workoutType] || null
     }
 
+    const router = useRouter()
     const isViewingOtherUser = adminMode && selectedAthleteId && selectedAthleteId !== athleteId
 
     return (
@@ -316,12 +318,20 @@ export default function BuilderClient({
                             </h1>
                             <p className="text-stone-500">Select activities to include in your book</p>
                         </div>
-                        <button
-                            onClick={() => setBookModalOpen(true)}
-                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded shadow hover:from-blue-700 hover:to-indigo-800 transition"
-                        >
-                            Generate Book
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => router.push('/builder/create')}
+                                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold rounded shadow hover:from-blue-700 hover:to-indigo-800 transition"
+                            >
+                                Create Book
+                            </button>
+                            <button
+                                onClick={() => setBookModalOpen(true)}
+                                className="px-4 py-3 border-2 border-stone-300 text-stone-600 font-semibold rounded hover:bg-stone-50 transition"
+                            >
+                                Quick Generate
+                            </button>
+                        </div>
                     </div>
 
                     {/* Date Range Filter */}
